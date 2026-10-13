@@ -1,0 +1,172 @@
+# =====================================================================
+# HARD RULE: no extracted game assets or data in git.
+#
+# This repository contains ONLY code we wrote. Nothing extracted from the
+# .ipa may be committed: no textures, models, tables, terrain, sounds,
+# no decoded/re-encoded copies of them, no JSON dumps of them, and no
+# screenshots of the game rendering them. The decoders are ours; what
+# they read and produce is not.
+#
+# Before committing, run:  python tools/check_no_assets.py
+# See AGENTS.md "Asset hygiene".
+# =====================================================================
+
+# -- game data, in any form -------------------------------------------
+*.ipa
+*.bin
+*.bdae
+*.tbl
+*.tga
+*.pvr
+*.trn
+*.msk
+*.shw
+*.itm
+*.wld
+*.phy
+*.beff
+*.swf
+*.wav
+*.dds
+*.ktx
+*.pkm
+*.astc
+*.plist
+*.nav
+*.terrain
+# The rest of an unpacked .ipa: interface files, string tables, the pack of
+# interface words, and graph and data exports.
+*.nib
+*.strings
+*.bar
+*.graphml
+*.sql
+*.csv
+# .svg is here because an .svg can carry a full base64 raster inside it, which
+# the extension alone will not tell you. Ours are listed as exceptions below.
+*.svg
+
+# -- images and video: screenshots and decoded textures alike ---------
+# Anything visual in this tree is a picture of, or made from, game data.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.mp4
+*.webm
+*.mov
+*.m4v
+*.avi
+*.mkv
+# Narrow, reviewed exceptions, by exact file name. Each is mirrored in
+# ALLOWED in tools/check_no_assets.py and has an entry in
+# docs/IMAGES.md saying who made it and how.
+!client/public/icons/icon-192.png
+!client/public/icons/icon-512.png
+!client/public/icons/icon-512-maskable.png
+!client/public/icons/apple-touch-icon.png
+!client/public/icons/favicon-16.png
+!client/public/icons/favicon-32.png
+
+# -- extracted / dumped data ------------------------------------------
+# data/, Payload/ and extracted/ are where an unpacked .ipa or pack lands.
+data/
+Payload/
+extracted/
+*.glb
+*.gltf
+*.obj
+*.fbx
+*.dump
+scene_check.json
+work/*.json
+work/cache/
+work/shots/
+work/*_out/
+work/tex_check/
+.cache/
+
+# -- other packages, captures, archives, sound and fonts ---------------
+# Fonts arrive through npm and are copied into the build; none is committed.
+*.apk
+*.pcap
+*.pcapng
+*.har
+*.zip
+*.gz
+*.tgz
+*.bz2
+*.7z
+*.tar
+*.rar
+*.xz
+*.dmg
+*.jar
+*.pak
+*.ogg
+*.mp3
+*.aac
+*.m4a
+*.caf
+*.aif
+*.aiff
+*.flac
+*.mid
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.eot
+*.sqlite
+
+# -- secrets -----------------------------------------------------------
+.env
+.env.*
+
+# -- build and tooling -------------------------------------------------
+__pycache__/
+*.pyc
+node_modules/
+dist/
+coverage/
+.pytest_cache/
+*.tsbuildinfo
+*.log
+nul
+# Vite's on-disk dep cache. Regenerated on demand and machine-specific.
+.vite/
+client/.vite/
+
+# Local HTTPS dev certs (mkcert). Machine-specific, includes a private key —
+# never shared, never committed. See client/vite.config.ts.
+client/.cert*/
+*.pem
+*.key
+*.crt
+
+# Ad-hoc diagnostic scripts at the repo root are scratch, not deliverables.
+/check_*.py
+/test_skeleton*.py
+
+# Local notes kept beside the scratch scripts. Never committed.
+work/bdae_docs/
+
+# -- local scratch, never committed ------------------------------------
+# work/ and debug/ are derivation scratch: one-off diagnostic scripts full of
+# machine-specific absolute paths (including .ipa filenames). Their conclusions
+# live in client/docs/formats/; the scripts themselves stay local. The portable
+# test suite is client/test/.
+work/
+debug/
+client/dev/zz_*
+.claude/worktrees/
+
+# Editor and OS state, which is not the project's.
+.idea/
+.DS_Store
+
+# Local-only working notes and scanners.
+local/
+SWEEP-CLEANUP.md

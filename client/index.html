@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Ubiquitous Client</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- The page behind everything: --color-chrome-950 in src/ui/styles/theme.css. -->
+    <meta name="theme-color" content="#16120b" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <!-- Safari ignores the manifest for home-screen install; these are what it
+       actually reads. apple-touch-icon must not be transparent -- Safari
+       applies its own squircle mask and fill on top of whatever is here. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ubiquitous" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <!-- Two overlays, not one: #hud is owned by Preact and re-rendered from a
+       signal, #debug-hud is the plain-text diagnostics Hud.ts writes each
+       frame. Sharing an element meant one clobbered the other. -->
+    <div id="hud"></div>
+    <div id="debug-hud"></div>
+    <div id="boot"></div>
+    <script type="module" src="/src/main.ts"></script>
+    <script>
+      // Shell-level PWA plumbing, deliberately kept out of main.ts / Game: the
+      // service worker does nothing but satisfy Chrome's install-prompt check
+      // (see public/sw.js). Requires a secure context (https:// or localhost) --
+      // silently does nothing on a plain http:// LAN address.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

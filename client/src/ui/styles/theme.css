@@ -1,0 +1,844 @@
+/**
+ * The design system: every colour, size, radius, shadow and layer the client
+ * draws with.
+ *
+ * The palette is one family — warm brass, dark stained wood, aged parchment —
+ * and most of it is own choice. The colours that match something seen in
+ * play (item qualities, chat channels, quest levels) are listed with where
+ * each came from in docs/PROVENANCE.md, under "Colours, timings and
+ * distances drawn by the client".
+ *
+ * `@theme` is what makes these Tailwind utilities rather than plain variables:
+ * `--color-brass-400` becomes `bg-brass-400` / `border-brass-400`,
+ * `--shadow-bevel` becomes `shadow-bevel`, `--text-tiny` becomes `text-tiny`.
+ * Components therefore style themselves entirely in utility classes, this file
+ * stays the only place a design value is written down, and the whole set is
+ * discoverable through Tailwind IntelliSense rather than by reading CSS.
+ *
+ * The scales are deliberately short. A step exists because something needs to
+ * be told apart from its neighbour, not because one component happened to use
+ * that number.
+ */
+
+@import 'tailwindcss';
+
+@theme {
+  /* ---------------------------------------------------------------------
+   * Surfaces — stained wood and iron, darkest first. These carry chrome:
+   * window bodies, item slots, tooltips, the page behind everything.
+   *
+   * Four steps: the page, a raised face on it, the lit top of a gradient,
+   * and the line between two of them. Translucency is a modifier
+   * (`bg-chrome-950/85`) rather than its own token, so a dialog and the
+   * panel it sits on are provably the same brown.
+   * ------------------------------------------------------------------ */
+  --color-chrome-950: #16120b;
+  --color-chrome-900: #231711;
+  /* The face of an unpicked tab: dark brown, to be replaced by art. */
+  --color-chrome-800: #352320;
+
+  /* ---------------------------------------------------------------------
+   * Brass — every border, bevel and trim in the set. The bevel language is
+   * always brass-300 catching light on top, brass-600 in shadow beneath.
+   * ------------------------------------------------------------------ */
+  --color-brass-300: #e2c082;
+  --color-brass-400: #cca76c;
+  --color-brass-500: #a8823f;
+  --color-brass-600: #796244;
+
+  /* ---------------------------------------------------------------------
+   * Parchment — the light surfaces, and the light text.
+   *
+   * The HUD is dark chrome and the character screens are aged paper, so this
+   * ramp does double duty: 100 and 200 are *text* read against chrome, 50 to
+   * 700 are *surfaces* with ink read against them. Which end of the ramp a
+   * step belongs to is decided by where it appears in
+   * `test/ui/theme.contrast.test.ts`.
+   * ------------------------------------------------------------------ */
+  --color-parchment-50: #f7ecd4;
+  --color-parchment-100: #f1d9b0;
+  --color-parchment-200: #eccea0;
+  --color-parchment-300: #e8d5ae;
+  --color-parchment-500: #c4a97e;
+  --color-parchment-700: #9b7f55;
+
+  /* ---------------------------------------------------------------------
+   * Ink. `ink-400` is a muted aside on the dark half of the set; `ink-700` and
+   * `ink-900` are body copy and a muted aside on parchment. The name says which
+   * surface the colour is legible against, because that is the only question
+   * a caller ever has.
+   *
+   * "The dark half" is `steel-400`, not `chrome-950`: a roster row and a
+   * button face are both markedly lighter than the page behind them, and a
+   * muted aside is written on all three. The step is tuned to the lightest of
+   * them, so one token stays legible everywhere it is used rather than only on
+   * the surface whoever picked it happened to be looking at.
+   * ------------------------------------------------------------------ */
+  --color-ink-900: #3a2410;
+  --color-ink-700: #5c4326;
+  --color-ink-400: #c1ad94;
+
+  /* Positive and negative text *on parchment*. The status colours below are
+     tuned for dark chrome and wash out completely on a light panel. */
+  --color-ink-success: #2b6119;
+  --color-ink-danger: #9c2318;
+
+  /* ---------------------------------------------------------------------
+   * The screens' own materials.
+   *
+   * `steel-400` is the face a list row takes when it is inert. It is dark on
+   * purpose: the label is the only thing on those rows anyone reads, and on
+   * a mid-grey nothing clears the 4.5:1 floor at all.
+   *
+   * `selected-*` is the deep red the open screen's menu button burns.
+   * ------------------------------------------------------------------ */
+  --color-steel-400: #3c4147;
+  --color-selected-lit: #ad2b1a;
+  --color-selected-shade: #b63b2d;
+
+  /* ---------------------------------------------------------------------
+   * The mailbox's own blue.
+   *
+   * A message in the list is a button, but it wears the mailbox's face
+   * rather than another button's: re-tinting a button must not re-tint the
+   * mail, so it has its own pair under its own name.
+   * These two are the colour the art is laid over, and the colour the
+   * label's contrast is measured against — change them and `surface-btn-mail`
+   * follows. Named for the box rather than for `mail`, which is the art
+   * slot's own last word (`--texture-button-fill-mail`): a colour *family*
+   * called `mail` would make `fill-mail` read as a utility naming a colour
+   * that does not exist, which `designSystem.test.ts` reports.
+   * ------------------------------------------------------------------ */
+  --color-mailbox-lit: #2f5b9e;
+  --color-mailbox-shade: #1e3f73;
+
+  /* A window's own title, on parchment. The dark header strips take
+     `brass-300` — the same gold against the other surface. */
+  --color-title: #8f3d0a;
+
+  /* ---------------------------------------------------------------------
+   * A row's label, by what can be done with the row it names.
+   *
+   * The bright set, for text on a dark face such as `steel-400`.
+   * `ink-success` / `ink-danger` are two of the same three meanings on
+   * parchment.
+   * ------------------------------------------------------------------ */
+  --color-row-ready: #f0d43f;
+  --color-row-active: #7ee05a;
+  --color-row-blocked: #ff9b8c;
+
+  /* ---------------------------------------------------------------------
+   * Status / feedback. Each is also rendered as small text, so these clear
+   * the 4.5:1 text floor rather than the 3:1 one.
+   * ------------------------------------------------------------------ */
+  --color-status-info: #4d9aa4;
+  --color-status-success: #4c9a3a;
+  --color-status-warning: #e0a92a;
+  --color-status-error: #e05a4a;
+  /* What a question picks out of its sentence — the place, the sum — on the
+     message box's black. */
+  --color-ask-pick: #5be04a;
+
+  /* ---------------------------------------------------------------------
+   * What an item is worth, said in colour before it is said in words.
+   *
+   * Epic is lifted a little until it clears 4.5:1 against `chrome-950`; the
+   * rest pass as they are.
+   *
+   * ONE MATERIAL ONLY. These are for item names on dark chrome — a tooltip,
+   * a shop row. There is deliberately no parchment counterpart, and there
+   * cannot be one colour serving both: 4.5:1 on `chrome-950` needs a
+   * relative luminance of at least 0.202 and 3:1 on `parchment-300` allows
+   * at most 0.196, so the two floors do not overlap. On a parchment screen
+   * an item's quality is said in words instead.
+   * ------------------------------------------------------------------ */
+  --color-quality-poor: #888888;
+  --color-quality-common: #ecebec;
+  --color-quality-fine: #00c600;
+  --color-quality-rare: #2b80ff;
+  --color-quality-epic: #9d59f1;
+  --color-quality-artifact: #e16a00;
+
+  /* ---------------------------------------------------------------------
+   * Chat, by channel, on the dark log. Said-aloud lines take
+   * `quality-common`, the same plain white; trade lines take `brass-300`.
+   * `notice` is also the yellow of a quest at your own level.
+   * ------------------------------------------------------------------ */
+  --color-chat-general: #b1e2e5;
+  --color-chat-party: #59bac6;
+  --color-chat-whisper: #a364bc;
+  --color-notice: #dedc60;
+
+  /* ---------------------------------------------------------------------
+   * A quest's name, by how far its level is from yours, on a list row.
+   * At your level is `notice`; far above it is `row-blocked`, the colour of
+   * anything out of reach.
+   * ------------------------------------------------------------------ */
+  --color-quest-trivial: #acacac;
+  --color-quest-easy: #4ec34c;
+  --color-quest-hard: #d1a0a0;
+
+  /* A message that has to be seen now: the banner over the world, and a
+     card's line for what is out of reach. */
+  --color-alert: #fe0000;
+
+  /* ---------------------------------------------------------------------
+   * What a card says about one thing.
+   *
+   * Each line of an item's card is written in one of four colours and the
+   * colour is part of what it says: plain for a plain fact, green for
+   * something gained, red for something out of reach, yellow for the
+   * item's own words. Cyan marks a card standing for what is already
+   * worn rather than what is offered. On dark chrome only, like the
+   * quality colours above and for the same reason.
+   * ------------------------------------------------------------------ */
+  --color-card-plain: var(--color-quality-common);
+  --color-card-gain: var(--color-quality-fine);
+  --color-card-loss: var(--color-alert);
+  --color-card-note: #ffff00;
+  --color-card-worn: #00ffff;
+
+  /* The open tab's own words. The tab under them turns to parchment when
+     it is the one showing, and the words turn with it — left as they are
+     they stay the pale colour drawn for the dark face, on a light one. */
+  --color-tab-open: #330033;
+
+  /* The name of the character a question asks about, in the middle of the
+     box that asks it: magenta, observed in play by the owner. */
+  --color-asked-name: #ff00e6;
+
+  /* Experience: the yellow the pop messages over the hero are written in,
+     bright because it sits straight on the world. */
+  --color-channel-exp: #fae50f;
+
+  /* ---------------------------------------------------------------------
+   * The map: the ground behind the minimap's picture, the colour of what is
+   * drawn on the region map where the build ships no art for it, and the
+   * names of friendly and hostile places, which are written on printed
+   * parchment and so are dark. A neutral place keeps the movie's own colour.
+   * ------------------------------------------------------------------ */
+  --color-map-ground: #263b30;
+  --color-map-travel: #6fc3ff;
+  --color-place-friendly: #17606a;
+  --color-place-hostile: #a82424;
+
+  /* ---------------------------------------------------------------------
+   * Art slots.
+   *
+   * Every surface drawn by this client rather than by the build's own movie
+   * is a *tint plus a texture*. The tints are the colours above; these are
+   * the textures, and they are `none` until art arrives from the player's
+   * files. Set one and every surface wearing it changes at once:
+   *
+   *     :root { --texture-slot: url('/textures/slot.png'); }
+   *
+   * A slot is deliberately the whole `background-image` value rather than a
+   * URL, so a gradient, a layered pair or an `image-set()` all fit without
+   * changing anything here. The `surface-*` utilities below are what apply
+   * them; nothing reads a slot directly.
+   * ------------------------------------------------------------------ */
+  --texture-slot: none;
+
+  /* How a texture is laid down. Overridable for art that is not a tile — a
+     single stretched sheet wants `100% 100%` and `no-repeat`. */
+  --texture-size: auto;
+  --texture-repeat: repeat;
+
+  /* ---------------------------------------------------------------------
+   * The button face.
+   *
+   * Every pressable thing is a nine-sliced brass-and-wood frame around one
+   * of three fills — a light one for a plaque on parchment, a
+   * dark one for a row on chrome, and a burning red one for whichever of
+   * them is picked out. The light frame (`--texture-button-frame`) fronts
+   * the light and burning fills; the dark fill wears its own secondary
+   * frame (`--texture-button-frame-secondary`). There is no gradient tint
+   * layered under the art: the fill photo carries its own colour, so a button's face
+   * changes by swapping which fill it wears, not by mixing a colour into a
+   * shared sheet.
+   *
+   * All of them ship as `none`, like every other art slot. `mountUiTextures`
+   * points a slot at a sprite cut from the player's own game files once one
+   * has been read; until then each face shows its plain tint.
+   * ------------------------------------------------------------------ */
+  --texture-button-frame: none;
+  --texture-button-frame-secondary: none;
+  --texture-button-fill-light: none;
+  --texture-button-fill-dark: none;
+  --texture-button-fill-select: none;
+  --texture-button-fill-mail: none;
+
+  /* A strip of tooled rivets, meant to be tiled along one edge rather than
+     filling a surface — the menu strip lays three copies of it end to end
+     around its top, bottom and right sides. Set by `mountUiTextures` like
+     the slots above. */
+  --texture-leather-border: none;
+
+  /* The touch stick: the ring the thumb moves inside, and the knob under the
+     thumb. Each is one round picture stretched to its box. Set by
+     `mountUiTextures` like the slots above. */
+  --texture-stick-ring: none;
+  --texture-stick-knob: none;
+
+  /* ---------------------------------------------------------------------
+   * Type. The build's own typefaces, read out of the player's game file
+   * and registered under `UbiquitousBody` and `UbiquitousTitle` by `core/lettering.ts`
+   * — never shipped here. `font-chrome` is the face most of the
+   * interface's words are set in; `font-title` the one its headings and
+   * centred captions are set in. Both end in the same fallback: EB
+   * Garamond, self-hosted via `@fontsource/eb-garamond` and imported in
+   * `global.css` so it renders offline and under a strict CSP, then local
+   * serifs. The fallback carries every word until the build's files load,
+   * and any character they have no glyph for. Canvas text uses the same
+   * stacks from `core/lettering.ts`, pinned equal by `lettering.test.ts`.
+   * ------------------------------------------------------------------ */
+  --font-chrome:
+    'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman',
+    serif;
+  --font-title:
+    'UbiquitousTitle', 'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype',
+    'Times New Roman', serif;
+  /* What the document itself, and so every element that inherits, starts
+     in — rather than Tailwind's own sans stack. */
+  --default-font-family: var(--font-chrome);
+
+  /* Two steps below Tailwind's `text-xs`, which the HUD genuinely needs:
+     a keybinding in the corner of a 44px slot has nowhere to put 12px.
+     Everything larger uses Tailwind's own scale (xs/sm/base/lg/xl). */
+  --text-micro: 0.5625rem;
+  --text-micro--line-height: 1;
+  --text-tiny: 0.6875rem;
+  --text-tiny--line-height: 1.2;
+
+  /* ---------------------------------------------------------------------
+   * The notch, the home bar and the rounded corners of a phone, as spacing
+   * values — so `top-safe-t` pins an element to the usable edge and an
+   * ordinary `m-2` puts the gap on top of it. Everything else spaces on
+   * Tailwind's own 4px scale.
+   * ------------------------------------------------------------------ */
+  --spacing-safe-t: env(safe-area-inset-top, 0px);
+  --spacing-safe-r: env(safe-area-inset-right, 0px);
+  --spacing-safe-b: env(safe-area-inset-bottom, 0px);
+  --spacing-safe-l: env(safe-area-inset-left, 0px);
+
+  /* ---------------------------------------------------------------------
+   * Radii. Two steps: a slot and a window. Circles
+   * use `rounded-full`.
+   * ------------------------------------------------------------------ */
+  --radius-chrome-sm: 0.1875rem;
+  --radius-chrome: 0.375rem;
+
+  /* ---------------------------------------------------------------------
+   * Bevels. One physical language reused everywhere: a bright brass edge
+   * along the top inside, a dark one along the bottom, and a cast shadow
+   * outside. Defining them once is what keeps a button, a tab and a slot
+   * reading as the same material.
+   * ------------------------------------------------------------------ */
+  --shadow-bevel:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-brass-300) 55%, transparent),
+    inset 0 -2px 3px 0 rgb(0 0 0 / 0.45), 0 2px 4px 0 rgb(0 0 0 / 0.45);
+  --shadow-frame:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-brass-300) 30%, transparent),
+    0 10px 26px 0 rgb(0 0 0 / 0.55);
+  /* Item slots and bar tracks are holes, not raised faces — light falls the
+     other way round, so they get their own recipe rather than a flipped one. */
+  --shadow-recess:
+    inset 0 2px 6px 0 rgb(0 0 0 / 0.7),
+    inset 0 -1px 0 0 color-mix(in srgb, var(--color-brass-300) 18%, transparent);
+  /* The one "this is picked" glow, for focus rings, a casting slot and a
+     selected slot alike. */
+  --shadow-selected:
+    0 0 0 1px var(--color-brass-300),
+    0 0 9px 1px color-mix(in srgb, var(--color-brass-400) 60%, transparent);
+  /* The open screen's menu button, and the picked side tab: lit from within
+     rather than merely outlined, because it has to read as the one thing on
+     the strip that is currently happening. */
+  --shadow-burning:
+    0 0 12px 0 var(--color-selected-lit),
+    inset 0 0 8px 0 color-mix(in srgb, var(--color-selected-lit) 70%, transparent);
+  /* The same idea for an SVG stroke, which a box shadow cannot follow — the
+     glow on the bus network's legs. */
+  --drop-shadow-glow: 0 0 2px currentcolor;
+
+  /* ---------------------------------------------------------------------
+   * One drop shadow for text drawn straight onto the rendered world —
+   * compass letters, map labels, the combat banner. Being legible over both
+   * grass and stone is one requirement, so it gets one recipe.
+   * ------------------------------------------------------------------ */
+  --text-shadow-world: 0 1px 2px rgb(0 0 0 / 0.95), 0 0 3px rgb(0 0 0 / 0.85);
+  /* A pale halo, for dark words written on printed parchment. In em, so it
+     stays the same share of the letters as the map is zoomed. */
+  --text-shadow-halo:
+    0 0 0.1em var(--color-parchment-50), 0 0 0.1em var(--color-parchment-50),
+    0 0 0.25em color-mix(in srgb, var(--color-parchment-50) 80%, transparent),
+    0 0 0.5em color-mix(in srgb, var(--color-parchment-50) 50%, transparent);
+
+  /* ---------------------------------------------------------------------
+   * Animations. Declared here so they are `animate-*` utilities; the
+   * keyframes themselves live in `components.css` beside the elements that
+   * cannot be styled from a call site.
+   * ------------------------------------------------------------------ */
+  --animate-boot-slide: boot-slide 1.1s ease-in-out infinite alternate;
+  --animate-banner: banner 4s linear forwards;
+  /* The line asking both sides to check a trade breathes rather than
+     sits there: about three quarters of a second each way, from 43% of
+     full brightness up to full and back. */
+  --animate-confirm-pulse: confirm-pulse 1.5s ease-in-out infinite;
+  --animate-slide-in-left: slide-in-left 180ms ease-out;
+  /* A row opened where it stands: what it says grows out from under it. */
+  --animate-unfurl: unfurl 160ms ease-out;
+  /* The marks that say a list runs on do not sit still: each drifts a
+     little way the way it points and back, which is what makes it read as
+     "there is more this way" rather than as an arrow drawn on the frame.
+     Slow and short, so it is noticed without pulling the eye off the list. */
+  --animate-nudge-down: nudge-down 1.6s ease-in-out infinite;
+  --animate-nudge-up: nudge-up 1.6s ease-in-out infinite;
+  /* How big those marks are drawn inside the place the art keeps for them.
+     Full size they are the loudest thing on the screen. Their press area
+     keeps the whole place. */
+  --scale-list-mark: 60%;
+  /* An item's card, growing out of the socket it was opened from. */
+  --animate-scale-in: scale-in 120ms ease-out;
+
+  /* A bar that shows movement without claiming a completion point, for the
+     stretches of booting where nothing can be counted. */
+  @keyframes boot-slide {
+    from {
+      margin-left: -10%;
+    }
+    to {
+      margin-left: 80%;
+    }
+  }
+
+  @keyframes unfurl {
+    from {
+      transform: scaleY(0);
+      opacity: 0;
+    }
+    to {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes nudge-down {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 12%;
+    }
+  }
+
+  @keyframes nudge-up {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -12%;
+    }
+  }
+
+  /* The character window arrives from the edge it lives on. */
+  @keyframes slide-in-left {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 0 0;
+    }
+  }
+
+  /* A card held up against another arrives from the side it stands on —
+     the movement the screen gives it, which is what says the two belong
+     together rather than one having replaced the other. */
+  @keyframes slide-in-from-left {
+    from {
+      opacity: 0;
+      translate: -12% 0;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes slide-in-from-right {
+    from {
+      opacity: 0;
+      translate: 12% 0;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes confirm-pulse {
+    0%,
+    100% {
+      opacity: 0.43;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* A banner holds for the first quarter of its run, then fades. */
+  @keyframes banner {
+    0%,
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
+/**
+ * The HUD's stacking order, as names.
+ *
+ * Tailwind has no z-index theme namespace, so without these the layering model
+ * exists only as bare numbers scattered across the components — and the
+ * question "is a dialog above the map?" has no single place to be answered.
+ * Each step below is a role; anything within a step is ordered by the DOM.
+ */
+@utility z-world {
+  z-index: 0;
+}
+@utility z-hud {
+  z-index: 10;
+}
+/** The saved bars along the bottom edge. */
+@utility z-hud-bar {
+  z-index: 20;
+}
+/** Things that float over the bars: damage numbers, the banner, the minimap. */
+@utility z-hud-float {
+  z-index: 30;
+}
+/** A HUD window that does not block the game — the spell book. */
+@utility z-window {
+  z-index: 40;
+}
+/** The full map, which is the screen while it is open. */
+@utility z-map {
+  z-index: 50;
+}
+/** A modal dialog. Above the map on purpose: a teleport confirm opens *over*
+ * the map that asked for it. */
+@utility z-dialog {
+  z-index: 60;
+}
+@utility z-boot {
+  z-index: 70;
+}
+/** Signing in, which happens over the boot screen it interrupts. */
+@utility z-login {
+  z-index: 75;
+}
+/** Debug chrome, which has to be reachable over a stuck boot screen. */
+@utility z-admin {
+  z-index: 80;
+}
+
+/**
+ * The materials.
+ *
+ * Each is a tint, a fallback shading gradient, and the art slot laid over the
+ * top — one declaration, so a component says `surface-slot` and gets the
+ * whole material rather than assembling it from four utilities and getting the
+ * layer order wrong. `none` is a valid entry in a `background-image` list, so
+ * these are correct before any art exists and correct after.
+ *
+ * Not a rename of anything Tailwind has: `bg-*` sets one layer, and a material
+ * is four properties that have to agree.
+ */
+
+/**
+ * Button frame
+ *
+ * No CSS border is used on the button itself, so the face occupies the
+ * complete button dimensions.
+ */
+@utility border-btn {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 15px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+
+    box-sizing: border-box;
+    border: 15px solid transparent;
+
+    border-image-source: var(--texture-button-frame);
+    border-image-slice: 46 49 43 45;
+    border-image-repeat: round;
+
+    border-radius: 15px;
+
+    pointer-events: none;
+  }
+}
+
+/**
+ * Dark button frame.
+ */
+@utility border-btn-secondary {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 15px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+
+    box-sizing: border-box;
+    border: 15px solid transparent;
+
+    border-image-source: var(--texture-button-frame-secondary);
+    border-image-slice: 46 49 43 45;
+    border-image-repeat: round;
+
+    border-radius: 15px;
+
+    pointer-events: none;
+  }
+}
+
+/**
+ * Light button face.
+ */
+@utility surface-btn-light {
+  position: relative;
+  isolation: isolate;
+
+  background-color: var(--color-parchment-500);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /*
+     * Behind the label, not over it. `isolation: isolate` on the face makes
+     * this negative index stop at the button's own background instead of
+     * sinking through to whatever is under it, so the texture still shows.
+     * At z-index 1 the overlay painted above the button's in-flow text —
+     * unreadable at the dark face's 80% opacity.
+     */
+    z-index: -1;
+
+    border-radius: inherit;
+
+    opacity: 50%;
+
+    background-image: var(--texture-button-fill-light);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+
+    pointer-events: none;
+  }
+}
+
+/**
+ * Dark button face.
+ */
+@utility surface-btn-dark {
+  position: relative;
+  isolation: isolate;
+
+  background-color: var(--color-steel-400);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /*
+     * Behind the label, not over it. `isolation: isolate` on the face makes
+     * this negative index stop at the button's own background instead of
+     * sinking through to whatever is under it, so the texture still shows.
+     * At z-index 1 the overlay painted above the button's in-flow text —
+     * unreadable at the dark face's 80% opacity.
+     */
+    z-index: -1;
+
+    border-radius: inherit;
+
+    opacity: 80%;
+
+    background-image: var(--texture-button-fill-dark);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+
+    pointer-events: none;
+  }
+}
+
+/**
+ * Selected button face.
+ */
+@utility surface-btn-select {
+  position: relative;
+  isolation: isolate;
+
+  background-color: var(--color-selected-shade);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /*
+     * Behind the label, not over it. `isolation: isolate` on the face makes
+     * this negative index stop at the button's own background instead of
+     * sinking through to whatever is under it, so the texture still shows.
+     * At z-index 1 the overlay painted above the button's in-flow text —
+     * unreadable at the dark face's 80% opacity.
+     */
+    z-index: -1;
+
+    border-radius: inherit;
+
+    opacity: 40%;
+
+    background-image: var(--texture-button-fill-select);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+
+    pointer-events: none;
+  }
+}
+
+/**
+ * Mail button face.
+ *
+ * The mailbox's own blue, which the menu's plaque must never re-tint: its own
+ * colour pair and its own art slot, so changing either leaves every other
+ * button alone. The gradient under the art is what carries the label's
+ * contrast — held by `test/ui/theme.contrast.test.ts` at both stops — so the
+ * art can be swapped without re-checking it.
+ */
+@utility surface-btn-mail {
+  position: relative;
+  isolation: isolate;
+
+  background-color: var(--color-mailbox-lit);
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-mailbox-lit),
+    var(--color-mailbox-shade)
+  );
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /*
+     * Behind the label, not over it — the same layering the dark face needs,
+     * and for the same reason: at this opacity an overlay above the text
+     * would make it unreadable.
+     */
+    z-index: -1;
+
+    border-radius: inherit;
+
+    opacity: 80%;
+
+    background-image: var(--texture-button-fill-mail);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+
+    pointer-events: none;
+  }
+}
+
+/**
+ * Button content.
+ *
+ * This puts text/icons above the texture layer but below the frame.
+ */
+@utility border-btn {
+  & > * {
+    position: relative;
+    z-index: 5;
+  }
+}
+
+@utility border-btn-secondary {
+  & > * {
+    position: relative;
+    z-index: 5;
+  }
+}
+
+/** The ring of the touch stick, over whatever tint the stick gives itself. */
+@utility surface-stick-ring {
+  background-image: var(--texture-stick-ring);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/** The knob of the touch stick. */
+@utility surface-stick-knob {
+  background-image: var(--texture-stick-knob);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/** The hole an icon sits in. */
+@utility surface-slot {
+  background-color: var(--color-parchment-300);
+  background-image: var(--texture-slot);
+  background-repeat: var(--texture-repeat);
+  background-size: var(--texture-size);
+}
+
+/**
+ * Animate a bar filling.
+ *
+ * Tailwind's `transition-*` presets cover colour, opacity, transform and
+ * shadow but not `width`, which is what both progress bars in the client
+ * animate.
+ */
+@utility transition-width {
+  transition-property: width;
+  transition-timing-function: var(--default-transition-timing-function);
+  transition-duration: var(--default-transition-duration);
+}
+
+/**
+ * A phone on its side.
+ *
+ * The constraint there is height, not width, so it is not expressible as a
+ * `max-sm:` width query — a landscape phone is *wider* than the breakpoint
+ * and still has 400px of vertical room.
+ */
+@custom-variant short-landscape (@media (orientation: landscape) and (max-height: 500px));

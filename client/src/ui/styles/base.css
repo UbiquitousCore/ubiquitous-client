@@ -1,0 +1,108 @@
+/**
+ * The app shell: the four elements `index.html` provides, and nothing else.
+ *
+ * These are the only rules in the client written against a selector. Everything
+ * a component renders is styled with utilities at the call site, so a class can
+ * never leak between components — but `#view`, `#hud` and `#debug-hud` belong
+ * to the document rather than to any component, and no component mounts early
+ * enough to put a class on them.
+ */
+
+@layer base {
+  html,
+  body {
+    @apply h-full w-full overflow-hidden bg-chrome-950;
+  }
+
+  body {
+    @apply m-0 font-chrome antialiased;
+    /* The build ships its typefaces in one weight. Asked for bold, a
+       browser would smear a thickened copy of it; this draws the one
+       weight there is instead. */
+    font-synthesis: none;
+  }
+
+  #view {
+    /* Pin the drawing surface to the viewport. Using 100% here lets the canvas
+       fall back to its intrinsic 300x150 layout when an ancestor's height is
+       unresolved, which makes the document scroll instead of the game filling
+       the screen. */
+    @apply fixed inset-0 z-world block h-screen max-h-screen w-screen max-w-full;
+    /* The game owns every gesture on the canvas. Without this the browser
+       claims a drag as a scroll or a pinch-zoom and cancels the pointer
+       mid-stroke, which on a phone cancelled the tap that selects a target. */
+    @apply touch-none;
+  }
+
+  #hud {
+    @apply pointer-events-none fixed inset-0 z-hud;
+  }
+
+  /* Diagnostics are deliberately plain — this is the frame-rate readout
+     `Hud` writes each frame, not part of the recreated chrome. Top and
+     centre, clear of the unit frames at the top-left and the minimap at the
+     top-right either side of it. `Hud` itself builds the tiered layout
+     inside; this only places the box. */
+  #debug-hud {
+    @apply pointer-events-none fixed top-safe-t left-1/2 z-hud-float mt-4 -translate-x-1/2;
+    @apply leading-tight;
+  }
+
+  /* One brass scrollbar, everywhere anything scrolls.
+     The browser draws a bar of its own out of the platform's parts, which
+     on any of them is the one thing on screen not dressed like the rest. Brass on a recessed groove is what every other rail in the
+     chrome is, and the same bar serves a quest log, a bag and a panel of
+     words on the screens before the world. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brass-500) var(--color-chrome-900);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--color-chrome-900);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.55);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      to bottom,
+      var(--color-brass-300),
+      var(--color-brass-500) 55%,
+      var(--color-brass-600)
+    );
+    border: 1px solid var(--color-brass-600);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      to bottom,
+      var(--color-brass-300),
+      var(--color-brass-400) 55%,
+      var(--color-brass-500)
+    );
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: var(--color-chrome-900);
+  }
+
+  /* Someone who has asked for less movement gets none of it. Broad on purpose:
+     the point is that no future animation can opt out by being written after
+     this rule. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

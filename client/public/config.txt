@@ -1,0 +1,22 @@
+# Ubiquitous Client Configuration
+# key=value per line, # for comments.
+
+debug=false
+
+# The admin panel: teleport to any zone, walk speed, flight, collision
+# wireframe. Left unset, it shows under `npm run dev` and not in a
+# production build. admin=true or admin=false here decides either way;
+# ?admin=1 or ?admin=0 in the address decides for one session.
+#admin=true
+
+#zone=471
+#log=info
+
+# WebSocket server. The ubiquitous-server repo serves this address in both its modes
+# (`just dev` with editable JSON saves, and `just up` with Postgres in Docker),
+# so the line stays the same either way. When the host is 127.0.0.1 or
+# localhost and the page is opened from another device (a phone on
+# http(s)://192.168.x.x), `npm run dev` forwards the socket to this address
+# from the PC, so the same line works from the phone. The dev server reads
+# this line to know where to forward.
+server=ws://127.0.0.1:8781

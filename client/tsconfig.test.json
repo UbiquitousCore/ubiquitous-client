@@ -1,0 +1,25 @@
+{
+  // Tests, which `tsconfig.json` deliberately leaves out: they are never
+  // emitted, they run in Node rather than the browser, and they build partial
+  // fixtures that only make sense against the full source types.
+  //
+  // `dev/` is NOT here. Those scripts read a `ZoneData` shape the asset layer
+  // no longer produces and do not compile at all; adding them means fixing or
+  // deleting them first, which is its own piece of work.
+  //
+  // Checked all the same. Without this the fixtures drift silently — a literal
+  // that no longer matches the type it stands in for still runs, and the test
+  // goes on passing against a shape the code stopped producing.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // No emit here, so the rootDir constraint that keeps `dist/` flat does not
+    // apply and would only forbid reaching outside `src/`.
+    "rootDir": ".",
+    "noEmit": true,
+    // Node builtins for the fixture loaders, and `.at()`, which every runtime
+    // this project targets has and `target: ES2020` alone does not describe.
+    "types": ["vite/client", "node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src", "test"]
+}

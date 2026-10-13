@@ -1,0 +1,79 @@
+Ubiquitous Client
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+WHAT THIS PROJECT IS
+
+A web client that reads the archives inside a copy of Order & Chaos Online
+that you already own, and renders them in your browser. It reads and decodes
+the user's own files and re-encodes some of them into browser storage for
+reuse. It talks to a server of this project's own for multiplayer state.
+
+WHAT THIS REPOSITORY CONTAINS
+
+This repository contains only source code, documentation and this project's
+own original artwork. It does not contain, and does not distribute, any game
+binary, model, texture, audio, table, interface movie or other game asset
+file. See AGENTS.md and tools/check_no_assets.py: run it before committing; CI
+runs it on every PR and push to main.
+
+Some identifiers, interface words and file-format facts that appear in the
+source and documentation are read from the user's own game files or describe
+their structure. Where a word or sentence from the game's interface is
+reproduced, it is used only to identify the corresponding entry in the user's
+own copy. This project claims no rights in any of it; docs/PROVENANCE.md lists
+the file-format and protocol facts this client relies on.
+
+WHAT IT IS NOT
+
+This project is not affiliated with, endorsed by, or connected to Gameloft SE
+or any of its subsidiaries. Nothing in this repository renders anything
+without a copy of the game supplied by the person running it.
+
+RUNTIME PROCESSING
+
+To work, the software reads, copies, decodes, transforms and executes material
+from the user's own game files, on the user's own device. That material never
+leaves the device and is never uploaded to a server this project runs. The
+extent of this processing is described in README.md and docs/PROVENANCE.md.
+
+"Order & Chaos Online" and all related names, marks and logos are the property
+of their respective owners. They are used here only to say which game files
+this software reads, which is nominative use; no claim of ownership or
+affiliation is made or implied.
+
+IF YOU OWN THIS PROPERTY
+
+If you believe anything in this repository oversteps, please open an issue or
+contact the maintainer. The intent is a compatible reader and renderer, not a
+substitute for or a redistribution of anything you publish, and anything that
+turns out to be the latter will be removed.
+
+THIRD-PARTY SOFTWARE
+
+Dependencies are installed from npm and are not vendored here. Their
+licences travel with those packages and apply to them, not to this source
+tree.
+
+What a production build ships (client/dist/):
+
+- three: MIT.
+- preact: MIT.
+- @preact/signals and @preact/signals-core: MIT.
+- Vite's module-preload helper, which Vite adds to every build: MIT.
+- tailwindcss 4.3.3: MIT. The build's stylesheet carries Tailwind's base
+  styles and the utility classes this client uses, with Tailwind's licence
+  line at its head.
+- @fontsource/eb-garamond, the EB Garamond font files: SIL Open Font
+  License 1.1. The build copies the licence beside them, as
+  assets/EB-Garamond-OFL.txt, and fails if it cannot.
+
+Used only to build and test, nothing of them ships: packages under MIT, ISC,
+BSD-2-Clause, BSD-3-Clause and Apache-2.0, plus:
+
+- lightningcss: MPL-2.0. A build-time CSS tool, used unmodified.
+- caniuse-lite: CC-BY-4.0. Browser-support data.
+- tslib: 0BSD. Inside Tailwind's WebAssembly fallback, which npm installs
+  only on platforms with no native Tailwind build.
+
+Run `npm ls --all` in client/ for the current set.

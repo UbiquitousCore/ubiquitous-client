@@ -1,0 +1,35 @@
+/**
+ * The stylesheet, and the only one the app imports.
+ *
+ * Two files, in this order:
+ *
+ *   theme.css   the design system — tokens, layer names, custom variants
+ *   base.css    the app shell, which belongs to `index.html` rather than to
+ *               any component
+ *
+ * There is deliberately no `components.css`. Everything the client draws is
+ * styled with Tailwind utilities at the point it is written — including the
+ * few overlays built with `document.createElement`, which assign the same
+ * utility strings to `className`. A third file here would be somewhere for
+ * component CSS to accumulate again.
+ */
+
+/* The fallback lettering, drawn until the build's own typefaces load and
+   for any character they lack (see `--font-chrome` in theme.css).
+   Self-hosted, not fetched from fonts.googleapis.com: the client has to
+   render correctly offline and under a strict CSP. */
+@import '@fontsource/eb-garamond/400.css';
+@import '@fontsource/eb-garamond/700.css';
+@import './theme.css';
+@import './base.css';
+
+/**
+ * Where classes are written.
+ *
+ * Named rather than left to automatic detection because two of the sources are
+ * `.ts` files that build their DOM by hand — the boot screen, the admin panel,
+ * the touch joystick — and `dev/` is outside the app entry's import graph
+ * entirely. Naming them also tells Tailwind IntelliSense where to look.
+ */
+@source '../../../src';
+@source '../../../dev';

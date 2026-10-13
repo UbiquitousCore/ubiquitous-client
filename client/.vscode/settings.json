@@ -1,0 +1,26 @@
+{
+  // Where the design system is declared. Tailwind IntelliSense reads this to
+  // work out what `bg-brass-400`, `text-tiny` and `z-dialog` mean, so the
+  // token set autocompletes instead of having to be looked up in the CSS.
+  "tailwindCSS.experimental.configFile": "src/ui/styles/global.css",
+
+  // The overlays that predate Preact build their DOM with `createElement` and
+  // put the same utility strings on `className`, and `cx(...)` is where the
+  // components assemble theirs. Without these, IntelliSense goes quiet in
+  // exactly the files most likely to invent a value.
+  "tailwindCSS.classFunctions": ["cx"],
+  "tailwindCSS.experimental.classRegex": [
+    ["className\\s*=\\s*[`'\"]([^`'\"]*)[`'\"]", "([^`'\"]*)"],
+    ["class=\\\\?[\"']([^\"']*)", "([^\"']*)"],
+    [
+      "(?:BASE|VARIANT|SIZE|FIELD|LABEL|SELECT|BUTTON|HEADER|HINT|ROW|CHECK|NUB|OVER_MAP)\\s*[:=]\\s*[`'\"]([^`'\"]*)[`'\"]",
+      "([^`'\"]*)"
+    ]
+  ],
+
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

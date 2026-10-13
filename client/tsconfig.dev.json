@@ -1,0 +1,18 @@
+{
+  // Dev pages we actively keep working, checked separately from tests.
+  // These are Vite-served tools documented in AGENTS.md.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": ["vite/client", "node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "src",
+    "dev/front.tsx",
+    "dev/hud-lab.tsx",
+    "dev/screen-gallery.tsx",
+    "dev/sound.tsx"
+  ]
+}

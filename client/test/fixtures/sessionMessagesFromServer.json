@@ -1,0 +1,393 @@
+{
+  "characters.listed": {
+    "characters": [
+      {
+        "guid": "char-a",
+        "name": "Ayla",
+        "level": 3,
+        "gender": 1,
+        "race": 0,
+        "class": 3,
+        "displayInfoId": 90501,
+        "appearance": {
+          "skin": 1,
+          "hairStyle": 2,
+          "hairColour": 3,
+          "face": 4
+        },
+        "mapId": 1,
+        "position": {
+          "x": 2,
+          "y": 7,
+          "z": 55
+        },
+        "equipment": [0, 0, 0, 0, 90001],
+        "xp": 120,
+        "xpToLevel": 400
+      }
+    ],
+    "races": [0, 1, 2]
+  },
+  "world.entered": {
+    "map": 1,
+    "pos": {
+      "x": 2,
+      "y": 7,
+      "z": 55
+    },
+    "self": "player:char-a",
+    "auras": [
+      {
+        "spellId": 90103,
+        "casterId": "player:char-a",
+        "harmful": 0,
+        "maxDuration": 30000,
+        "remaining": 4200
+      }
+    ]
+  },
+  "entity.spawned": {
+    "networkId": "Creature:40",
+    "entry": 90801,
+    "position": {
+      "x": 10.5,
+      "y": 2,
+      "z": -20.25
+    },
+    "yaw": 0,
+    "level": 4,
+    "health": 58,
+    "maxHealth": 80,
+    "faction": 2,
+    "auras": [
+      {
+        "spellId": 90102,
+        "casterId": "player:char-b",
+        "harmful": 1,
+        "maxDuration": 10000,
+        "remaining": 6500
+      },
+      {
+        "spellId": 90104,
+        "casterId": "Creature:40",
+        "harmful": 0,
+        "maxDuration": 0,
+        "remaining": 0
+      }
+    ]
+  },
+  "spell.book": {
+    "spells": [90101, 90102],
+    "actionBar": [
+      {
+        "bar": "primary",
+        "slot": 0,
+        "id": 90101,
+        "type": 0
+      },
+      {
+        "bar": "shortcut",
+        "slot": 1,
+        "id": 90102,
+        "type": 0
+      }
+    ]
+  },
+  "actionBar.assigned": {
+    "bar": "primary",
+    "slot": 2,
+    "id": 90102,
+    "type": 0
+  },
+  "player.updated": {
+    "changed": {
+      "level": 3,
+      "health": 181,
+      "maxHealth": 181,
+      "power": 100,
+      "maxPower": 100,
+      "xp": 120,
+      "xpToNextLevel": 400,
+      "gold": 5000
+    }
+  },
+  "player.expGained": {
+    "amount": 35,
+    "levelUp": false
+  },
+  "talent.state": {
+    "points": 3,
+    "ranks": [
+      {
+        "talentId": 90701,
+        "rank": 2
+      },
+      {
+        "talentId": 90702,
+        "rank": 1
+      }
+    ]
+  },
+  "talent.refused": {
+    "talentId": 90703,
+    "reason": "tierLocked"
+  },
+  "attack.meleeStart": {
+    "attackerId": "player:char-a",
+    "targetId": "Creature:40"
+  },
+  "attack.swingResult": {
+    "attackerId": "player:char-a",
+    "targetId": "Creature:40",
+    "outcome": "critical",
+    "damage": 42,
+    "finalHealth": 58,
+    "hand": "off"
+  },
+  "spell.outcome": {
+    "casterId": "player:char-b",
+    "targetId": "player:char-a",
+    "spellId": 90102,
+    "result": "hit",
+    "damage": 0,
+    "finalHealth": 181,
+    "absorbed": 20
+  },
+  "unit.died": {
+    "networkId": "Creature:40",
+    "pos": {
+      "x": 10.5,
+      "y": 2,
+      "z": -20.25
+    }
+  },
+  "party.inviteSent": {
+    "networkId": "player:char-b",
+    "name": "Kael"
+  },
+  "party.invited": {
+    "networkId": "player:char-a",
+    "name": "Ayla"
+  },
+  "party.voteKickAsked": {
+    "initiatorId": "player:char-b",
+    "initiatorName": "Kael",
+    "targetId": "player:char-a",
+    "targetName": "Ayla"
+  },
+  "party.voteKickRefused": {
+    "memberId": "player:char-b",
+    "memberName": "Kael",
+    "initiatorId": "player:char-a",
+    "initiatorName": "Ayla"
+  },
+  "party.voteKickEnded": {
+    "targetId": "player:char-b",
+    "targetName": "Kael",
+    "passed": true
+  },
+  "party.roster": {
+    "partyId": "7",
+    "members": [
+      {
+        "networkId": "player:char-a",
+        "name": "Ayla",
+        "isLeader": true,
+        "online": true
+      },
+      {
+        "networkId": "player:char-b",
+        "name": "Kael",
+        "isLeader": false,
+        "online": false
+      }
+    ]
+  },
+  "duel.challenged": {
+    "fromId": "player:char-a"
+  },
+  "quest.statuses": {
+    "statuses": [
+      {
+        "networkId": "Creature:12",
+        "status": "offered"
+      }
+    ]
+  },
+  "quest.details": {
+    "giverId": "Creature:12",
+    "id": 90601,
+    "titleStringId": 90602,
+    "detailsStringId": 90603,
+    "status": "offered",
+    "minLevel": 1,
+    "rewards": [
+      {
+        "entry": 90001,
+        "nameTextId": 90401,
+        "quality": 2,
+        "count": 1
+      }
+    ],
+    "rewardChoices": [],
+    "rewardMoney": 250,
+    "objectives": [
+      {
+        "index": 0,
+        "killed": 1,
+        "triggered": 0,
+        "held": 0,
+        "objectiveItem": 0,
+        "objectiveItemCount": 0,
+        "goalCount": 4,
+        "objectiveStringId": 90201
+      }
+    ]
+  },
+  "quest.updated": {
+    "id": 90601,
+    "titleStringId": 90602,
+    "detailsStringId": 90603,
+    "status": "underway",
+    "slot": 0,
+    "readyToHandIn": false,
+    "objectives": [
+      {
+        "index": 0,
+        "killed": 2,
+        "triggered": 0,
+        "held": 0,
+        "objectiveItem": 0,
+        "objectiveItemCount": 0,
+        "goalCount": 4,
+        "objectiveStringId": 90201
+      }
+    ],
+    "counters": [
+      {
+        "index": 0,
+        "kind": "killed",
+        "count": 2
+      }
+    ],
+    "guideZones": [
+      {
+        "id": 90301,
+        "mapId": 1,
+        "x": 10.5,
+        "y": 2,
+        "z": -20.25,
+        "radius": 8
+      }
+    ]
+  },
+  "quest.log": {
+    "quests": [
+      {
+        "id": 90601,
+        "titleStringId": 90602,
+        "detailsStringId": 90603,
+        "status": "underway",
+        "slot": 0,
+        "readyToHandIn": false,
+        "objectives": [
+          {
+            "index": 0,
+            "killed": 1,
+            "triggered": 0,
+            "held": 0,
+            "objectiveItem": 0,
+            "objectiveItemCount": 0,
+            "goalCount": 4,
+            "objectiveStringId": 90201
+          }
+        ],
+        "minLevel": 1,
+        "rewards": [
+          {
+            "entry": 90001,
+            "nameTextId": 90401,
+            "quality": 2,
+            "count": 1
+          }
+        ],
+        "rewardChoices": [],
+        "rewardMoney": 250,
+        "guideZones": [
+          {
+            "id": 90301,
+            "mapId": 1,
+            "x": 10.5,
+            "y": 2,
+            "z": -20.25,
+            "radius": 8
+          }
+        ]
+      },
+      {
+        "id": 90611,
+        "titleStringId": 90612,
+        "detailsStringId": 90613,
+        "status": "complete",
+        "slot": 1,
+        "readyToHandIn": true,
+        "objectives": [],
+        "minLevel": 1,
+        "handInZone": {
+          "id": 90302,
+          "mapId": 1,
+          "x": 24,
+          "y": 3,
+          "z": 4,
+          "radius": 5
+        }
+      }
+    ]
+  },
+  "npc.gossip": {
+    "networkId": "Creature:12",
+    "entry": 90701
+  },
+  "npc.choiceResult": {
+    "networkId": "Creature:12",
+    "menuId": 90702,
+    "choice": 2,
+    "result": "notEnoughMoney"
+  },
+  "entity.lootable": {
+    "networkId": "Creature:40",
+    "state": "lootable"
+  },
+  "loot.contents": {
+    "networkId": "Creature:40",
+    "money": 1234,
+    "items": [
+      {
+        "slot": 0,
+        "itemId": "item-90001-1",
+        "entry": 90001,
+        "count": 3
+      },
+      {
+        "slot": 1,
+        "itemId": "item-90002-1",
+        "entry": 90002,
+        "count": 1
+      }
+    ]
+  },
+  "quest.shareOffered": {
+    "sharerId": "player:char-b",
+    "sharerName": "Kael",
+    "questId": 90601,
+    "titleStringId": 90602,
+    "detailsStringId": 90603,
+    "minLevel": 1
+  },
+  "quest.shareResult": {
+    "memberId": "player:char-b",
+    "memberName": "Kael",
+    "questId": 90601,
+    "result": "accepted"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "inventory.updated": {
+    "bagSlots": 16,
+    "bankSlots": 24,
+    "items": [
+      {
+        "id": "item-90001-1",
+        "entry": 90001,
+        "count": 1,
+        "slot": {
+          "area": "bag",
+          "index": 3
+        },
+        "details": {
+          "entry": 90001,
+          "itemClass": 2,
+          "subClass": 16,
+          "displayInfoId": 0,
+          "inventoryType": 13,
+          "requiredLevel": 1,
+          "buyPrice": 120,
+          "sellPrice": 30,
+          "spells": []
+        }
+      }
+    ]
+  },
+  "inventory.itemAdded": {
+    "id": "item-90001-1",
+    "entry": 90001,
+    "count": 1,
+    "slot": {
+      "area": "bag",
+      "index": 3
+    },
+    "details": {
+      "entry": 90001,
+      "itemClass": 2,
+      "subClass": 16,
+      "displayInfoId": 0,
+      "inventoryType": 13,
+      "requiredLevel": 1,
+      "buyPrice": 120,
+      "sellPrice": 30,
+      "spells": []
+    }
+  },
+  "inventory.itemRemoved": {
+    "itemId": "item-90001-1"
+  },
+  "inventory.itemMoved": {
+    "itemId": "item-90001-1",
+    "from": {
+      "area": "bag",
+      "index": 3
+    },
+    "to": {
+      "area": "bag",
+      "index": 7
+    }
+  },
+  "inventory.itemsSwapped": {
+    "first": {
+      "itemId": "item-90001-1",
+      "from": {
+        "area": "bag",
+        "index": 3
+      }
+    },
+    "second": {
+      "from": {
+        "area": "equipment",
+        "index": 15
+      }
+    }
+  },
+  "inventory.equipResult": {
+    "code": "cantEquip"
+  },
+  "inventory.stackChanged": {
+    "itemId": "item-90001-1",
+    "slot": {
+      "area": "bag",
+      "index": 3
+    },
+    "count": 4
+  },
+  "entity.appearanceChanged": {
+    "networkId": "player:char-a",
+    "equipment": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 90002, 0, 90001]
+  },
+  "inventory.bankUpdated": {
+    "bankSlots": 24,
+    "items": [
+      {
+        "id": "item-90001-1",
+        "entry": 90001,
+        "count": 1,
+        "slot": {
+          "area": "bag",
+          "index": 3
+        },
+        "details": {
+          "entry": 90001,
+          "itemClass": 2,
+          "subClass": 16,
+          "displayInfoId": 0,
+          "inventoryType": 13,
+          "requiredLevel": 1,
+          "buyPrice": 120,
+          "sellPrice": 30,
+          "spells": []
+        }
+      }
+    ]
+  },
+  "inventory.capacityChanged": {
+    "area": "bag",
+    "capacity": 20
+  },
+  "inventory.sorted": {
+    "ok": true,
+    "area": "bag"
+  },
+  "inventory.bankOpen": {
+    "open": true
+  }
+}
