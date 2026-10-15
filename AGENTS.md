@@ -118,7 +118,6 @@ tools/      check_no_assets.py, the pre-commit hygiene guard. Python 3.7,
             standard library only. The only Python left.
 docs/       BEHAVIOUR.md (what the client does, known gaps) and
             PROVENANCE.md (where each interop fact comes from).
-todo/       the list of open work.
 ```
 
 ---
@@ -361,7 +360,7 @@ Do not add Markdown to explain code.
 [docs/BEHAVIOUR.md](docs/BEHAVIOUR.md) holds only what the code cannot:
 behaviour the owner observed in play, server behaviour the client works
 around, and approximations a reader would not spot. Missing behaviour goes in
-[todo/README.md](todo/README.md), one line each.
+the [issue tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues), as a line in the issue for its area.
 
 ---
 
@@ -454,8 +453,8 @@ first run. The client targets modern browsers; Node 26 for tooling (`.nvmrc`).
 
 ## 8. Picking up work
 
-**[todo/README.md](todo/README.md)** is the list of open work, written as
-behaviour and grouped by area. Take a line; delete it when it is done.
+The **[issue tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues)** is the list of open work, written as
+behaviour and grouped by area. Take a line; tick it off when it is done.
 
 **One working tree per agent. Not negotiable.** A shared checkout lets one
 agent's reset revert another's uncommitted work.
@@ -481,7 +480,7 @@ will silently revert whatever landed since.
 - **Networking.** The client connects, signs in, makes or picks a character
   and sees other players and creatures move. Not built: reconnect (a dropped
   socket stops, it does not come back) and deleting a character. The
-  networking section of [todo/README.md](todo/README.md) has the rest.
+  networking issue in the [tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues) has the rest.
 - **Zone switching.** `Renderer.loadZone` drops entity views as well as
   terrain, so the previous zone does not stay visible in the distance. Local
   entity ids are never reused (`World.nextId` only counts up), but the

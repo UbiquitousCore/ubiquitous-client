@@ -11,6 +11,10 @@ something cannot be read, it shows a neutral stand-in of this project's own.
 No asset server is involved: the packs are opened, decompressed and decoded in
 a Worker. Multiplayer state comes from a game server over a WebSocket.
 
+> **Target build: 1.1.4.** The screens and behaviour are built against the
+> 1.1.4 `.ipa`. Other builds can be supported: builds close to 1.1.4 should need
+> little work, and more distant ones more.
+
 ```bash
 cd client && npm install && npm run dev
 ```
@@ -137,7 +141,7 @@ Then read `ubiquitous.inspect()`: `networkMs`, `syncMs`, `clipsMs`, `effectsMs`,
 draws, entity counts and the `fx`/`clips` timings live. The audit's prime
 suspect is the per-frame simulation over every mover with no distance gating
 (`World.updateNetwork`, `NetworkBodies.updateClips`); the stress bots exist
-to put numbers on it. The full list lives in [todo/README.md](todo/README.md).
+to put numbers on it. The full list lives in the [issue tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues).
 
 Todos, in the order they should be attempted:
 
@@ -162,7 +166,7 @@ Todos, in the order they should be attempted:
 | Read this | For |
 |---|---|
 | [AGENTS.md](AGENTS.md) | the rules: asset hygiene, layering, how to work here |
-| [todo/README.md](todo/README.md) | the open list |
+| [Issues](https://github.com/UbiquitousCore/ubiquitous-client/issues) | the open list |
 | [docs/BEHAVIOUR.md](docs/BEHAVIOUR.md) | behaviour observed in play, and approximations |
 | [docs/PROVENANCE.md](docs/PROVENANCE.md) | where each file-format and protocol fact comes from |
 | [client/docs/formats/](client/docs/formats/) | one spec per file format |

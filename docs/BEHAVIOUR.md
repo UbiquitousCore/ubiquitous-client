@@ -2,7 +2,7 @@
 
 Game behaviour the code depends on that cannot be read from the user's files.
 Constants chosen by eye are marked **Own choice** where they are declared, not
-here. Open work is in [todo/README.md](../todo/README.md); where file-format
+here. Open work is in the [issue tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues); where file-format
 facts come from is in [PROVENANCE.md](PROVENANCE.md).
 
 ## Observed in play by the owner
