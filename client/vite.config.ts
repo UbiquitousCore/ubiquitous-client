@@ -12,6 +12,10 @@ import { SERVER_PROXY_PATH } from './src/core/FileConfig';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Vite reads .env into import.meta.env only; the settings below come from
+// process.env. loadEnvFile leaves variables already set in the shell alone.
+if (existsSync(path.join(__dirname, '.env'))) process.loadEnvFile(path.join(__dirname, '.env'));
+
 /**
  * The port the dev/preview server listens on.
  *
