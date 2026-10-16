@@ -94,6 +94,8 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
   const otherPage = page === 'team' ? spec.panels?.dungeon : spec.panels?.team;
   const teamOnly = page === 'dungeon' ? Object.values(spec.groups ?? {}) : [];
   const listing = kick.combo && !(open && kick.can) ? NOBODY : kick.members;
+  /** The leader line and the kick dropdown, which belong to a team you are in. */
+  const partyOnly = inParty ? [] : (spec.partyOnly ?? []);
 
   const columnsOf = (member: RosterMember): Record<string, string> => ({ name: member.name });
 
@@ -116,6 +118,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
         ...faces.hidden,
         ...(otherPage ? [otherPage] : []),
         ...teamOnly,
+        ...partyOnly,
         ...sliceOf(whole).hidden,
         // The note for a party you are not in, which only shows while you
         // are not in one.
@@ -165,7 +168,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
         worn={worn}
         spec={spec}
         tone={LIGHT}
-        hidden={[...(otherPage ? [otherPage] : []), ...teamOnly]}
+        hidden={[...(otherPage ? [otherPage] : []), ...teamOnly, ...partyOnly]}
       />
 
       {page === 'team' && named && leaderName ? (
@@ -178,6 +181,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
 
       {/* The dropdown that lists whom the leader can put out. */}
       {page === 'team' &&
+        inParty &&
         kick.combo &&
         (() => {
           const control = worn.find(kick.combo.control);

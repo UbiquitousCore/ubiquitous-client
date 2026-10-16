@@ -289,6 +289,8 @@ export interface ScreenSpec {
   };
   /** What the screen says in place of a list that has nothing in it. */
   emptyNote?: string;
+  /** Parts that mean nothing outside a party, and so are left off until the player is in one. */
+  partyOnly?: string[];
   /** What each dropdown choice narrows by; one narrowing nothing is listed so it is known. */
   conditions?: Record<string, { kinds?: AuctionKindSpec[]; quality?: number }>;
   /** For a screen that scrolls a panel rather than rows. */

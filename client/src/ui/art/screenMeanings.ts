@@ -1182,6 +1182,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The two modes the Dungeon page steps between.
     words: { normal: '@1484?~e68b9c52af755a66~6', legend: '@1485?~0214fc64b9f87d58~6' },
     emptyNote: 'teamsetting/txtNotinteam',
+    partyOnly: [
+      'teamsetting/txtLeader',
+      'teamsetting/txtLeaderName',
+      'teamsetting/txtKick',
+      'teamsetting/NameLists',
+    ],
     actions: {
       btnInvite: 'invite',
       btnQuit: 'quit',

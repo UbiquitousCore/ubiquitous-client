@@ -179,6 +179,17 @@ describe('ArtTeamWindow', () => {
     expect(queryByRole('button', { name: /^Kick out / })).toBeNull();
   });
 
+  it('offers no kick-out control to someone who is in no team', () => {
+    actions();
+    uiSpec.value = spec;
+    setMovie({ skin: skin(), art: new Map() });
+    player.value = { id: 'me', name: 'Me' } as (typeof player)['value'];
+    setPartyRoster({ partyId: null, members: [] });
+    const { queryByRole } = render(<ArtTeamWindow onClose={() => {}} />);
+
+    expect(queryByRole('button', { name: 'Choose someone to kick out' })).toBeNull();
+  });
+
   it('asks the team to vote when a member who does not lead picks a name', () => {
     const { kick, voteKick } = actions();
     const { getByRole } = mount('Ayla');
