@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemSocket } from '../../src/ui/components/ItemSocket';
+import { ItemDragGhost, ItemSocket } from '../../src/ui/components/ItemSocket';
 import { itemDrag } from '../../src/ui/components/dragItem';
 import type { StorageSlot } from '../../src/net/GameConnection';
 
@@ -159,5 +159,20 @@ describe('ItemSocket', () => {
 
     expect(itemDrag.value).toBeNull();
     expect(onMove).not.toHaveBeenCalled();
+  });
+});
+
+describe('ItemDragGhost', () => {
+  it('mounts on the body, outside any transformed window it is rendered from', () => {
+    itemDrag.value = { payload: ITEM, from: SLOT, x: 40, y: 60 };
+    const { container } = render(
+      <div style={{ transform: 'scale(0.5)' }}>
+        <ItemDragGhost />
+      </div>,
+    );
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    const ghost = document.body.querySelector<HTMLElement>('body > [aria-hidden="true"]');
+    expect(ghost?.style.left).toBe('40px');
+    expect(ghost?.style.top).toBe('60px');
   });
 });

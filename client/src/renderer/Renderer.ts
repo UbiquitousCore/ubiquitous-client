@@ -140,15 +140,13 @@ import type { StaticBatch } from './staticBatch';
 import { renderPortrait } from './portrait';
 import { lightAsStage } from './stageLight';
 import { createEffectMaterial } from './effectMaterial';
+import { previewTurn } from './previewTurn';
 import type { ViewCover } from './viewCentre';
 
 const log = logger('renderer');
 
 /** The slots whose item moves between a resting node and the hand. */
 const HELD_SLOTS: ReadonlySet<WornSlot> = new Set(['twoHand', 'mainHand', 'offHand', 'ranged']);
-
-/** Radians per pixel dragged: a full turn over about 630 px. */
-const PREVIEW_TURN_PER_PIXEL = 0.01;
 
 /**
  * Real-time shadows: map size, reach, sun height and edge softness. Own
@@ -3125,7 +3123,7 @@ export class Renderer {
         }
         return;
       }
-      stage.yaw += (event.clientX - lastX) * PREVIEW_TURN_PER_PIXEL;
+      stage.yaw += previewTurn(event.clientX - lastX, canvas.clientWidth);
       lastX = event.clientX;
       held.x = event.clientX;
       held.y = event.clientY;
