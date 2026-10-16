@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import type { Plugin, ProxyOptions } from 'vite';
@@ -8,13 +9,19 @@ import preact from '@preact/preset-vite';
 import tailwindcss from '@tailwindcss/vite';
 import { fontLicenceText, unexpectedPublicFiles } from './buildChecks';
 import { devServerExposure } from './devServerExposure';
+import { configWithServerPort, serverPortFrom, withPort } from './serverPort';
 import { SERVER_PROXY_PATH } from './src/core/FileConfig';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Vite reads .env into import.meta.env only; the settings below come from
-// process.env. loadEnvFile leaves variables already set in the shell alone.
-if (existsSync(path.join(__dirname, '.env'))) process.loadEnvFile(path.join(__dirname, '.env'));
+// Vite reads .env into import.meta.env only; the settings below also read it.
+// Kept off process.env so resolving this config twice in one process (the
+// tests do) cannot leak one run's settings into the next.
+const envFile = path.join(__dirname, '.env');
+const ENV: Record<string, string | undefined> = {
+  ...(existsSync(envFile) ? parseEnv(readFileSync(envFile, 'utf8')) : {}),
+  ...process.env,
+};
 
 /**
  * The port the dev/preview server listens on.
@@ -24,10 +31,13 @@ if (existsSync(path.join(__dirname, '.env'))) process.loadEnvFile(path.join(__di
  *
  *   UBIQUITOUS_CLIENT_PORT=8781 npm run dev
  */
-const CLIENT_PORT = Number(process.env.UBIQUITOUS_CLIENT_PORT ?? 8780);
+const CLIENT_PORT = Number(ENV.UBIQUITOUS_CLIENT_PORT ?? 8780);
 
 /** Localhost unless `UBIQUITOUS_LAN=1`; see `devServerExposure.ts`. */
-const EXPOSURE = devServerExposure(process.env, path.dirname(__dirname));
+const EXPOSURE = devServerExposure(ENV, path.dirname(__dirname));
+
+/** The game server's port when `UBIQUITOUS_SERVER_PORT` overrides `config.txt`. */
+const SERVER_PORT = serverPortFrom(ENV);
 
 /**
  * A stamp identifying exactly what is running, shown in the HUD.
@@ -138,6 +148,21 @@ function serveMkcertRootCa(): Plugin {
   };
 }
 
+/** Serves `config.txt` with the server line on `UBIQUITOUS_SERVER_PORT`, when it is set. */
+function serverPortOverride(): Plugin {
+  return {
+    name: 'ubiquitous-server-port',
+    configureServer(server) {
+      if (SERVER_PORT === null) return;
+      server.middlewares.use('/config.txt', (_req, res) => {
+        const text = readFileSync(path.join(__dirname, 'public/config.txt'), 'utf8');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end(configWithServerPort(text, SERVER_PORT));
+      });
+    },
+  };
+}
+
 /**
  * The game server's socket, forwarded through the dev server.
  *
@@ -153,12 +178,12 @@ function serveMkcertRootCa(): Plugin {
  * target: the server's listener refuses a request for any other host.
  */
 function serverProxy(): Record<string, ProxyOptions> {
-  let target = 'ws://127.0.0.1:8781';
+  let target = withPort('ws://127.0.0.1:8781', SERVER_PORT);
   try {
     const text = readFileSync(path.join(__dirname, 'public/config.txt'), 'utf8');
     const line = text.split('\n').find(l => /^\s*server\s*=/.test(l));
     const value = line?.slice(line.indexOf('=') + 1).trim();
-    if (value) target = value;
+    if (value) target = withPort(value, SERVER_PORT);
   } catch {
     // No config file: the default address above.
   }
@@ -177,6 +202,7 @@ export default defineConfig({
     preact(),
     tailwindcss(),
     freshStamp(),
+    serverPortOverride(),
     buildChecks(),
     ...(httpsOptions ? [serveMkcertRootCa()] : []),
   ],

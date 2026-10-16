@@ -36,6 +36,7 @@ Copy `client/env.example` to `client/.env` (git-ignored). Variables:
 |---|---|
 | `UBIQUITOUS_LAN=1` | listen on every interface, to open it from a phone or second PC |
 | `UBIQUITOUS_CLIENT_PORT` | dev port (default 8780), to run checkouts side by side |
+| `UBIQUITOUS_SERVER_PORT` | game server port, overriding `server=` in `config.txt` |
 | `UBIQUITOUS_PACK_DIR` | folders of extracted packs or `.ipa` for the `/dev/` pages |
 | `UBIQUITOUS_LAN_PACKS=1` | required to combine the two above, since it serves game files to the network |
 

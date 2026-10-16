@@ -1057,6 +1057,14 @@ describe('hiding a festival placement', () => {
     expect(models(world)).toEqual([]);
   });
 
+  it('takes an effect by where its object stands, not where the effect sits', () => {
+    const world = new World({} as ConstructorParameters<typeof World>[0]);
+    world.setHidden([[10, 2, 10]]);
+    world.addTile(tileWith([{ ...at('star.beff', [13, 9, 11], 'effect', 5), owner: [10, 2, 10] }]));
+
+    expect(models(world)).toEqual([]);
+  });
+
   it('does not reach sideways to whatever stands beside it', () => {
     const world = new World({} as ConstructorParameters<typeof World>[0]);
     world.setHidden([[10, 2, 10]]);

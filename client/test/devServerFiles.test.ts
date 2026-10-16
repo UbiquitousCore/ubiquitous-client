@@ -16,13 +16,17 @@ const CLIENT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = path.dirname(CLIENT);
 const PACKS = path.join(REPO, '.cache', 'build');
 
-const saved = process.env.UBIQUITOUS_PACK_DIR;
+const saved = { pack: process.env.UBIQUITOUS_PACK_DIR, lan: process.env.UBIQUITOUS_LAN };
 afterEach(() => {
-  if (saved === undefined) delete process.env.UBIQUITOUS_PACK_DIR;
-  else process.env.UBIQUITOUS_PACK_DIR = saved;
+  if (saved.pack === undefined) delete process.env.UBIQUITOUS_PACK_DIR;
+  else process.env.UBIQUITOUS_PACK_DIR = saved.pack;
+  if (saved.lan === undefined) delete process.env.UBIQUITOUS_LAN;
+  else process.env.UBIQUITOUS_LAN = saved.lan;
 });
 
 async function servable(packDir: string | undefined): Promise<(file: string) => boolean> {
+  // Empty beats a LAN switch in the developer's own client/.env.
+  process.env.UBIQUITOUS_LAN = '';
   if (packDir === undefined) delete process.env.UBIQUITOUS_PACK_DIR;
   else process.env.UBIQUITOUS_PACK_DIR = packDir;
   const config = await resolveConfig(

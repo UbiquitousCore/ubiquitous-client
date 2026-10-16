@@ -364,6 +364,7 @@ export async function buildTile(
         scale: [1, 1, 1],
         entry: s.entry,
         kind: 'effect',
+        owner: s.pos,
       });
     }
   }

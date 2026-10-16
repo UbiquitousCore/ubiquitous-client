@@ -422,6 +422,12 @@ export interface Placement {
   kind: 'static' | 'scenery' | 'creature' | 'effect';
   /** Head-billboard icon from the user's files, for an interactable placement. */
   interactionIcon?: string;
+  /**
+   * Where the spawn-table object stands, for an effect it carries. The effect
+   * itself sits at a node offset that can be well off that spot, and the
+   * server hides the object by where it stands.
+   */
+  owner?: [number, number, number];
   /** Set for creatures that composite their look; absent means "as shipped". */
   appearance?: Appearance;
 }

@@ -38,6 +38,8 @@ export interface Entity {
   questMark?: string;
   model: string;
   position: [number, number, number];
+  /** Where the spawn-table object carrying this effect stands; see `Placement.owner`. */
+  owner?: [number, number, number];
   rotation: [number, number, number, number];
   scale: [number, number, number];
   entry: number;
@@ -522,7 +524,7 @@ export class World implements TileSink {
     // Placed objects go now; arriving ones are caught in `addTile`.
     const r = World.HIDDEN_RADIUS;
     for (const [id, entity] of [...this.entities]) {
-      if (!this.hides(entity.kind, entity.entry, entity.position)) continue;
+      if (!this.hides(entity.kind, entity.entry, entity.owner ?? entity.position)) continue;
       const [x, , z] = entity.position;
       this.collision.removeMatching({ minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r }, [
         entity.model.replace(/\.bdae$/i, '.phy'),
@@ -616,7 +618,7 @@ export class World implements TileSink {
 
     const ids: EntityId[] = [];
     for (const p of data.placements) {
-      if (this.hides(p.kind, p.entry, p.position)) continue;
+      if (this.hides(p.kind, p.entry, p.owner ?? p.position)) continue;
       if (p.kind !== 'creature' && this.barred(p.model, p.position)) continue;
       // Online, the server owns creatures; a local copy is a duplicate.
       if (!this.includeLocalCreatures && p.kind === 'creature') continue;
@@ -634,6 +636,7 @@ export class World implements TileSink {
           rotation: [...p.rotation],
           scale: [...p.scale],
           entry: p.entry,
+          owner: p.owner ? [...p.owner] : undefined,
           interactionIcon: p.interactionIcon,
           appearance: p.appearance,
           tile: key,
