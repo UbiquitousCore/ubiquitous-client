@@ -967,6 +967,7 @@ export class Renderer {
       };
       const ground = buildTerrainTile(tile, this.materials);
       if (ground) {
+        if (!this.groundTint) this.paintGround(ground.geometry, false);
         this.terrainGroup.add(ground.mesh);
         built.objects.push(ground.mesh);
         built.geometries.push(ground.geometry);
@@ -1586,6 +1587,28 @@ export class Renderer {
         };
       })
       .sort((a, b) => (a.distance as number) - (b.distance as number));
+  }
+
+  /** Temporary: whether the ground wears the tile's baked vertex colours. */
+  private groundTint = true;
+
+  /** Temporary: switch the ground's baked vertex colours on or off, to tell them from texture colour. */
+  setGroundTint(on: boolean): boolean {
+    this.groundTint = on;
+    for (const mesh of this.terrainGroup.children) {
+      if (mesh instanceof THREE.Mesh) this.paintGround(mesh.geometry, on);
+    }
+    return on;
+  }
+
+  private paintGround(geometry: THREE.BufferGeometry, tinted: boolean): void {
+    const colour = geometry.getAttribute('color') as THREE.BufferAttribute | undefined;
+    if (!colour) return;
+    const kept = (geometry.userData.baked ??= Float32Array.from(
+      colour.array as Float32Array,
+    )) as Float32Array;
+    (colour.array as Float32Array).set(tinted ? kept : new Float32Array(kept.length).fill(1));
+    colour.needsUpdate = true;
   }
 
   /** Poles at every placed effect's origin, emitting or not; returns how many. */
@@ -3796,7 +3819,15 @@ export class Renderer {
         dy = m[13] - eye.y,
         dz = m[14] - eye.z;
       const d2 = dx * dx + dy * dy + dz * dz;
-      const stride = animationStride(d2, this.frameNo, index++, nearLimit, midLimit, midFarLimit, limit);
+      const stride = animationStride(
+        d2,
+        this.frameNo,
+        index++,
+        nearLimit,
+        midLimit,
+        midFarLimit,
+        limit,
+      );
       if (stride === 0) continue;
       if (!shouldPose(this.poseFrustum, m[12], m[13], m[14], d2, far, animatedRadius(entry)))
         continue;

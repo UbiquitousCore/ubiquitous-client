@@ -7,6 +7,7 @@
 import { logger } from '../core/log';
 import type { ResourceSystem } from '../assets/ResourceSystem';
 import type { Appearance, Placement, TileData, ZoneAtmosphere, ZoneInfo } from '../assets/types';
+import { neutraliseTint } from './groundTint';
 import { Terrain } from './Terrain';
 import type { WaterAt } from './Terrain';
 import { CollisionWorld, STEP_UP } from './CollisionWorld';
@@ -608,7 +609,7 @@ export class World implements TileSink {
     // A tile arriving twice must replace, not double.
     this.dropTile(tx, tz);
 
-    if (data.terrain) this.terrain.add(data.terrain);
+    if (data.terrain) this.terrain.add(neutraliseTint(data.terrain, this.hidden));
     if (data.collision.length > 0) {
       const solid = data.collision.filter(
         item => !this.hides(undefined, item.entry, item.pos) && !this.barred(item.path, item.pos),

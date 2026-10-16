@@ -138,6 +138,8 @@ export class DebugTools {
       findEffect: (filter?: string) => this.findEffect(filter),
       /** Poles at every live effect: an effect that emits nothing looks like one that is not there. */
       markEffects: (on = true) => this.renderer.markEffects(on),
+      /** Temporary: `ubiquitous.groundTint(false)` draws the ground without its baked vertex colours. */
+      groundTint: (on = true) => this.renderer.setGroundTint(on),
       collision: () => this.collisionReport(),
       wireframe: (on = true) => this.toggleCollision(on),
       /**
@@ -255,7 +257,8 @@ export class DebugTools {
       camera: this.renderer.rig.camera.position.toArray(),
       source: this.resources.currentSource()?.label ?? null,
       // Prefer the dev server's per-request stamp: the define is fixed at boot.
-      build: (globalThis as { __UBIQUITOUS_STAMP__?: string }).__UBIQUITOUS_STAMP__ ?? __BUILD_STAMP__,
+      build:
+        (globalThis as { __UBIQUITOUS_STAMP__?: string }).__UBIQUITOUS_STAMP__ ?? __BUILD_STAMP__,
       status: this.status(),
     };
   }
