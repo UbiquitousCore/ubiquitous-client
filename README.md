@@ -91,6 +91,7 @@ the nearest training dummy (needs the server); read the result with
 | [AGENTS.md](AGENTS.md) | the rules: asset hygiene, layering, how to work here |
 | [Issues](https://github.com/UbiquitousCore/ubiquitous-client/issues) | open work |
 | [docs/BEHAVIOUR.md](docs/BEHAVIOUR.md) | behaviour observed in play, and approximations |
+| [docs/BUILDS.md](docs/BUILDS.md) | which game builds are supported and verified, and the fallback UI rule |
 | [docs/PROVENANCE.md](docs/PROVENANCE.md) | where each file-format and protocol fact comes from |
 | [client/docs/formats/](client/docs/formats/) | one spec per file format |
 | [client/docs/NETWORKING.md](client/docs/NETWORKING.md) | the server contract |
