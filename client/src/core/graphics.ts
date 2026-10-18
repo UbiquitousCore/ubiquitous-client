@@ -250,6 +250,25 @@ export const MIN_UI_SCALE = 1;
 export const MAX_UI_SCALE = 4;
 export const DEFAULT_UI_SCALE = 2;
 
+/** The screen the interface is laid out for, in movie units. */
+const STAGE_UNITS = { width: 480, height: 320 };
+
+/** Own choice: fit steps, fine enough to use the room and coarse enough to keep edges on whole pixels. */
+const FIT_STEP = 0.05;
+
+/**
+ * Pixels per movie unit actually drawn: the player's setting, held down to
+ * what lets the whole 480x320 stage fit the viewport. A phone is shorter than
+ * the stage at the default 2x, which made the interface overflow it.
+ */
+export function fitUiScale(setting: number, viewportWidth: number, viewportHeight: number): number {
+  const wanted = clampUiScale(setting);
+  if (!(viewportWidth > 0) || !(viewportHeight > 0)) return wanted;
+  const room = Math.min(viewportWidth / STAGE_UNITS.width, viewportHeight / STAGE_UNITS.height);
+  const fitted = Math.floor(room / FIT_STEP) * FIT_STEP;
+  return Math.max(FIT_STEP, Math.min(wanted, fitted));
+}
+
 export function clampUiScale(scale: number): number {
   if (!Number.isFinite(scale)) return DEFAULT_UI_SCALE;
   return Math.min(MAX_UI_SCALE, Math.max(MIN_UI_SCALE, Math.round(scale)));

@@ -101,6 +101,8 @@ export interface ListingSpec {
   rowArt?: boolean;
   /** The part inside a row the screen lights up for the chosen one. */
   chosen?: string;
+  /** The screen's own scrollbar, left off a list that fits its window. */
+  bar?: string;
   /** The marks a player presses to move the list, where the screen has them. */
   scroll?: { up?: string; down?: string };
   fields: Record<string, string>;

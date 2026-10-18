@@ -1605,7 +1605,14 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
 
   loot: {
     dialog: 'dlgLoot',
-    lists: { loot: { row: 'element', fields: { name: 'btnPick/text' } } },
+    lists: {
+      loot: {
+        row: 'element',
+        bar: 'lootScroll/lootScrollbar',
+        more: { above: 'arrowup', below: 'arrowdown' },
+        fields: { name: 'btnPick/text' },
+      },
+    },
     actions: { btnPickAll: 'takeAll' },
     captions: { txtpickall: 'Take all' },
     hidden: ['lootScroll/scroll/btnMoney'],

@@ -141,6 +141,20 @@ describe('the window onto a list', () => {
   });
 });
 
+describe('the screen\u2019s own scrollbar', () => {
+  const barred: ListingSpec = { ...spec, bar: 'view/bar' };
+
+  it('is left off a list that fits its window', () => {
+    const slice = listSlice(screen(), { list: barred, items: [1, 2, 3, 4], scroll: 0 });
+    expect(slice.hidden).toContain('view/bar');
+  });
+
+  it('stays for a list that scrolls', () => {
+    const slice = listSlice(screen(), { list: barred, items: [1, 2, 3, 4, 5], scroll: 0 });
+    expect(slice.hidden).not.toContain('view/bar');
+  });
+});
+
 describe('rows and what goes in them', () => {
   it('pairs the drawn rows with the things they hold, in order', () => {
     const parts = screen();
