@@ -23,6 +23,7 @@ import {
   clampRenderScale,
   clampViewDistance,
   describeProfile,
+  fitUiScale,
   graphicsProfile,
   oddTileWindow,
   qualityName,
@@ -251,5 +252,25 @@ describe('resolveGraphics', () => {
       MAX_VIEW_DISTANCE,
     );
     expect(clampViewDistance(Number.NaN)).toBeGreaterThanOrEqual(MIN_VIEW_DISTANCE);
+  });
+});
+
+describe('fitUiScale', () => {
+  it('keeps the setting where the stage already fits', () => {
+    expect(fitUiScale(2, 1920, 1080)).toBe(2);
+    expect(fitUiScale(2, 960, 640)).toBe(2);
+  });
+
+  it('shrinks to the stage fitting a phone held sideways', () => {
+    expect(fitUiScale(2, 844, 390)).toBeCloseTo(1.2, 5);
+  });
+
+  it('shrinks to the width on a phone held upright', () => {
+    expect(fitUiScale(2, 390, 844)).toBeCloseTo(0.8, 5);
+  });
+
+  it('never grows past the setting, and reads an unmeasured viewport as no limit', () => {
+    expect(fitUiScale(1, 3840, 2160)).toBe(1);
+    expect(fitUiScale(2, 0, 0)).toBe(2);
   });
 });

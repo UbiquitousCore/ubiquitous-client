@@ -3,6 +3,7 @@
  * they are where things get dropped. */
 
 import type { ComponentChildren, JSX } from 'preact';
+import { createPortal } from 'preact/compat';
 import type { StorageSlot } from '../../net/GameConnection';
 import { iconUrl } from '../iconUrl';
 import { qualityName } from '../items';
@@ -224,12 +225,16 @@ export function ItemSocket({
   );
 }
 
-/** Drawn once near the root: a socket clips and scrolls, so the ghost could not leave it. */
+/**
+ * Drawn once near the root: a socket clips and scrolls, so the ghost could not leave it.
+ * Portalled to the body because a transformed ancestor (the trade row is scaled to fit)
+ * becomes the containing block of a `fixed` child, offsetting it from the pointer.
+ */
 export function ItemDragGhost(): JSX.Element | null {
   const drag = itemDrag.value;
   if (!drag) return null;
   const item = drag.payload as SocketItem;
-  return (
+  return createPortal(
     <div
       aria-hidden="true"
       className="pointer-events-none fixed z-dialog size-12 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-chrome-sm border border-brass-300 surface-slot opacity-90 shadow-frame"
@@ -238,6 +243,7 @@ export function ItemDragGhost(): JSX.Element | null {
       <div className="flex size-full items-center justify-center">
         <ItemArt item={item} />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

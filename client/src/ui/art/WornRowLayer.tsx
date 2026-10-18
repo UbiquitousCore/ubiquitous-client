@@ -6,9 +6,8 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
-import { clampUiScale } from '../../core/graphics';
 import { setViewCover } from '../hudStore';
-import { options } from '../optionsStore';
+import { uiScale } from '../optionsStore';
 import { movie } from './pieceStore';
 
 export interface WornRowLayerProps {
@@ -56,7 +55,7 @@ export function WornRowLayer({ children }: WornRowLayerProps): JSX.Element {
         // window they come out enormous, which is not a size the art was
         // ever drawn for.
         style={{
-          maxHeight: `${(movie.value?.skin.height ?? 0) * clampUiScale(options.value.uiScale)}px`,
+          maxHeight: `${(movie.value?.skin.height ?? 0) * uiScale()}px`,
         }}
       >
         {children}

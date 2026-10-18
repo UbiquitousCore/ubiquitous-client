@@ -127,7 +127,7 @@ export function listSlice<T>(
     shown,
     keptRows,
     marks,
-    hidden: [...hiddenRows, ...hiddenCoins],
+    hidden: [...hiddenRows, ...hiddenCoins, ...(list?.bar && furthest <= 0 ? [list.bar] : [])],
   };
 }
 

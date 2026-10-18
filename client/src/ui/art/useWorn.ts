@@ -12,17 +12,14 @@ import type { ScreenSpec } from './uiSpec';
 import type { PieceImage } from './pieceCanvas';
 import { findPlacements, frameAround, isNamed, mapBox, planPiece, transformTo } from './piecePlan';
 import type { PieceBox, PiecePart, PlanStates } from './piecePlan';
-import { MAX_UI_SCALE, clampUiScale } from '../../core/graphics';
+import { MAX_UI_SCALE } from '../../core/graphics';
 import type { UiMovie } from '../../assets/ids';
 import { useStageRoom } from './WornStage';
-import { options } from '../optionsStore';
+import { uiScale } from '../optionsStore';
 import { wornLettering } from './wornFont';
 import { logger } from '../../core/log';
 
-/** Pixels per movie unit from the player's setting; one source, so every screen agrees. */
-function drawScale(): number {
-  return clampUiScale(options.value.uiScale);
-}
+const drawScale = uiScale;
 
 /** Drawn this much finer than shown, so lettering and thin lines stay sharp (art ships up to 4x). */
 const SHARPER = 2;

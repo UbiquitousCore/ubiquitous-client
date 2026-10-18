@@ -54,9 +54,21 @@ export function FrontEnd(): JSX.Element | null {
     frontEndActions().watchGround(at === 'signIn' ? 'wide' : 'close');
   }, [at === 'signIn']);
 
+  // clientX, not movementX: a touch reports none.
+  const lastX = useRef<number | null>(null);
+  const grab = (event: JSX.TargetedPointerEvent<HTMLDivElement>): void => {
+    lastX.current = event.clientX;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
   const turn = (event: JSX.TargetedPointerEvent<HTMLDivElement>): void => {
-    if (event.buttons === 0) return;
-    frontEndActions().turnBody((event.movementX / globalThis.innerWidth) * TURN_PER_WIDTH);
+    if (lastX.current === null) return;
+    const moved = event.clientX - lastX.current;
+    lastX.current = event.clientX;
+    frontEndActions().turnBody((moved / globalThis.innerWidth) * TURN_PER_WIDTH);
+  };
+  const release = (): void => {
+    lastX.current = null;
+    frontEndActions().releaseBody();
   };
 
   return (
@@ -66,11 +78,12 @@ export function FrontEnd(): JSX.Element | null {
     >
       {/* The ground. Behind everything, and the only thing a drag reaches. */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 touch-none"
         data-part="ground"
+        onPointerDown={grab}
         onPointerMove={turn}
-        onPointerUp={() => frontEndActions().releaseBody()}
-        onPointerCancel={() => frontEndActions().releaseBody()}
+        onPointerUp={release}
+        onPointerCancel={release}
       >
         <canvas ref={canvas} className="h-full w-full" />
       </div>
