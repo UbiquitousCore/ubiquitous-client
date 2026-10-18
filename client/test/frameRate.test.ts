@@ -16,7 +16,7 @@ import {
   removeEntry,
   writeEntry,
 } from '../src/renderer/staticBatch';
-import type { StaticBatchEntry } from '../src/renderer/staticBatch';
+import type { NewStaticBatchEntry } from '../src/renderer/staticBatch';
 import {
   acquireFadeClone,
   patchFadeMaterial,
@@ -36,7 +36,7 @@ function triangle(): THREE.BufferGeometry {
   return geometry;
 }
 
-function placement(id: number, x: number): StaticBatchEntry {
+function placement(id: number, x: number): NewStaticBatchEntry {
   const object = new THREE.Object3D();
   object.position.set(x, 0, 0);
   return { id, object, visible: true };
@@ -91,7 +91,8 @@ describe('a batch of several parts', () => {
     const { batch } = house();
     appendEntry(batch, placement(1, 10));
     appendEntry(batch, placement(2, 20));
-    expect(removeEntry(batch, 0)).toBe(2);
+    removeEntry(batch, 0);
+    expect(batch.entries.map(e => e.id)).toEqual([2]);
     for (const part of batch.parts) {
       expect(part.mesh.count).toBe(1);
       expect(xOf(part.mesh, 0)).toBe(20);

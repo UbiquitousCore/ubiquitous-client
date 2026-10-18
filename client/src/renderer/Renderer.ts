@@ -72,6 +72,7 @@ import type { EquippedWeapons } from '../gameplay/weaponClips';
 import { CameraRig } from './CameraRig';
 import {
   appendEntry,
+  staticBatchCell,
   createStaticBatchOf,
   disposeBatch,
   removeEntry,
@@ -136,7 +137,7 @@ import {
   pendingAttachmentCount,
   refreshSkinnedBounds,
 } from './picking';
-import type { StaticBatch } from './staticBatch';
+import type { StaticBatch, StaticBatchEntry } from './staticBatch';
 import { renderPortrait } from './portrait';
 import { lightAsStage } from './stageLight';
 import { createEffectMaterial } from './effectMaterial';
@@ -167,7 +168,8 @@ export interface EntityView {
   object: THREE.Object3D;
   version: number;
   batch?: StaticBatch;
-  batchIndex?: number;
+  /** This placement's row in `batch`; the row number moves, the entry does not. */
+  batchEntry?: StaticBatchEntry;
   batchVisible?: boolean;
   /** A soft-edged clone over this placement's batch row, near the eye only. */
   foliageCompanion?: THREE.Mesh;
@@ -598,6 +600,7 @@ export class Renderer {
   /** Bodies with an upper-body clip running; a set so retiring swings needs no scan. */
   private readonly withActions = new Set<EntityId>();
   private readonly staticBatches = new Map<string, StaticBatch>();
+  private readonly staticBatchKeys = new WeakMap<StaticBatch, string>();
   private readonly foliageBlendMaterials = new WeakMap<StaticBatch, THREE.Material>();
   /** True while growing in, false while shrinking. */
   private readonly foliageFading = new Map<EntityId, boolean>();
@@ -1141,7 +1144,7 @@ export class Renderer {
         this.visibilityDirty = true;
         applyTransform(view.object, entity);
         if (view.fade !== undefined && view.fade < 1) view.object.scale.multiplyScalar(view.fade);
-        if (view.batch) writeEntry(view.batch, view.batchIndex ?? -1);
+        if (view.batch && view.batchEntry) writeEntry(view.batch, view.batchEntry.row);
         if (view.mount) {
           view.mount.ground.copy(view.object.position);
           view.mount.facing.copy(view.object.quaternion);
@@ -1978,7 +1981,8 @@ export class Renderer {
   /** A loaded clip's length, or null; never starts a load (asked every frame). */
   clipLength(entityId: EntityId, clipName: string): number | null {
     const view = this.views.get(entityId);
-    if (view?.mount) return this.clipCache.get(view.mount.modelPath)?.get(clipName)?.duration ?? null;
+    if (view?.mount)
+      return this.clipCache.get(view.mount.modelPath)?.get(clipName)?.duration ?? null;
     if (!view?.modelPath) return null;
     const wanted = combatClipName(clipName, view.weapons ?? null);
     return this.clipCache.get(view.modelPath)?.get(wanted)?.duration ?? null;
@@ -2013,7 +2017,9 @@ export class Renderer {
       key: `skin:${row.texture}`,
     });
     if (!prototype || this.views.get(entityId) !== view || view.mountSeq !== seq) return;
-    const object = prototype.skinned ? cloneSkinned(prototype.object) : prototype.object.clone(true);
+    const object = prototype.skinned
+      ? cloneSkinned(prototype.object)
+      : prototype.object.clone(true);
     object.traverse(node => {
       if ((node as THREE.Mesh).isMesh) node.castShadow = true;
     });
@@ -2035,7 +2041,8 @@ export class Renderer {
     this.seatRider(view);
     await this.playRiderClip(view, mount);
     const ask = view.baseAsk;
-    if (ask && view.mount === mount) await this.setMountClip(view, mount, ask.clip, ask.rate, ask.once);
+    if (ask && view.mount === mount)
+      await this.setMountClip(view, mount, ask.clip, ask.rate, ask.once);
   }
 
   /** The mount where the body stands, and the body up on its seat. */
@@ -2195,14 +2202,15 @@ export class Renderer {
       }
     }
     if (isBatchableStatic(entity, prototype)) {
-      const key = `${entity.model}#${entity.appearance?.key ?? ''}`;
+      const [x, , z] = entity.position;
+      const key = `${entity.model}#${entity.appearance?.key ?? ''}@${staticBatchCell(x, z)}`;
       const batch = this.staticBatches.get(key) ?? this.newStaticBatch(key, prototype);
       const object = new THREE.Group();
       applyTransform(object, entity);
       object.userData.entityId = entity.id;
       view.object = object;
       view.batch = batch;
-      view.batchIndex = appendEntry(batch, { id: entity.id, object, visible: true });
+      view.batchEntry = appendEntry(batch, { id: entity.id, object, visible: true });
       view.batchVisible = true;
       view.shadowExtents = prototype.shadowExtents;
       view.version = entity.version;
@@ -2878,22 +2886,12 @@ export class Renderer {
     }
     if (view.batch) {
       const batch = view.batch;
-      let index = view.batchIndex ?? -1;
-      if (batch.entries[index]?.id !== id)
-        index = batch.entries.findIndex(entry => entry.id === id);
-      if (index >= 0) {
-        const moved = removeEntry(batch, index);
-        if (moved !== null) {
-          const movedView = this.views.get(moved);
-          if (movedView) movedView.batchIndex = index;
-        }
-      }
+      if (view.batchEntry) removeEntry(batch, view.batchEntry.row);
       if (batch.entries.length === 0) {
-        // Empties whenever its last tile is evicted.
+        // Empties whenever its cell leaves the window.
         disposeBatch(batch);
-        this.staticBatches.forEach((candidate, key) => {
-          if (candidate === batch) this.staticBatches.delete(key);
-        });
+        const key = this.staticBatchKeys.get(batch);
+        if (key !== undefined) this.staticBatches.delete(key);
       }
     }
     this.entityGroup.remove(view.object);
@@ -3272,6 +3270,7 @@ export class Renderer {
       this.entityGroup,
     );
     this.staticBatches.set(key, batch);
+    this.staticBatchKeys.set(batch, key);
     return batch;
   }
 
@@ -3655,11 +3654,11 @@ export class Renderer {
 
   private setDrawn(view: EntityView, drawn: boolean): void {
     if (view.batch) {
-      const index = view.batchIndex ?? -1;
-      const entry = view.batch.entries[index];
-      if (entry) entry.visible = drawn;
+      const entry = view.batchEntry;
       view.batchVisible = drawn;
-      writeEntry(view.batch, index);
+      if (!entry) return;
+      entry.visible = drawn;
+      writeEntry(view.batch, entry.row);
     } else {
       view.object.visible = drawn;
     }
@@ -3681,9 +3680,11 @@ export class Renderer {
       // A dissolve: a batch row fades through its instance colour, an object
       // through its own material (`fadeMaterial.ts`).
       if (view.batch) {
-        const entry = view.batch.entries[view.batchIndex ?? -1];
-        if (entry) entry.fade = fade;
-        writeEntryFade(view.batch, view.batchIndex ?? -1);
+        const entry = view.batchEntry;
+        if (entry) {
+          entry.fade = fade;
+          writeEntryFade(view.batch, entry.row);
+        }
       } else {
         applyObjectFade(view, fade);
       }
