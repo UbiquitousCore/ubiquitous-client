@@ -41,12 +41,11 @@ export function buildSkinnedModel(
   for (const root of roots) group.add(root);
 
   const geometries: THREE.BufferGeometry[] = [];
-  let skeleton: THREE.Skeleton | null = null;
+  const skinned: SkinnedPart[] = [];
 
   for (const mesh of drawn) {
     const skin = skinByMesh.get(mesh.name);
     const geometry = buildGeometry(mesh);
-    geometries.push(geometry);
 
     const slots = mesh.groups.map(g =>
       materials.get(
@@ -70,6 +69,7 @@ export function buildSkinnedModel(
     if (!skin) {
       // An unskinned mesh on a skinned model (props, effects) just rides the
       // group transform; a rigid cape rides the back instead (`rigidCapeBone`).
+      geometries.push(geometry);
       const plain = new THREE.Mesh(geometry, material);
       plain.name = mesh.name;
       const back = isCape(mesh.name) ? rigidCapeBone(bones, group) : null;
@@ -96,30 +96,135 @@ export function buildSkinnedModel(
 
     // Three.js indexes bones through the mesh's own bone list, so give each
     // skin exactly the bones it names, in its own joint order.
-    const skinBones = skin.joints.map(j => bones[j] ?? bones[0]);
-    const inverses = skin.joints.map((_, j) =>
-      new THREE.Matrix4().fromArray(skin.inverseBind, j * 16),
-    );
-
-    const three = new THREE.SkinnedMesh(geometry, material);
-    three.name = mesh.name;
-    const bound = new THREE.Skeleton(skinBones, inverses);
-    // The decoded mesh already has bindShape baked into its vertex positions,
-    // so it arrives in model space. Passing the actual bindShape here would
-    // apply it a second time in the shader, which distorts meshes whose
-    // bindShape is not identity.
-    // Use identity so the shader only applies the bone skinning matrices.
-    three.bind(bound, new THREE.Matrix4());
-    // Keep frustum culling on. A skinned mesh's bounds come from the bind
-    // pose, which for idle-type clips stays close enough; disabling it instead
-    // forced all 543 skinned meshes to draw every frame. Pad the radius so a
-    // limb swinging out does not pop the whole character.
-    if (geometry.boundingSphere) geometry.boundingSphere.radius *= 1.75;
-    group.add(three);
-    skeleton = skeleton ?? bound;
+    skinned.push({
+      name: mesh.name,
+      geometry,
+      slots,
+      bones: skin.joints.map(j => bones[j] ?? bones[0]),
+      inverses: skin.joints.map((_, j) => new THREE.Matrix4().fromArray(skin.inverseBind, j * 16)),
+    });
   }
 
+  // One mesh on one skeleton: a part per draw cost each body one draw, one
+  // bone pass and one bone upload per part, though most parts share a material.
+  const whole = skinned.length === 1 ? skinned[0]! : mergeParts(skinned);
+  geometries.push(whole.geometry);
+  const material = whole.slots.length === 1 ? whole.slots[0]! : whole.slots;
+  const three = new THREE.SkinnedMesh(whole.geometry, material);
+  three.name = whole.name;
+  const skeleton = new THREE.Skeleton(whole.bones, whole.inverses);
+  // The decoded mesh already has bindShape baked into its vertex positions,
+  // so it arrives in model space. Passing the actual bindShape here would
+  // apply it a second time in the shader, which distorts meshes whose
+  // bindShape is not identity.
+  // Use identity so the shader only applies the bone skinning matrices.
+  three.bind(skeleton, new THREE.Matrix4());
+  // Keep frustum culling on. A skinned mesh's bounds come from the bind
+  // pose, which for idle-type clips stays close enough; disabling it instead
+  // forced all 543 skinned meshes to draw every frame. Pad the radius so a
+  // limb swinging out does not pop the whole character.
+  if (whole.geometry.boundingSphere) whole.geometry.boundingSphere.radius *= 1.75;
+  group.add(three);
+
   return { object: group, geometries, skeleton };
+}
+
+/** One skinned mesh before it is drawn: its geometry, a material per group, and its bones. */
+interface SkinnedPart {
+  name: string;
+  geometry: THREE.BufferGeometry;
+  /** Material per geometry group, by group index. */
+  slots: THREE.Material[];
+  bones: THREE.Bone[];
+  inverses: THREE.Matrix4[];
+}
+
+/**
+ * Join skinned parts into one: a shared bone list (a bone twice only when
+ * two parts bind it differently), skin indices remapped onto it, and the
+ * triangles regrouped so each material is one contiguous group.
+ */
+function mergeParts(parts: readonly SkinnedPart[]): SkinnedPart {
+  const bones: THREE.Bone[] = [];
+  const inverses: THREE.Matrix4[] = [];
+  const jointOf = new Map<string, number>();
+  const remaps = parts.map(part =>
+    part.bones.map((bone, j) => {
+      const inverse = part.inverses[j]!;
+      const key = `${bone.uuid}:${inverse.elements.join(',')}`;
+      let at = jointOf.get(key);
+      if (at === undefined) {
+        at = bones.length;
+        jointOf.set(key, at);
+        bones.push(bone);
+        inverses.push(inverse);
+      }
+      return at;
+    }),
+  );
+
+  const vertexCount = parts.reduce((n, p) => n + p.geometry.getAttribute('position').count, 0);
+  const hasUv = parts.some(p => p.geometry.getAttribute('uv'));
+  const position = new Float32Array(vertexCount * 3);
+  const normal = new Float32Array(vertexCount * 3);
+  const uv = hasUv ? new Float32Array(vertexCount * 2) : null;
+  const skinIndex = new Uint16Array(vertexCount * 4);
+  const skinWeight = new Float32Array(vertexCount * 4);
+
+  const materials: THREE.Material[] = [];
+  const triangles = new Map<THREE.Material, number[]>();
+  let base = 0;
+  parts.forEach((part, p) => {
+    const g = part.geometry;
+    const count = g.getAttribute('position').count;
+    position.set(g.getAttribute('position').array as Float32Array, base * 3);
+    normal.set(g.getAttribute('normal').array as Float32Array, base * 3);
+    const partUv = g.getAttribute('uv');
+    if (uv && partUv) uv.set(partUv.array as Float32Array, base * 2);
+    skinWeight.set(g.getAttribute('skinWeight').array as Float32Array, base * 4);
+    const indices = g.getAttribute('skinIndex').array as Uint16Array;
+    const remap = remaps[p]!;
+    for (let i = 0; i < count * 4; i++) skinIndex[base * 4 + i] = remap[indices[i]!] ?? remap[0]!;
+
+    const index = g.getIndex()!.array;
+    for (const group of g.groups) {
+      const material = part.slots[group.materialIndex ?? 0]!;
+      let into = triangles.get(material);
+      if (!into) {
+        into = [];
+        triangles.set(material, into);
+        materials.push(material);
+      }
+      for (let i = group.start; i < group.start + group.count; i++) into.push(index[i]! + base);
+    }
+    base += count;
+  });
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
+  geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+  if (uv) geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geometry.setAttribute('skinIndex', new THREE.BufferAttribute(skinIndex, 4));
+  geometry.setAttribute('skinWeight', new THREE.BufferAttribute(skinWeight, 4));
+  const total = materials.reduce((n, m) => n + triangles.get(m)!.length, 0);
+  const index = vertexCount > 0xffff ? new Uint32Array(total) : new Uint16Array(total);
+  let start = 0;
+  materials.forEach((material, m) => {
+    const run = triangles.get(material)!;
+    index.set(run, start);
+    geometry.addGroup(start, run.length, m);
+    start += run.length;
+  });
+  geometry.setIndex(new THREE.BufferAttribute(index, 1));
+  geometry.computeBoundingSphere();
+
+  return {
+    name: parts.map(p => p.name).join('+'),
+    geometry,
+    slots: materials,
+    bones,
+    inverses,
+  };
 }
 
 /** A worn cape mesh, by the family name the body models give their variants. */
