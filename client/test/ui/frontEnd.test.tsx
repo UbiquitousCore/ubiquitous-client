@@ -95,9 +95,30 @@ describe('the ground behind', () => {
     const { container } = render(<FrontEnd />);
 
     const ground = container.querySelector('[data-part="ground"]')!;
-    fireEvent.pointerMove(ground, { buttons: 1, movementX: 40 });
+    fireEvent.pointerDown(ground, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(ground, { clientX: 140, pointerId: 1 });
 
-    expect(actions.turnBody).toHaveBeenCalled();
+    expect(actions.turnBody).toHaveBeenCalledOnce();
+    expect(vi.mocked(actions.turnBody).mock.calls[0]![0]).toBeGreaterThan(0);
+  });
+
+  it('turns from where a touch is, which reports no movement of its own', () => {
+    const { container } = render(<FrontEnd />);
+
+    const ground = container.querySelector('[data-part="ground"]')!;
+    fireEvent.pointerDown(ground, { clientX: 200, pointerId: 2, pointerType: 'touch' });
+    fireEvent.pointerMove(ground, { clientX: 150, pointerId: 2, pointerType: 'touch' });
+
+    expect(vi.mocked(actions.turnBody).mock.calls.at(-1)![0]).toBeLessThan(0);
+  });
+
+  it('does not turn for a pointer that is not pressed', () => {
+    const { container } = render(<FrontEnd />);
+
+    const ground = container.querySelector('[data-part="ground"]')!;
+    fireEvent.pointerMove(ground, { clientX: 140, pointerId: 1 });
+
+    expect(actions.turnBody).not.toHaveBeenCalled();
   });
 });
 
