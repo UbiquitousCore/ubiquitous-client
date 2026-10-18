@@ -39,8 +39,8 @@ export const NAME_COLOURS: Record<Relation, string> = {
   questUnit: FRIENDLY_NAME,
 };
 
-/** Glyph height in nameplates (tuned by eye; see test for line layout). */
-export const NAME_LABEL_PX = 36;
+/** Own choice: glyph height in nameplates, eye-picked; see test for line layout. */
+export const NAME_LABEL_PX = 38;
 
 /** Name/role gap: exactly one line (single string, single font, no leading). */
 export const NAME_LABEL_LINE_PX = NAME_LABEL_PX;
