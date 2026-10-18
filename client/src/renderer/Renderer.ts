@@ -3025,8 +3025,13 @@ export class Renderer {
     const box = document.createElement('div');
     box.className =
       'h-full w-full cursor-grab overflow-hidden [touch-action:none] active:cursor-grabbing';
+    // Inline as well as the class, and a non-passive touchmove below: a browser
+    // that takes the gesture for a pan cancels the pointer after a few pixels,
+    // which stopped the turn a moment into a swipe.
+    box.style.touchAction = 'none';
     const canvas = document.createElement('canvas');
     canvas.className = 'block h-full w-full';
+    canvas.style.touchAction = 'none';
     box.append(canvas);
     const context = canvas.getContext('2d');
     if (!context) {
@@ -3140,6 +3145,9 @@ export class Renderer {
       stage.zoom = clampZoom(stage.zoom * Math.exp(event.deltaY * STAGE_ZOOM_PER_WHEEL_PX));
       placeCamera();
     };
+    const hold = (event: TouchEvent): void => event.preventDefault();
+    canvas.addEventListener('touchstart', hold, { passive: false });
+    canvas.addEventListener('touchmove', hold, { passive: false });
     canvas.addEventListener('pointerdown', down);
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerup', up);
@@ -3185,6 +3193,8 @@ export class Renderer {
         live = false;
         this.heroStages.delete(stage);
         observer?.disconnect();
+        canvas.removeEventListener('touchstart', hold);
+        canvas.removeEventListener('touchmove', hold);
         canvas.removeEventListener('pointerdown', down);
         canvas.removeEventListener('pointermove', move);
         canvas.removeEventListener('pointerup', up);
