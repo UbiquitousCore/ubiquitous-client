@@ -3123,7 +3123,7 @@ export class Renderer {
         }
         return;
       }
-      stage.yaw += previewTurn(event.clientX - lastX, canvas.clientWidth);
+      stage.yaw += previewTurn(event.clientX - lastX, canvas.getBoundingClientRect().width);
       lastX = event.clientX;
       held.x = event.clientX;
       held.y = event.clientY;

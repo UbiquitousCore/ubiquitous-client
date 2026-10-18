@@ -5,7 +5,8 @@ import { useEffect, useState } from 'preact/hooks';
 
 import type { ScreenSpec } from '../art/uiSpec';
 import { useWorn, useWornScreen } from '../art/useWorn';
-import { jumpRoom } from '../spellBarModel';
+import { jumpRoom, spellBarCoversCorner } from '../spellBarModel';
+import { cx } from './cx';
 
 /** Our name for this screen. The spec says which piece of the movie wears it. */
 export const JUMP_SCREEN = 'jumpButton';
@@ -60,7 +61,10 @@ function Worn({ onJump, spec }: ArtJumpButtonProps & { spec: ScreenSpec }): JSX.
 
   return (
     <div
-      className="pointer-events-none fixed z-hud-bar"
+      className={cx(
+        'pointer-events-none fixed z-hud-bar',
+        spellBarCoversCorner.value && 'invisible',
+      )}
       style={{
         right: `max(${margin.right}px, env(safe-area-inset-right))`,
         bottom: `max(${margin.bottom}px, env(safe-area-inset-bottom))`,

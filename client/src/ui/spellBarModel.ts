@@ -128,6 +128,24 @@ export function fitScale(room: number, needed: number): number {
   return Math.max(LEAST_FIT, Math.min(1, room / needed));
 }
 
+/**
+ * Where an open bar stands: above the jump button while it fits there at
+ * full size, else over the corner at the foot of the screen, scaled to the
+ * room down from the minimap, with the jump button and wheel out of its way.
+ */
+export function barPlacement(
+  open: boolean,
+  roomAbove: number,
+  roomToFoot: number,
+  needed: number,
+): { covers: boolean; fit: number } {
+  const covers = open && needed > 0 && roomAbove < needed;
+  return { covers, fit: fitScale(covers ? roomToFoot : roomAbove, needed) };
+}
+
+/** True while the open bar stands over the jump button and wheel. */
+export const spellBarCoversCorner = signal(false);
+
 /** How much of the corner's height the jump button takes, in pixels, for the bar to stand above. */
 export const jumpRoom = signal(0);
 

@@ -1,11 +1,15 @@
 /** Smallest width used to scale a drag, so a collapsed canvas cannot divide by zero. */
 const MIN_WIDTH_PX = 1;
 
+/** Own choice: a swipe this long is one full turn however wide the preview is. */
+const FULL_TURN_PX = 360;
+
 /**
  * Radians a horizontal drag turns the character preview. Scaled by the
- * canvas width, so a swipe across the preview is one full turn on a phone as
- * on a desktop; a fixed radians-per-pixel turned a narrow screen barely at all.
+ * preview's on-screen width, capped at a phone-sized swipe: a wide preview
+ * would otherwise need a swipe longer than a phone screen to turn.
  */
 export function previewTurn(dragPx: number, canvasWidthPx: number): number {
-  return (dragPx / Math.max(canvasWidthPx, MIN_WIDTH_PX)) * Math.PI * 2;
+  const reach = Math.min(Math.max(canvasWidthPx, MIN_WIDTH_PX), FULL_TURN_PX);
+  return (dragPx / reach) * Math.PI * 2;
 }

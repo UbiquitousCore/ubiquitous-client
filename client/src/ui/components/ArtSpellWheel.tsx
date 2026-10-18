@@ -13,7 +13,7 @@ import type { PiecePart, PlanStates } from '../art/piecePlan';
 import type { ScreenSpec } from '../art/uiSpec';
 import { useWorn, useWornScreen } from '../art/useWorn';
 import { iconUrl } from '../iconUrl';
-import { governingCooldown, iconBox, sweepFace } from '../spellBarModel';
+import { governingCooldown, iconBox, spellBarOpen, sweepFace } from '../spellBarModel';
 import type { SlotCooldown } from '../spellBarModel';
 import {
   ringCentre,
@@ -167,7 +167,7 @@ function Worn({
 
   return (
     <div
-      className="pointer-events-none fixed z-hud-bar"
+      className={cx('pointer-events-none fixed z-hud-bar', spellBarOpen.value && 'invisible')}
       style={{
         right: `${(worn.stage.w - (worn.onStage.x + worn.onStage.w)) * worn.perUnit}px`,
         bottom: `${(worn.stage.h - (worn.onStage.y + worn.onStage.h)) * worn.perUnit}px`,

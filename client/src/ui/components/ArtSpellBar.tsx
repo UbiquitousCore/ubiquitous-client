@@ -15,7 +15,8 @@ import { useWorn, useWornScreen } from '../art/useWorn';
 import { iconUrl } from '../iconUrl';
 import {
   closedShift,
-  fitScale,
+  barPlacement,
+  spellBarCoversCorner,
   governingCooldown,
   iconBox,
   jumpRoom,
@@ -173,8 +174,19 @@ function Worn({
   );
   const shift = open || !worn.onStage || !worn.stage ? 0 : closedShift(worn.onStage, worn.stage.w);
   // Between the minimap and the jump button, as the movie leaves room.
-  const room = viewHeight - (worn.onStage?.y ?? 0) * worn.perUnit - jumpRoom.value;
-  const fit = fitScale(room, frame.h * worn.perUnit);
+  const top = (worn.onStage?.y ?? 0) * worn.perUnit;
+  const { covers, fit } = barPlacement(
+    open,
+    viewHeight - top - jumpRoom.value,
+    viewHeight - top,
+    frame.h * worn.perUnit,
+  );
+  useEffect(() => {
+    spellBarCoversCorner.value = covers;
+    return () => {
+      spellBarCoversCorner.value = false;
+    };
+  }, [covers]);
   const pct = (units: number, of: number): string => `${(units / of) * 100}%`;
   const at = (box: PiecePart['box']): JSX.CSSProperties => ({
     position: 'absolute',
@@ -187,7 +199,10 @@ function Worn({
   return (
     <div
       className="pointer-events-none fixed right-safe-r z-hud-bar origin-bottom-right"
-      style={{ bottom: `${jumpRoom.value}px`, transform: `scale(${fit})` }}
+      style={{
+        bottom: covers ? 'env(safe-area-inset-bottom)' : `${jumpRoom.value}px`,
+        transform: `scale(${fit})`,
+      }}
     >
       <div
         data-spell-bar

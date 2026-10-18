@@ -5,6 +5,7 @@ import {
   FLASH_FACE_MS,
   LEAST_FIT,
   closedShift,
+  barPlacement,
   fitScale,
   flashFace,
   governingCooldown,
@@ -270,5 +271,20 @@ describe('spellBarStates', () => {
     expect(over.driven).toEqual(['panelButton/btn01/hot']);
     expect(over.only).toEqual(['panelButton/btn01/hot', 'panelButton/cooldownFinish02']);
     expect(over.frames).toEqual({ 'panelButton/cooldownFinish02': 4 });
+  });
+});
+
+describe('barPlacement', () => {
+  it('stands above the jump button while it fits there', () => {
+    expect(barPlacement(true, 500, 700, 400)).toEqual({ covers: false, fit: 1 });
+  });
+
+  it('takes the corner, and the room down to the foot, when it does not fit above', () => {
+    expect(barPlacement(true, 300, 600, 400)).toEqual({ covers: true, fit: 1 });
+    expect(barPlacement(true, 300, 300, 400).fit).toBe(0.75);
+  });
+
+  it('leaves the corner alone while closed', () => {
+    expect(barPlacement(false, 300, 600, 400).covers).toBe(false);
   });
 });
