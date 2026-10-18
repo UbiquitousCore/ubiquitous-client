@@ -76,6 +76,10 @@ describe('how high above a body the plate sits', () => {
     expect(namePlateHeight(withAnchor(2.4), 1.8)).toBeCloseTo(2.4, 5);
   });
 
+  it('clears the measured top when the anchor sits lower, as on a wolf', () => {
+    expect(namePlateHeight(withAnchor(0.8), 1)).toBeCloseTo(1.5, 5);
+  });
+
   it('is measured from the body, not from the world', () => {
     const body = withAnchor(2.4);
     // Standing on a hill must not push the plate up with the terrain.
