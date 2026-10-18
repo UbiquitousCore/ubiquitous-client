@@ -3156,7 +3156,7 @@ export class Renderer {
         : 0;
     let touchBefore = 0;
     const touchStart = (event: TouchEvent): void => {
-      log.info(`character preview: touch down, ${event.touches.length} finger(s)`);
+      log.warn(`character preview: touch down, ${event.touches.length} finger(s)`);
       event.preventDefault();
       stage.touched = true;
       for (const touch of Array.from(event.changedTouches)) {
@@ -3185,7 +3185,7 @@ export class Renderer {
       touches.set(touch.identifier, touch.clientX);
     };
     const touchEnd = (event: TouchEvent): void => {
-      log.info(`character preview: touch ${event.type}, turned ${stage.yaw.toFixed(2)} rad`);
+      log.warn(`character preview: touch ${event.type}, turned ${stage.yaw.toFixed(2)} rad`);
       for (const touch of Array.from(event.changedTouches)) touches.delete(touch.identifier);
       touchBefore = 0;
       // The finger left on a pinch turns from where it is.
@@ -3203,7 +3203,7 @@ export class Renderer {
     canvas.addEventListener('wheel', wheel, { passive: false });
 
     this.heroStages.add(stage);
-    log.info('character preview: staged');
+    log.warn('character preview: staged');
     let key = lookKey();
 
     const swap = (next: { body: THREE.Object3D; mixer: THREE.AnimationMixer }): void => {
@@ -3240,7 +3240,7 @@ export class Renderer {
       },
       dispose: () => {
         live = false;
-        log.info('character preview: released');
+        log.warn('character preview: released');
         this.heroStages.delete(stage);
         observer?.disconnect();
         canvas.removeEventListener('touchstart', touchStart);
