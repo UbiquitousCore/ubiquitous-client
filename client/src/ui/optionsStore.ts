@@ -170,7 +170,6 @@ export function setOption<Key extends keyof OptionsState>(
   setOptions({ ...options.value, [key]: value });
 }
 
-/** The viewport in CSS pixels, a signal so the interface rescales as it changes. */
 export const viewport = signal({ width: 0, height: 0 });
 
 if (typeof window !== 'undefined') {
@@ -181,7 +180,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('resize', measure);
 }
 
-/** Pixels per movie unit, from the setting and the room there is; one source, so every screen agrees. */
 export function uiScale(): number {
   const { width, height } = viewport.value;
   return fitUiScale(options.value.uiScale, width, height);

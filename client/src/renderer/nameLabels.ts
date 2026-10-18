@@ -174,13 +174,12 @@ export function recolourNameLabel(sprite: THREE.Sprite, colour: string): void {
   redrawNameLabel(sprite);
 }
 
-/** Gap between a body's measured top and its plate when no anchor clears it. */
+/** Own choice: clearance above a body's measured top, eye-picked. */
 const NAME_PLATE_CLEARANCE = 0.5;
 
 /**
  * Label height: the model's `Dummy_Name` Y, else its measured height, else 1.8.
- * An anchor below the measured top is ignored: low, wide bodies such as wolves
- * carry it at the back, which puts the name across the model.
+ * Never below the measured top: wolves carry the anchor at the back.
  */
 export function namePlateHeight(object: THREE.Object3D, bodyHeight: number): number {
   const clear = bodyHeight > 0 ? bodyHeight + NAME_PLATE_CLEARANCE : 1.8;

@@ -143,7 +143,6 @@ export function barPlacement(
   return { covers, fit: fitScale(covers ? roomToFoot : roomAbove, needed) };
 }
 
-/** True while the open bar stands over the jump button and wheel. */
 export const spellBarCoversCorner = signal(false);
 
 /** How much of the corner's height the jump button takes, in pixels, for the bar to stand above. */

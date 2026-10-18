@@ -54,7 +54,7 @@ export function FrontEnd(): JSX.Element | null {
     frontEndActions().watchGround(at === 'signIn' ? 'wide' : 'close');
   }, [at === 'signIn']);
 
-  // From clientX rather than movementX, which a touch does not report.
+  // clientX, not movementX: a touch reports none.
   const lastX = useRef<number | null>(null);
   const grab = (event: JSX.TargetedPointerEvent<HTMLDivElement>): void => {
     lastX.current = event.clientX;
