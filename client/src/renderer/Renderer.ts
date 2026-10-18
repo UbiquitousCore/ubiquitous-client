@@ -3109,12 +3109,14 @@ export class Renderer {
       return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
     };
     const down = (event: PointerEvent): void => {
+      if (event.pointerType === 'touch') return;
       stage.touched = true;
       fingers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       lastX = event.clientX;
       canvas.setPointerCapture(event.pointerId);
     };
     const move = (event: PointerEvent): void => {
+      if (event.pointerType === 'touch') return;
       const held = fingers.get(event.pointerId);
       if (!held) return;
       if (fingers.size >= 2) {
@@ -3145,9 +3147,53 @@ export class Renderer {
       stage.zoom = clampZoom(stage.zoom * Math.exp(event.deltaY * STAGE_ZOOM_PER_WHEEL_PX));
       placeCamera();
     };
-    const hold = (event: TouchEvent): void => event.preventDefault();
-    canvas.addEventListener('touchstart', hold, { passive: false });
-    canvas.addEventListener('touchmove', hold, { passive: false });
+    // Touch is driven by touch events: they run until the finger lifts, where
+    // a pointer stream is cancelled the moment the browser takes the gesture.
+    const touches = new Map<number, number>();
+    const touchSpread = (list: TouchList): number =>
+      list.length >= 2
+        ? Math.hypot(list[0]!.clientX - list[1]!.clientX, list[0]!.clientY - list[1]!.clientY)
+        : 0;
+    let touchBefore = 0;
+    const touchStart = (event: TouchEvent): void => {
+      event.preventDefault();
+      stage.touched = true;
+      for (const touch of Array.from(event.changedTouches)) {
+        touches.set(touch.identifier, touch.clientX);
+      }
+      touchBefore = touchSpread(event.touches);
+    };
+    const touchMove = (event: TouchEvent): void => {
+      event.preventDefault();
+      if (event.touches.length >= 2) {
+        const after = touchSpread(event.touches);
+        if (touchBefore > 0 && after > 0) {
+          stage.zoom = clampZoom(stage.zoom * (touchBefore / after));
+          placeCamera();
+        }
+        touchBefore = after;
+        for (const touch of Array.from(event.touches)) {
+          touches.set(touch.identifier, touch.clientX);
+        }
+        return;
+      }
+      const touch = event.touches[0];
+      if (!touch) return;
+      const was = touches.get(touch.identifier) ?? touch.clientX;
+      stage.yaw += previewTurn(touch.clientX - was, canvas.getBoundingClientRect().width);
+      touches.set(touch.identifier, touch.clientX);
+    };
+    const touchEnd = (event: TouchEvent): void => {
+      for (const touch of Array.from(event.changedTouches)) touches.delete(touch.identifier);
+      touchBefore = 0;
+      // The finger left on a pinch turns from where it is.
+      const rest = event.touches[0];
+      if (rest) touches.set(rest.identifier, rest.clientX);
+    };
+    canvas.addEventListener('touchstart', touchStart, { passive: false });
+    canvas.addEventListener('touchmove', touchMove, { passive: false });
+    canvas.addEventListener('touchend', touchEnd);
+    canvas.addEventListener('touchcancel', touchEnd);
     canvas.addEventListener('pointerdown', down);
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerup', up);
@@ -3193,8 +3239,10 @@ export class Renderer {
         live = false;
         this.heroStages.delete(stage);
         observer?.disconnect();
-        canvas.removeEventListener('touchstart', hold);
-        canvas.removeEventListener('touchmove', hold);
+        canvas.removeEventListener('touchstart', touchStart);
+        canvas.removeEventListener('touchmove', touchMove);
+        canvas.removeEventListener('touchend', touchEnd);
+        canvas.removeEventListener('touchcancel', touchEnd);
         canvas.removeEventListener('pointerdown', down);
         canvas.removeEventListener('pointermove', move);
         canvas.removeEventListener('pointerup', up);
