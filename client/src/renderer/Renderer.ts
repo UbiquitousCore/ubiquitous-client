@@ -3029,6 +3029,17 @@ export class Renderer {
     // that takes the gesture for a pan cancels the pointer after a few pixels,
     // which stopped the turn a moment into a swipe.
     box.style.touchAction = 'none';
+    // Temporary: a phone has no console, so the preview says what it sees.
+    const note = document.createElement('div');
+    note.className =
+      'pointer-events-none absolute left-0 top-0 z-10 text-micro text-parchment-100';
+    box.classList.add('relative');
+    box.append(note);
+    const born = Date.now();
+    const say = (text: string): void => {
+      note.textContent = `${text} | up ${Math.round((Date.now() - born) / 1000)}s`;
+    };
+    say('ready');
     const canvas = document.createElement('canvas');
     canvas.className = 'block h-full w-full';
     canvas.style.touchAction = 'none';
@@ -3156,7 +3167,7 @@ export class Renderer {
         : 0;
     let touchBefore = 0;
     const touchStart = (event: TouchEvent): void => {
-      log.warn(`character preview: touch down, ${event.touches.length} finger(s)`);
+      say(`down x${event.touches.length}`);
       event.preventDefault();
       stage.touched = true;
       for (const touch of Array.from(event.changedTouches)) {
@@ -3180,12 +3191,13 @@ export class Renderer {
       }
       const touch = event.touches[0];
       if (!touch) return;
+      say(`move yaw ${stage.yaw.toFixed(2)}`);
       const was = touches.get(touch.identifier) ?? touch.clientX;
       stage.yaw += previewTurn(touch.clientX - was, canvas.getBoundingClientRect().width);
       touches.set(touch.identifier, touch.clientX);
     };
     const touchEnd = (event: TouchEvent): void => {
-      log.warn(`character preview: touch ${event.type}, turned ${stage.yaw.toFixed(2)} rad`);
+      say(`${event.type} yaw ${stage.yaw.toFixed(2)}`);
       for (const touch of Array.from(event.changedTouches)) touches.delete(touch.identifier);
       touchBefore = 0;
       // The finger left on a pinch turns from where it is.
@@ -3203,7 +3215,6 @@ export class Renderer {
     canvas.addEventListener('wheel', wheel, { passive: false });
 
     this.heroStages.add(stage);
-    log.warn('character preview: staged');
     let key = lookKey();
 
     const swap = (next: { body: THREE.Object3D; mixer: THREE.AnimationMixer }): void => {
@@ -3240,7 +3251,6 @@ export class Renderer {
       },
       dispose: () => {
         live = false;
-        log.warn('character preview: released');
         this.heroStages.delete(stage);
         observer?.disconnect();
         canvas.removeEventListener('touchstart', touchStart);
