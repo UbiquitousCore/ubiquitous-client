@@ -25,7 +25,7 @@ import { DIFFICULTY_TEXT, questDifficulty } from '../questDifficulty';
 import { ArtItemCard, HELD_CARD, cardFor } from './ArtItemCard';
 import {
   QUEST_LOG_CAPACITY,
-  objectiveLine,
+  objectiveLines,
   questAction,
   questActions,
   questLog,
@@ -234,7 +234,7 @@ function Worn({
     ) : null;
 
   const coins = coinsOf(picked?.rewardMoney ?? 0);
-  const objective = picked ? objectiveLine(picked, 0) : null;
+  const objectives = picked ? objectiveLines(picked) : [];
   const said = picked ? told(picked) : '';
   const rewards = picked?.rewards ?? [];
   /** The room the rows below the open one have made for what it says. */
@@ -360,9 +360,11 @@ function Worn({
           style={{ ...under, transformOrigin: 'top', pointerEvents: 'auto' }}
           onWheel={(event: WheelEvent) => event.stopPropagation()}
         >
-          {objective?.text ? (
-            <span style={lettering(spec.values?.objective)}>{objective.text}</span>
-          ) : null}
+          {objectives.map(objective => (
+            <span key={objective.text} style={lettering(spec.values?.objective)}>
+              {objective.text}
+            </span>
+          ))}
           {said ? (
             <span className="whitespace-pre-wrap" style={lettering(spec.values?.body)}>
               {said}

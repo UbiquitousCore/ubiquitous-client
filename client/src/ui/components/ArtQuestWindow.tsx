@@ -16,7 +16,7 @@ import { unavailableFaces } from '../art/wornState';
 import { iconUrl } from '../iconUrl';
 import { itemIcons, itemNames } from '../inventoryStore';
 import { formatMoney, namedCoins } from '../money';
-import { objectiveLine, questName, questString } from '../questStore';
+import { objectiveLines, questName, questString } from '../questStore';
 import { ArtItemCard, HELD_CARD, cardFor } from './ArtItemCard';
 
 /** Our name for this screen. The spec says which dialog wears it. */
@@ -169,7 +169,7 @@ function Worn({
   const window_ = worn.find(spec.panels?.window);
   const title = worn.fieldOf(worn.find(spec.values?.title));
   const titleBar = worn.find(spec.values?.title?.split('/')[0]);
-  const objective = quest ? objectiveLine(quest, 0) : undefined;
+  const objectives = quest ? objectiveLines(quest) : [];
   const said = quest ? told(quest) : '';
   /** A length in movie units, as a share of the middle's width. */
   const across = (units: number): string => `${(units / (window_?.box.w || 1)) * 100}%`;
@@ -385,8 +385,9 @@ function Worn({
           }}
           onWheel={(event: WheelEvent) => event.stopPropagation()}
         >
-          {objective?.text ? (
+          {objectives.map(objective => (
             <span
+              key={objective.text}
               style={{
                 ...lettering(spec.values?.objective),
                 ...(objective.tone === 'ready' ? { fontWeight: 600 } : {}),
@@ -394,7 +395,7 @@ function Worn({
             >
               {objective.text}
             </span>
-          ) : null}
+          ))}
           {said ? (
             <span className="whitespace-pre-wrap" style={lettering(spec.values?.body)}>
               {said}
