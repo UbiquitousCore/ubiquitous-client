@@ -32,6 +32,7 @@ import type {
   LootContents,
   LootRow,
   MailAttachment,
+  MailTake,
   MailInboxEntry,
   MailMessage,
   StatBonus,
@@ -1107,8 +1108,8 @@ export class WebSocketConnection implements GameConnection {
     this.send(OUTBOUND.mailRead, { id });
   }
 
-  sendMailClaim(id: string): void {
-    this.send(OUTBOUND.mailClaim, { id });
+  sendMailClaim(id: string, take?: MailTake): void {
+    this.send(OUTBOUND.mailClaim, { id, ...take });
   }
 
   sendMailDelete(id: string): void {
@@ -2063,7 +2064,11 @@ export class WebSocketConnection implements GameConnection {
       }
 
       case INBOUND.mailSent:
-        this.events.onMailSent?.(payload.ok === true, optionalString(payload.reason));
+        this.events.onMailSent?.(
+          payload.ok === true,
+          optionalString(payload.reason),
+          optionalString(payload.code),
+        );
         return;
 
       case INBOUND.mailClaimed:
@@ -2072,6 +2077,7 @@ export class WebSocketConnection implements GameConnection {
           optionalNumber(payload, 'gold', 0),
           mailAttachmentList(payload.items),
           optionalString(payload.reason),
+          optionalString(payload.code),
         );
         return;
 

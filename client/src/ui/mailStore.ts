@@ -6,10 +6,10 @@
 
 import { signal } from '@preact/signals';
 
-import type { MailAttachment, MailInboxEntry, MailMessage } from '../net/GameConnection';
+import type { MailAttachment, MailInboxEntry, MailMessage, MailTake } from '../net/GameConnection';
 import { formatMoney } from './money';
 
-export type { MailAttachment, MailInboxEntry, MailMessage };
+export type { MailAttachment, MailInboxEntry, MailMessage, MailTake };
 
 /** Whether a mailbox is open, which only the server decides (`mail.opened`). */
 export const mailOpen = signal(false);
@@ -25,6 +25,8 @@ export interface MailNotice {
   kind: 'sent' | 'claim' | 'delete';
   ok: boolean;
   text: string | null;
+  /** The server's code for a refusal (`selfMail`, `inventoryFull`, ...), where it sent one. */
+  code?: string | null;
 }
 
 export const mailNotice = signal<MailNotice | null>(null);
@@ -89,13 +91,13 @@ export function closeLetter(): void {
  * Send what has been written.
  *
  * A letter addressed to nobody is not sent, and the user's strings have no
- * words to say so. The answer arrives as `mail.sent`.
+ * words to say so. The answer arrives as `mail.sent`, and the letter stays
+ * open until then so a refusal leaves it there to put right.
  */
 export function sendLetter(): void {
   const draft = mailDraft.value;
   if (!draft || !draft.to.trim()) return;
   actions.send(draft.to.trim(), draft.subject, draft.body, draft.money, [...draft.itemIds]);
-  mailDraft.value = null;
 }
 
 /** Show the window. The inbox arrives on the next message, not with this. */
@@ -106,6 +108,7 @@ export function setMailOpened(open: boolean): void {
     mailNotice.value = null;
     mailDraft.value = null;
     pendingClaimId = null;
+    pendingTake = undefined;
   }
 }
 
@@ -129,8 +132,18 @@ export function setMailMessage(message: MailMessage): void {
   );
 }
 
-export function applyMailSent(ok: boolean, reason: string | null): void {
-  mailNotice.value = { kind: 'sent', ok, text: ok ? 'Mail sent.' : (reason ?? 'Mail refused.') };
+export function applyMailSent(
+  ok: boolean,
+  reason: string | null,
+  code: string | null = null,
+): void {
+  mailNotice.value = {
+    kind: 'sent',
+    ok,
+    text: ok ? 'Mail sent.' : (reason ?? 'Mail refused.'),
+    code: ok ? null : code,
+  };
+  if (ok) mailDraft.value = null;
 }
 
 /**
@@ -140,20 +153,32 @@ export function applyMailSent(ok: boolean, reason: string | null): void {
  * was last asked for. Set when the request goes out, cleared on the reply.
  */
 let pendingClaimId: string | null = null;
+/** What part of it was asked for; nothing for the whole letter. */
+let pendingTake: MailTake | undefined;
 
 export function applyMailClaimed(
   ok: boolean,
   gold: number,
   items: MailAttachment[],
   reason: string | null,
+  code: string | null = null,
 ): void {
   const id = pendingClaimId;
+  const take = pendingTake;
   pendingClaimId = null;
+  pendingTake = undefined;
   if (!ok) {
-    mailNotice.value = { kind: 'claim', ok, text: reason ?? 'Claim refused.' };
+    mailNotice.value = { kind: 'claim', ok, text: reason ?? 'Claim refused.', code };
     return;
   }
-  if (id !== null) {
+  // Taking one attachment is answered with the letter itself, sent again.
+  if (id !== null && take && 'moneyOnly' in take) {
+    mailInbox.value = mailInbox.value.map(row =>
+      row.id === id ? { ...row, goldClaimed: true } : row,
+    );
+    const open = mailMessage.value;
+    if (open && open.id === id) mailMessage.value = { ...open, goldClaimed: true };
+  } else if (id !== null && !take) {
     mailInbox.value = mailInbox.value.map(row =>
       row.id === id ? { ...row, goldClaimed: true, itemsClaimed: true } : row,
     );
@@ -189,6 +214,7 @@ export function closeMail(): void {
   mailNotice.value = null;
   mailDraft.value = null;
   pendingClaimId = null;
+  pendingTake = undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,8 +227,8 @@ export interface MailActions {
   send(recipientName: string, subject: string, body: string, gold: number, itemIds: string[]): void;
   /** Read one message. Answered by `onMailMessage`. */
   read(id: string): void;
-  /** Claim one message's gold and items, atomically. Answered by `onMailClaimed`. */
-  claim(id: string): void;
+  /** Claim one message's gold and items atomically, or only `take`. Answered by `onMailClaimed`. */
+  claim(id: string, take?: MailTake): void;
   /** Delete one message. Answered by `onMailDeleted`. */
   remove(id: string): void;
 }
@@ -230,10 +256,11 @@ export function readMail(id: string): void {
   actions.read(id);
 }
 
-/** Claim one message: the request, plus remembering which row the answer is for. */
-export function claimMail(id: string): void {
+/** Claim one message, or part of it: the request, plus remembering which row the answer is for. */
+export function claimMail(id: string, take?: MailTake): void {
   pendingClaimId = id;
-  actions.claim(id);
+  pendingTake = take;
+  actions.claim(id, take);
 }
 
 /**

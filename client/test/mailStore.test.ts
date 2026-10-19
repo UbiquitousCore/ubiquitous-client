@@ -120,6 +120,31 @@ describe('claiming', () => {
     expect(mailNotice.value?.text).toContain('bags are full');
   });
 
+  it('marks only the money taken when only the money was asked for', () => {
+    setMailInbox([row('a', { gold: 50, itemCount: 1 })]);
+    setMailMessage(message('a', { gold: 50, items: [{ entry: 1, count: 1 }] }));
+    claimMail('a', { moneyOnly: true });
+    applyMailClaimed(true, 50, [], null);
+    expect(mailInbox.value[0]).toMatchObject({ goldClaimed: true, itemsClaimed: false });
+    expect(mailMessage.value).toMatchObject({ goldClaimed: true, itemsClaimed: false });
+  });
+
+  it('leaves one taken attachment to the letter the server sends again', () => {
+    setMailInbox([row('a', { itemCount: 2 })]);
+    setMailMessage(
+      message('a', {
+        items: [
+          { entry: 1, count: 1 },
+          { entry: 2, count: 1 },
+        ],
+      }),
+    );
+    claimMail('a', { slot: 1 });
+    applyMailClaimed(true, 0, [{ entry: 2, count: 1 }], null);
+    expect(mailInbox.value[0]).toMatchObject({ itemsClaimed: false });
+    expect(mailMessage.value?.items).toHaveLength(2);
+  });
+
   it('answers the last claim asked for, since the reply carries no id', () => {
     setMailInbox([row('a'), row('b')]);
     claimMail('b');
@@ -221,7 +246,7 @@ describe('a letter being written', () => {
     expect(mailDraft.value).toMatchObject({ body: 'Words.', itemIds: [] });
   });
 
-  it('sends what was written, and puts the letter away', () => {
+  it('sends what was written, and puts the letter away once the server takes it', () => {
     const sent: unknown[] = [];
     setMailActions({
       open: () => {},
@@ -235,7 +260,22 @@ describe('a letter being written', () => {
     carryInLetter('a');
     sendLetter();
     expect(sent).toEqual([['Someone', 'About it', 'Words.', 4_500, ['a']]]);
+    expect(mailDraft.value).not.toBeNull();
+    applyMailSent(true, null);
     expect(mailDraft.value).toBeNull();
+  });
+
+  it('keeps the letter open when the server refuses it, with the reason and its code', () => {
+    startLetter('Myself');
+    editLetter({ body: 'Words.' });
+    sendLetter();
+    applyMailSent(false, 'You cannot mail yourself.', 'selfMail');
+    expect(mailDraft.value).toMatchObject({ to: 'Myself', body: 'Words.' });
+    expect(mailNotice.value).toMatchObject({
+      ok: false,
+      code: 'selfMail',
+      text: 'You cannot mail yourself.',
+    });
   });
 
   it('does not send a letter addressed to nobody', () => {

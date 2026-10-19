@@ -34,6 +34,8 @@ export function MailWindowContainer(): JSX.Element | null {
   const actions = mailActions();
   const message = mailMessage.value;
   const draft = mailDraft.value;
+  const notice = mailNotice.value;
+  const refused = notice && !notice.ok ? notice : null;
   // One layer for everything the mailbox has open, so a letter opens
   // beside the box rather than on top of it.
   return (
@@ -41,7 +43,8 @@ export function MailWindowContainer(): JSX.Element | null {
       <ArtMailWindow
         inbox={mailInbox.value}
         message={message}
-        notice={mailNotice.value?.text ?? null}
+        notice={notice?.text ?? null}
+        refusal={refused && refused.kind !== 'sent' ? refused.text : null}
         onSelect={readMail}
         onClaim={claimMail}
         onDelete={id => actions.remove(id)}
@@ -60,6 +63,7 @@ export function MailWindowContainer(): JSX.Element | null {
           onEmpty={emptyLetter}
           onSend={sendLetter}
           onClose={closeLetter}
+          refusal={refused?.kind === 'sent' ? refused.text : null}
         />
       )}
     </WornStage>

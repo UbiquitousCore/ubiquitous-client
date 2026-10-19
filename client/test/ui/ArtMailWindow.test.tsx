@@ -313,6 +313,94 @@ describe('ArtMailWindow', () => {
     itemNames.value = new Map();
   });
 
+  it('takes only the money with the letter’s own money control, while there is money', () => {
+    uiSpec.value = {
+      screens: {
+        ...spec.screens,
+        mailRead: { dialog: 'theBox', frame: 'back', close: 'shut', actions: { up: 'claimMoney' } },
+      },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    const onClaim = vi.fn();
+    const bare: MailMessage = { ...letter('a', true), body: '', items: [] };
+    const paid = render(
+      <ArtMailWindow
+        {...nothing}
+        onClaim={onClaim}
+        inbox={[letter('a')]}
+        message={{ ...bare, gold: 40 }}
+      />,
+    );
+    fireEvent.click(paid.getByLabelText('claimMoney'));
+    expect(onClaim).toHaveBeenCalledWith('a', { moneyOnly: true });
+    paid.unmount();
+    const spent = render(
+      <ArtMailWindow
+        {...nothing}
+        inbox={[letter('a')]}
+        message={{ ...bare, gold: 40, goldClaimed: true }}
+      />,
+    );
+    expect((spent.getByLabelText('claimMoney') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('takes one thing out of a letter from that thing’s card', () => {
+    uiSpec.value = {
+      screens: {
+        ...spec.screens,
+        mailRead: { dialog: 'theBox', frame: 'back', close: 'shut', values: {} },
+        mailAttach: { dialog: 'theBox', frame: 'back', grids: { attached: { slot: 'row0' } } },
+        held: {
+          dialog: 'theBox',
+          frame: 'back',
+          card: { title: 'up', body: 'down', actions: { take: { control: 'shut', says: 'Take' } } },
+        },
+      },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    itemNames.value = new Map([
+      [7, 'Seven'],
+      [9, 'Nine'],
+    ]);
+    const onClaim = vi.fn();
+    const message: MailMessage = {
+      ...letter('a', true),
+      body: '',
+      itemCount: 2,
+      items: [
+        { entry: 7, count: 1 },
+        { entry: 9, count: 1 },
+      ],
+    };
+    const { getByLabelText } = render(
+      <ArtMailWindow {...nothing} onClaim={onClaim} inbox={[letter('a')]} message={message} />,
+    );
+    fireEvent.click(getByLabelText('About Nine'));
+    fireEvent.click(getByLabelText('Take'));
+    expect(onClaim).toHaveBeenCalledWith('a', { slot: 1 });
+    itemNames.value = new Map();
+  });
+
+  it('says why the server refused, on the letter, where it can be seen', () => {
+    uiSpec.value = {
+      screens: { ...spec.screens, mailRead: { dialog: 'theBox', frame: 'back', close: 'shut' } },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    const bare: MailMessage = { ...letter('a', true), body: '', items: [] };
+    const { getByRole } = render(
+      <ArtMailWindow
+        {...nothing}
+        inbox={[letter('a')]}
+        message={bare}
+        refusal="Your bags are full — free a slot and claim again."
+      />,
+    );
+    const said = getByRole('alert');
+    expect(said.textContent).toContain('bags are full');
+    expect(said.className).toContain('text-ink-danger');
+    expect(said.className).not.toContain('sr-only');
+  });
+
   it('puts a letter away without shutting the box it came from', () => {
     // An opened letter must close again.
     uiSpec.value = {

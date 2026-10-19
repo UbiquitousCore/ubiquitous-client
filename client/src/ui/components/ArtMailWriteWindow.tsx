@@ -19,6 +19,7 @@ import { inventory, itemIcons, itemName } from '../inventoryStore';
 import type { InventoryItem } from '../inventoryStore';
 import type { MailDraft } from '../mailStore';
 import { MAIL_ATTACHMENTS } from '../mailStore';
+import { MailRefusal } from './MailRefusal';
 
 /** Our names for these screens. The spec says which dialog wears each. */
 export const MAIL_WRITE_SCREEN = 'mailWrite';
@@ -40,6 +41,8 @@ export interface ArtMailWriteWindowProps {
   onEmpty(): void;
   onSend(): void;
   onClose(): void;
+  /** Why the server refused the last send, in red; nothing while all is well. */
+  refusal?: string | null;
 }
 
 const HIT =
@@ -84,6 +87,7 @@ function Letter({
   onEdit,
   onSend,
   onClose,
+  refusal,
   spec,
   aside,
   onAside,
@@ -243,6 +247,8 @@ function Letter({
           className={HIT}
         />
       )}
+
+      {refusal && <MailRefusal text={refusal} />}
     </div>
   );
 }

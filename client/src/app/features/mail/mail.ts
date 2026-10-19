@@ -63,13 +63,13 @@ export function mailHandlers(art: UiArt): Partial<ConnectionEvents> {
       for (const item of message.items) art.resolveLootArt(item.entry);
     },
 
-    onMailSent: (ok, reason) => {
-      applyMailSent(ok, reason);
+    onMailSent: (ok, reason, code) => {
+      applyMailSent(ok, reason, code);
       log.info(mailLogLine({ kind: 'sent', ok, reason }));
     },
 
-    onMailClaimed: (ok, gold, items, reason) => {
-      applyMailClaimed(ok, gold, items, reason);
+    onMailClaimed: (ok, gold, items, reason, code) => {
+      applyMailClaimed(ok, gold, items, reason, code);
       log.info(mailLogLine({ kind: 'claimed', ok, gold, itemCount: items.length, reason }));
     },
 
@@ -87,7 +87,7 @@ export function installMailActions(connection: GameConnection): void {
     send: (recipientName, subject, body, gold, itemIds) =>
       connection.sendMailSend(recipientName, subject, body, gold, itemIds),
     read: id => connection.sendMailRead(id),
-    claim: id => connection.sendMailClaim(id),
+    claim: (id, take) => connection.sendMailClaim(id, take),
     remove: id => connection.sendMailDelete(id),
   });
 }

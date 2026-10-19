@@ -835,6 +835,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
         unequip: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@296?~9dc2a6ba7a449246~7' },
         use: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@294?~5791c4f4ce83e388~3' },
         tryOn: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@583?~6f3c33a32ccc89bf~6' },
+        // Taking one thing out of a letter being read.
+        take: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@692?~9443f47ea8ec450a~7' },
       },
     },
     ...CARD_WORDS,
@@ -1588,7 +1590,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The marks that say the letter runs on are the letter's to slide;
     // drawn into the picture they sit there whether it runs on or not.
     hidden: ['top', 'bottom'],
-    actions: { btnextractall: 'claim', btndelete: 'delete' },
+    actions: {
+      btnextractall: 'claim',
+      btndelete: 'delete',
+      'moneygroup/btnextractmoney': 'claimMoney',
+    },
     unavailable: { claimMoney: 'moneygroup/btnextractmoney/disable' },
     // Answering and returning a letter are the game's and not yet ours:
     // they wear the face of a control that is not available.

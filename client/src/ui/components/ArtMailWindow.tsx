@@ -17,9 +17,10 @@ import { listGestures, listSlice, rowsIn, useListScroll } from '../art/wornList'
 import { slotsOf } from '../art/wornSlots';
 import { itemIcons, itemName } from '../inventoryStore';
 import { coinsOf, formatMoney } from '../money';
-import type { MailAttachment, MailInboxEntry, MailMessage } from '../mailStore';
+import type { MailAttachment, MailInboxEntry, MailMessage, MailTake } from '../mailStore';
 import { ArtItemCard, HELD_CARD, cardFor } from './ArtItemCard';
 import { MAIL_ATTACH_SCREEN } from './ArtMailWriteWindow';
+import { MailRefusal } from './MailRefusal';
 
 /** Our names for these screens. The spec says which dialog wears each. */
 export const MAIL_SCREEN = 'mail';
@@ -29,8 +30,10 @@ export interface ArtMailWindowProps {
   inbox: readonly MailInboxEntry[];
   message: MailMessage | null;
   notice: string | null;
+  /** A refusal to show on the letter, in red; nothing while all is well. */
+  refusal?: string | null;
   onSelect(id: string): void;
-  onClaim(id: string): void;
+  onClaim(id: string, take?: MailTake): void;
   onDelete(id: string): void;
   /** Put the letter away, leaving the box open. */
   onCloseLetter(): void;
@@ -54,7 +57,11 @@ export function ArtMailWindow(props: ArtMailWindowProps): JSX.Element | null {
       {/* What the letter carries, on the same strip a letter being written
           shows its own on, until it is taken. */}
       {letter && attached && message && !message.itemsClaimed && message.items.length > 0 && (
-        <Carried items={message.items} spec={attached} />
+        <Carried
+          items={message.items}
+          spec={attached}
+          onTake={slot => props.onClaim(message.id, { slot })}
+        />
       )}
     </>
   );
@@ -230,6 +237,7 @@ function Inbox({
 function Letter({
   message,
   notice,
+  refusal,
   onClaim,
   onDelete,
   onCloseLetter,
@@ -269,6 +277,7 @@ function Letter({
 
   const act = (what: string): void => {
     if (what === 'claim') onClaim(message.id);
+    else if (what === 'claimMoney') onClaim(message.id, { moneyOnly: true });
     else if (what === 'delete') onDelete(message.id);
   };
 
@@ -319,7 +328,7 @@ function Letter({
       {Object.entries(spec.actions ?? {}).map(([where, what]) => {
         const part = worn.find(where);
         if (!part) return null;
-        const off = what === 'claim' && !holds;
+        const off = (what === 'claim' && !holds) || (what === 'claimMoney' && carried <= 0);
         return (
           <button
             key={where}
@@ -348,10 +357,14 @@ function Letter({
         ) : null;
       })()}
 
-      {notice && (
-        <p role="status" className="sr-only">
-          {notice}
-        </p>
+      {refusal ? (
+        <MailRefusal text={refusal} />
+      ) : (
+        notice && (
+          <p role="status" className="sr-only">
+            {notice}
+          </p>
+        )
       )}
       {message.items.length > 0 && (
         <p className="sr-only">{`${message.items.length} attached, ${formatMoney(carried)}`}</p>
@@ -363,15 +376,17 @@ function Letter({
 /**
  * What a letter being read carries: one slot per thing, the rest of the
  * strip left out of the picture the way a letter being written leaves it.
- * Pressing one opens the card a thing you have opens, offering nothing:
- * taking it is the letter's own control.
+ * Pressing one opens the card a thing you have opens, which takes that one
+ * thing out of the letter.
  */
 function Carried({
   items,
   spec,
+  onTake,
 }: {
   items: readonly MailAttachment[];
   spec: ScreenSpec;
+  onTake(slot: number): void;
 }): JSX.Element | null {
   const [reading, setReading] = useState<{ at: number; x: number; y: number } | null>(null);
   const grid = Object.values(spec.grids ?? {})[0];
@@ -444,7 +459,15 @@ function Carried({
             <ArtItemCard
               listing={cardFor({ id: `mail-${reading.at}`, entry: read.entry, count: read.count })}
               wears={HELD_CARD}
-              actions={[]}
+              actions={[
+                {
+                  key: 'take',
+                  onPick: () => {
+                    onTake(reading.at);
+                    setReading(null);
+                  },
+                },
+              ]}
               anchor={{ x: reading.x, y: reading.y }}
               onClose={() => setReading(null)}
             />,

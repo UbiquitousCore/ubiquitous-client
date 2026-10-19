@@ -17,11 +17,17 @@ describe('the post', () => {
     mailActions().open(5);
     mailActions().read('7');
     mailActions().claim('7');
+    mailActions().claim('7', { slot: 2 });
+    mailActions().claim('7', { moneyOnly: true });
     mailActions().remove('7');
     mailActions().send('Friend', 'Hi', 'Body', 10, ['1']);
     expect(connection.sendMailOpen).toHaveBeenCalledWith(5);
     expect(connection.sendMailRead).toHaveBeenCalledWith('7');
-    expect(connection.sendMailClaim).toHaveBeenCalledWith('7');
+    expect(connection.sendMailClaim.mock.calls).toEqual([
+      ['7', undefined],
+      ['7', { slot: 2 }],
+      ['7', { moneyOnly: true }],
+    ]);
     expect(connection.sendMailDelete).toHaveBeenCalledWith('7');
     expect(connection.sendMailSend).toHaveBeenCalledWith('Friend', 'Hi', 'Body', 10, ['1']);
   });
