@@ -270,7 +270,7 @@ export function GameHud(): JSX.Element {
        zone name, every number on both unit frames and every key hint on the
        bar. Anything that ever wants selecting,
        a chat log being the obvious one, opts back in with `select-text`. */
-    <div className="pointer-events-none fixed inset-0 z-hud flex items-start gap-2 overflow-hidden select-none max-sm:overflow-x-auto max-sm:p-2 sm:gap-3">
+    <div className="pointer-events-none fixed inset-0 z-hud flex items-start gap-2 overflow-hidden select-none max-sm:overflow-x-auto sm:gap-3">
       {currentPlayer && (
         /* `data-hud` rather than a class: `DamageNumbers` asks the document
            where the hero's portrait is, and a styling class is the wrong

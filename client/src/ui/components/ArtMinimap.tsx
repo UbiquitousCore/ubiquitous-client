@@ -102,8 +102,10 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
     ['W', spec.groups?.west],
   ];
 
+  // The ring sits in the screen's corner itself, the way the hero's frame
+  // sits in the opposite one: a notch's inset left a gap beside it.
   return (
-    <div className="pointer-events-none fixed top-safe-t right-safe-r z-hud-float">
+    <div className="pointer-events-none fixed top-0 right-0 z-hud-float">
       <button
         type="button"
         aria-label={zoneName ? `Open full map, ${zoneName}` : 'Open full map'}
