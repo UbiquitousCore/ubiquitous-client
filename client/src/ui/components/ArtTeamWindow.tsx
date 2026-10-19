@@ -63,6 +63,23 @@ export function kickChoice(
   return { combo, members: others, can: others.length > 0 && inIt };
 }
 
+/**
+ * The team page's Invite and Quit, each with its words, that the player's
+ * standing leaves off: Quit until there is a team to quit, Invite for a
+ * member who does not lead it.
+ * Own choice: who may invite and quit, which the original has not been checked for.
+ */
+export function teamControlsOff(
+  spec: Pick<ScreenSpec, 'groups'>,
+  standing: { inParty: boolean; leads: boolean },
+): string[] {
+  const groups = spec.groups ?? {};
+  return [
+    ...(standing.inParty ? [] : [groups.quit, groups.quitWords]),
+    ...(standing.leads ? [] : [groups.invite, groups.inviteWords]),
+  ].filter((path): path is string => Boolean(path));
+}
+
 export interface ArtTeamWindowProps {
   onClose(): void;
 }
@@ -96,6 +113,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
   const listing = kick.combo && !(open && kick.can) ? NOBODY : kick.members;
   /** The leader line and the kick dropdown, which belong to a team you are in. */
   const partyOnly = inParty ? [] : (spec.partyOnly ?? []);
+  const standingOff = teamControlsOff(spec, { inParty, leads });
 
   const columnsOf = (member: RosterMember): Record<string, string> => ({ name: member.name });
 
@@ -119,6 +137,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
         ...(otherPage ? [otherPage] : []),
         ...teamOnly,
         ...partyOnly,
+        ...standingOff,
         ...sliceOf(whole).hidden,
         // The note for a party you are not in, which only shows while you
         // are not in one.
@@ -168,7 +187,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
         worn={worn}
         spec={spec}
         tone={LIGHT}
-        hidden={[...(otherPage ? [otherPage] : []), ...teamOnly, ...partyOnly]}
+        hidden={[...(otherPage ? [otherPage] : []), ...teamOnly, ...partyOnly, ...standingOff]}
       />
 
       {page === 'team' && named && leaderName ? (
@@ -295,6 +314,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
           );
         }
         if (page !== 'team') return null;
+        if (standingOff.includes(where)) return null;
         const can = what === 'invite' ? asking.length > 0 : inParty;
         // Said by the button itself: the screen's own words for these two
         // sit across the paper's edge above them, and are left off.

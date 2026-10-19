@@ -6,7 +6,7 @@ vi.mock('../../src/ui/art/pieceCanvas', () => ({
   drawPiece: () => ({ url: 'blob:team', width: 240, height: 320 }),
 }));
 
-import { ArtTeamWindow, kickChoice } from '../../src/ui/components/ArtTeamWindow';
+import { ArtTeamWindow, kickChoice, teamControlsOff } from '../../src/ui/components/ArtTeamWindow';
 import { setMovie } from '../../src/ui/art/pieceStore';
 import { uiSpec } from '../../src/ui/art/uiSpec';
 import { player } from '../../src/ui/hudStore';
@@ -69,7 +69,14 @@ function skin(): UiSkinData {
       {
         id: 24,
         frameCount: 1,
-        frames: [[place(11, 0, 0, 'btnempty'), place(23, 0, 0, 'teamsetting')]],
+        frames: [
+          [
+            place(11, 0, 0, 'btnempty'),
+            place(23, 0, 0, 'teamsetting'),
+            place(13, 0, 290, 'btnInvite'),
+            place(13, 40, 290, 'btnQuit'),
+          ],
+        ],
       },
     ],
     edits: [],
@@ -161,6 +168,35 @@ describe('kickChoice', () => {
   });
 });
 
+const standingGroups = {
+  groups: {
+    invite: 'btnInvite',
+    quit: 'btnQuit',
+    inviteWords: 'textInvite',
+    quitWords: 'textQuit',
+  },
+};
+
+describe('teamControlsOff', () => {
+  it('leaves Quit and its words off for someone in no team, and keeps Invite', () => {
+    expect(teamControlsOff(standingGroups, { inParty: false, leads: true })).toEqual([
+      'btnQuit',
+      'textQuit',
+    ]);
+  });
+
+  it('keeps both for the leader', () => {
+    expect(teamControlsOff(standingGroups, { inParty: true, leads: true })).toEqual([]);
+  });
+
+  it('leaves Invite and its words off for a member who does not lead', () => {
+    expect(teamControlsOff(standingGroups, { inParty: true, leads: false })).toEqual([
+      'btnInvite',
+      'textInvite',
+    ]);
+  });
+});
+
 describe('ArtTeamWindow', () => {
   it('keeps the dropdown shut until it is pressed, then lists the rest of the party', () => {
     const { kick, voteKick } = actions();
@@ -188,6 +224,40 @@ describe('ArtTeamWindow', () => {
     const { queryByRole } = render(<ArtTeamWindow onClose={() => {}} />);
 
     expect(queryByRole('button', { name: 'Choose someone to kick out' })).toBeNull();
+  });
+
+  it('offers Invite and Quit by where the player stands in the team', () => {
+    actions();
+    const withButtons = {
+      screens: {
+        team: {
+          ...spec.screens.team,
+          ...standingGroups,
+          actions: { btnInvite: 'invite', btnQuit: 'quit' },
+        },
+      },
+    };
+    const open = (self: string, partyId: string | null) => {
+      uiSpec.value = withButtons;
+      setMovie({ skin: skin(), art: new Map() });
+      player.value = { id: 'me', name: self } as (typeof player)['value'];
+      setPartyRoster({ partyId, members: partyId ? members : [] });
+      return render(<ArtTeamWindow onClose={() => {}} />);
+    };
+
+    const alone = open('Me', null);
+    expect(alone.queryByRole('button', { name: 'Leave the party' })).toBeNull();
+    expect(alone.queryByRole('button', { name: /^Invite/ })).not.toBeNull();
+    alone.unmount();
+
+    const leading = open('Me', 'p1');
+    expect(leading.queryByRole('button', { name: 'Leave the party' })).not.toBeNull();
+    expect(leading.queryByRole('button', { name: /^Invite/ })).not.toBeNull();
+    leading.unmount();
+
+    const following = open('Ayla', 'p1');
+    expect(following.queryByRole('button', { name: 'Leave the party' })).not.toBeNull();
+    expect(following.queryByRole('button', { name: /^Invite/ })).toBeNull();
   });
 
   it('asks the team to vote when a member who does not lead picks a name', () => {
