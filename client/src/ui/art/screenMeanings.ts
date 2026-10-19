@@ -1621,11 +1621,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
   storage: {
     dialog: 'dlgstoragebox',
     grids: {
-      bank: { slot: 'boxitem', pager: /^pageleftrightbox$/i },
+      // The one sort button stands under the chest's half.
+      bank: { slot: 'boxitem', pager: /^pageleftrightbox$/i, sort: 'btnsort' },
       bag: { slot: 'bagitem', pager: /^pageleftrightbag$/i },
     },
-    // The room offer, half labels and second currency are not ours yet;
-    // sorting both halves at once wears its unavailable face.
+    // The room offer, half labels and second currency are not ours yet.
     hidden: [
       'btnupgradebag',
       'btnupgradebox',
@@ -1634,7 +1634,6 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       'boxindicator',
       'Stone',
     ],
-    shown: ['btnsort/disable'],
     captions: { textsort: 'Sort' },
   },
 
