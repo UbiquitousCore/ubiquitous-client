@@ -14,6 +14,7 @@ import type { ScreenSpec } from '../art/uiSpec';
 import { LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { WornPiece } from '../art/WornPiece';
 import { cornerOverhang } from '../art/cornerOverhang';
+import { onPictureGrid } from '../art/onPictureGrid';
 import { mailWaiting } from '../mailStore';
 import type { ResourceType, Unit } from '../hudStore';
 import { barRun, faceFor, shareOf } from '../art/faceRuns';
@@ -181,26 +182,6 @@ export function strangers(
     .map(part => part.path);
 }
 
-/**
- * A part the frame's picture leaves out, placed on the picture's grid: the
- * full plan measures from another origin, so it is moved by however far a
- * part both share stands apart in the two.
- */
-function beside(
-  worn: { parts: readonly PiecePart[]; whole: readonly PiecePart[] },
-  path: string,
-  framed: string | readonly string[] | undefined,
-): PiecePart | undefined {
-  const target = worn.whole.find(part => part.path === path);
-  const shared = [framed ?? []].flat().find(name => worn.parts.some(part => part.path === name));
-  const inPicture = worn.parts.find(part => part.path === shared);
-  const inWhole = worn.whole.find(part => part.path === shared);
-  if (!target || !inPicture || !inWhole) return undefined;
-  const dx = inPicture.box.x - inWhole.box.x;
-  const dy = inPicture.box.y - inWhole.box.y;
-  return { ...target, box: { ...target.box, x: target.box.x + dx, y: target.box.y + dy } };
-}
-
 export interface ArtPlayerFrameProps {
   unit: Unit;
   /** A headshot of the hero, once one has rendered. */
@@ -253,7 +234,8 @@ function Worn({
   const lettered = over.image ? over : under;
   const level = lettered.fieldOf(lettered.find(spec.values?.level));
   const spot = portraitAt ? under.find(portraitAt) : undefined;
-  const letterAt = letter && mailWaiting.value > 0 ? beside(under, letter, framed) : undefined;
+  const letterAt =
+    letter && mailWaiting.value > 0 ? onPictureGrid(under, letter, framed) : undefined;
   const pct = (units: number, of: number): string => `${(units / of) * 100}%`;
 
   const hangs = cornerOverhang(under.onStage, under.stage, 'left');

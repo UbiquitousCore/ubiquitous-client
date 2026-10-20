@@ -9,6 +9,7 @@ import type { ScreenSpec } from '../art/uiSpec';
 import { INK, LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { WornCaptions } from '../art/WornCaptions';
 import { WornEmblem } from '../art/WornEmblem';
+import { onPictureGrid } from '../art/onPictureGrid';
 import { unavailableFaces } from '../art/wornState';
 import { WornChevrons } from '../art/WornChevrons';
 import { WornRow } from '../art/WornRow';
@@ -202,11 +203,13 @@ function Inbox({
       />
 
       {/* The emblems the screen draws on its own controls. */}
+      {/* Placed on the control's resting face: its lit face is drawn
+          larger, and the emblem would ride its glow. */}
       {Object.entries(spec.emblems ?? {}).map(([what, emblem]) => (
         <WornEmblem
           key={`emblem.${what}`}
           worn={worn}
-          at={worn.find(emblem.at)}
+          at={onPictureGrid(worn, emblem.at, spec.frame) ?? worn.find(emblem.at)}
           icon={emblem.icon}
           size={emblem.size}
         />
