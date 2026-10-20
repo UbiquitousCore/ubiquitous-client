@@ -293,11 +293,11 @@
    * stacks from `core/lettering.ts`, pinned equal by `lettering.test.ts`.
    * ------------------------------------------------------------------ */
   --font-chrome:
-    'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman',
-    serif;
-  --font-title:
-    'UbiquitousTitle', 'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype',
+    'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype',
     'Times New Roman', serif;
+  --font-title:
+    'UbiquitousTitle', 'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style',
+    'Palatino Linotype', 'Times New Roman', serif;
   /* What the document itself, and so every element that inherits, starts
      in — rather than Tailwind's own sans stack. */
   --default-font-family: var(--font-chrome);
