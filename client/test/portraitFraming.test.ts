@@ -163,6 +163,26 @@ describe('holdStill', () => {
   });
 });
 
+describe('holdStill on a skinned body', () => {
+  it('stands a skin’s bones in the pose the skin was fitted in, not the file’s node pose', () => {
+    const bone = new THREE.Bone();
+    // The file's node pose and the fitted pose disagree.
+    bone.userData.rest = { position: [0, 9, 0], quaternion: [0, 0, 0, 1], scale: [1, 1, 1] };
+    bone.position.set(5, 5, 5);
+    const fitted = new THREE.Matrix4().makeTranslation(0, 1.6, 0);
+    const mesh = new THREE.SkinnedMesh();
+    mesh.bind(new THREE.Skeleton([bone], [fitted.clone().invert()]), new THREE.Matrix4());
+    const root = new THREE.Group();
+    root.add(bone, mesh);
+
+    const back = holdStill(root);
+    expect(bone.position.toArray().map(v => +v.toFixed(6))).toEqual([0, 1.6, 0]);
+
+    back();
+    expect(bone.position.toArray()).toEqual([5, 5, 5]);
+  });
+});
+
 describe('pulling the portrait camera back', () => {
   it('stands further off along the same line, looking at the same point', () => {
     const head = new THREE.Vector3(0, 1.7, 0);

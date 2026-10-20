@@ -28,22 +28,45 @@ interface RestPose {
 }
 
 /**
- * Stand every bone in `object` as its file stands it, and return what puts
- * each back where the clip had it.
+ * Stand the body in the pose its skins were fitted in, and return what puts
+ * each bone back where the clip had it.
+ *
+ * Skinned bones go to their bind pose (`Skeleton.pose`), where a face and the
+ * helmet over it meet as they were made to; the file's own node pose is not
+ * always that, and a portrait taken in it showed the face through the helmet.
+ * Bones no skin names fall back to the file's node pose.
  */
 export function holdStill(object: THREE.Object3D): () => void {
   const kept: Array<[THREE.Object3D, THREE.Vector3, THREE.Quaternion, THREE.Vector3]> = [];
+  const keep = (bone: THREE.Object3D): void => {
+    kept.push([bone, bone.position.clone(), bone.quaternion.clone(), bone.scale.clone()]);
+  };
   // A skinned mesh is culled by bounds taken in whatever pose it was first
   // drawn in, which the still pose can leave behind.
   const culled: THREE.Object3D[] = [];
+  const skeletons = new Set<THREE.Skeleton>();
   object.traverse(node => {
-    if ((node as THREE.SkinnedMesh).isSkinnedMesh && node.frustumCulled) {
-      culled.push(node);
-      node.frustumCulled = false;
+    const skin = node as THREE.SkinnedMesh;
+    if (!skin.isSkinnedMesh) return;
+    if (skin.frustumCulled) {
+      culled.push(skin);
+      skin.frustumCulled = false;
     }
+    if (skin.skeleton) skeletons.add(skin.skeleton);
+  });
+  const posed = new Set<THREE.Object3D>();
+  for (const skeleton of skeletons) {
+    for (const bone of skeleton.bones) {
+      if (posed.has(bone)) continue;
+      posed.add(bone);
+      keep(bone);
+    }
+    skeleton.pose();
+  }
+  object.traverse(node => {
     const rest = node.userData.rest as RestPose | undefined;
-    if (!(node as THREE.Bone).isBone || !rest) return;
-    kept.push([node, node.position.clone(), node.quaternion.clone(), node.scale.clone()]);
+    if (!(node as THREE.Bone).isBone || !rest || posed.has(node)) return;
+    keep(node);
     node.position.fromArray(rest.position);
     node.quaternion.fromArray(rest.quaternion);
     node.scale.fromArray(rest.scale);
