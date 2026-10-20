@@ -1,7 +1,7 @@
 /** The bag on the shipped screen: paged slots, the purse, cards on press, and drags to other windows. */
 
 import type { JSX } from 'preact';
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 
 import { ArtAskBox } from './ArtAskBox';
 import { ArtItemCard, cardFor } from './ArtItemCard';
@@ -38,7 +38,7 @@ import {
   startItemDrag,
 } from './dragItem';
 import { ItemDragGhost, socketItemOf } from './ItemSocket';
-import { SplitStackPrompt } from './SplitStackPrompt';
+import { ArtSplitWindow } from './ArtSplitWindow';
 import { logger } from '../../core/log';
 
 const log = logger('bag');
@@ -109,6 +109,8 @@ function Worn({
   const [discarding, setDiscarding] = useState<InventoryItem | null>(null);
   /** The stack held and let go on its own slot, while the player says how many to take off. */
   const [splitting, setSplitting] = useState<InventoryItem | null>(null);
+  /** Set by a drag's drop, so the click that ends the same press does not open the card too. */
+  const dropped = useRef(false);
   const discardBox = useWornScreen(DISCARD_ASK_SCREEN);
 
   const state = inventory.value;
@@ -266,6 +268,7 @@ function Worn({
               if (item)
                 startItemDrag(event, dragged(item), where, {
                   onDrop: (_payload, from, to) => {
+                    dropped.current = true;
                     const does = bagDrop(from, to, item.count);
                     log.info(`bag: drop asks to ${does ?? 'do nothing'}`);
                     if (does === 'wear') actions.equip(item, to ?? undefined);
@@ -279,6 +282,10 @@ function Worn({
                 });
             }}
             onClick={(event: MouseEvent) => {
+              if (dropped.current) {
+                dropped.current = false;
+                return;
+              }
               if (!item) return;
               if (trading) {
                 if (!trading.offered.includes(item.id)) trading.offer(item);
@@ -477,7 +484,7 @@ function Worn({
       ) : null}
 
       {splitting ? (
-        <SplitStackPrompt
+        <ArtSplitWindow
           name={itemName(splitting)}
           count={splitting.count}
           onSplit={count => {

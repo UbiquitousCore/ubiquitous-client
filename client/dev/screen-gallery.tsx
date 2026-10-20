@@ -52,6 +52,7 @@ import { ArtMailWindow } from '../src/ui/components/ArtMailWindow';
 import { ArtShopWindow } from '../src/ui/components/ArtShopWindow';
 import { ArtSellWindow } from '../src/ui/components/ArtSellWindow';
 import { ArtStorageWindow } from '../src/ui/components/ArtStorageWindow';
+import { ArtSplitWindow } from '../src/ui/components/ArtSplitWindow';
 import { ArtTradeWindow } from '../src/ui/components/ArtTradeWindow';
 import { money, player } from '../src/ui/hudStore';
 import {
@@ -383,6 +384,11 @@ function HeldCard({ compare }: { compare: boolean }): JSX.Element | null {
 }
 
 const SHOWN: Shown[] = [
+  {
+    screen: 'split',
+    label: 'How many to take off a stack',
+    draw: () => <ArtSplitWindow name="Sample" count={9} onSplit={nothing} onCancel={nothing} />,
+  },
   {
     screen: 'playerLink',
     label: 'What can be done with a player',

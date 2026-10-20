@@ -1537,6 +1537,20 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     captions: { title: '@694?~1a545e81c9b7afd5~11' },
   },
 
+  // How many to take off a stack held and let go on its own slot.
+  split: {
+    dialog: 'dlgsplit',
+    frame: 'btnempty',
+    edits: { 'btnContent/text': { holds: 'count', number: true } },
+    actions: { confirm: 'split' },
+    captions: {
+      txtLabel: '@1345?~7ff02c9bb5254e67~6',
+      textConfirm: '@696?~70daee4fc248182b~7',
+    },
+    // The sheet the movie lays across the whole screen behind the box.
+    hidden: ['btntrans'],
+  },
+
   // A short stack of controls beside a unit or a row, lettered by the caller.
   playerLink: {
     dialog: 'dlgPlayerLink',
