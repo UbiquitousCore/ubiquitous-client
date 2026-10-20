@@ -63,22 +63,13 @@ function Worn({
         onClick={onCancel}
         className="pointer-events-auto absolute inset-0 cursor-default border-0 bg-transparent p-0"
       />
-      <div className="relative" style={worn.sized}>
+      {/* The box takes the pointer, so a press on its field types rather
+          than falling through to the sheet that cancels. */}
+      <div className="pointer-events-auto relative" style={worn.sized}>
         <WornPanel worn={worn} name={spec.dialog}>
           {/* The field's own authored words are the movie's placeholder;
               the count is written there instead. */}
           <WornCaptions worn={worn} spec={spec} tone={LIGHT} hidden={where ? [where] : []} />
-          {field && edit ? (
-            <WornEdit
-              worn={worn}
-              part={field}
-              name={`How many ${name} to take off`}
-              value={typed}
-              onInput={setTyped}
-              number
-              tone={LIGHT}
-            />
-          ) : null}
           <WornHit
             worn={worn}
             part={worn.find(on('split'))}
@@ -87,6 +78,17 @@ function Worn({
             onPress={split}
           />
         </WornPanel>
+        {field && edit ? (
+          <WornEdit
+            worn={worn}
+            part={field}
+            name={`How many ${name} to take off`}
+            value={typed}
+            onInput={setTyped}
+            number
+            tone={LIGHT}
+          />
+        ) : null}
       </div>
       <span className="sr-only">{`${name}, ${count} in the stack`}</span>
     </div>
