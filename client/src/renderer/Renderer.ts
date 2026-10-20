@@ -50,6 +50,12 @@ import { TargetRing, placeRing } from './TargetRing';
 import { GUIDE_MODEL, GUIDE_SCALE } from '../gameplay/questGuide';
 import type { Relation } from './TargetRing';
 
+/**
+ * Own choice: how far the HUD frames' camera stands back from a face, after
+ * the owner found the first framing too close. The character list stands
+ * further back still (`SelectionScene`).
+ */
+const HEADSHOT_PULL_BACK = 1.25;
 /** How tall a body is taken to be before it has been built. */
 const UNBUILT_BODY_HEIGHT = 1.8;
 /** Own choice: a ray this much beyond a body's largest side cannot touch it, whatever its pose. */
@@ -2926,10 +2932,19 @@ export class Renderer {
     // Never shoot a half-textured body: the grey mannequin would be cached all session.
     if (!this.isTextured(object)) return undefined;
 
-    const url = renderPortrait(this.gl, object, size);
+    const url = renderPortrait(this.gl, object, size, HEADSHOT_PULL_BACK);
     if (!url) return undefined;
-    if (lookKey) this.headshotCache.set(lookKey, url);
+    // Shot while gear or textures are still arriving, it is shown but kept
+    // only once nothing is pending; the HUD asks again, and gets the whole body.
+    if (lookKey && this.pendingAttachments === 0 && this.pendingTextures === 0) {
+      this.headshotCache.set(lookKey, url);
+    }
     return url;
+  }
+
+  /** Forget every portrait, so each is taken again: the world has finished loading round them. */
+  forgetHeadshots(): void {
+    this.headshotCache.clear();
   }
 
   /**
