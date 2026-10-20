@@ -267,6 +267,22 @@ function Worn({
         transform: `translate(${hangs.x * perUnit}px, ${hangs.y * perUnit}px)`,
       }}
     >
+      {/* Under the ring, the way the movie tucks it behind the frame's edge. */}
+      {letter && letterAt && (
+        <span
+          data-hud="mail-waiting"
+          role="img"
+          aria-label={
+            mailWaiting.value === 1
+              ? 'A letter is waiting'
+              : `${mailWaiting.value} letters are waiting`
+          }
+          className="pointer-events-none absolute"
+          style={under.box(letterAt)}
+        >
+          <WornPiece dialog={spec.dialog} part={letter} box={{ width: '100%', height: '100%' }} />
+        </span>
+      )}
       {under.image && (
         <img
           ref={under.pictureRef}
@@ -305,21 +321,6 @@ function Worn({
         />
       )}
       {level && <span style={lettered.words(level, LIGHT)}>{unit.level}</span>}
-      {letter && letterAt && (
-        <span
-          data-hud="mail-waiting"
-          role="img"
-          aria-label={
-            mailWaiting.value === 1
-              ? 'A letter is waiting'
-              : `${mailWaiting.value} letters are waiting`
-          }
-          className="pointer-events-none absolute"
-          style={under.box(letterAt)}
-        >
-          <WornPiece dialog={spec.dialog} part={letter} box={{ width: '100%', height: '100%' }} />
-        </span>
-      )}
     </div>
   );
 }

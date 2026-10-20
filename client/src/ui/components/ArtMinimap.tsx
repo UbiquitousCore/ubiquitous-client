@@ -43,11 +43,8 @@ const TOGGLE_FACE = { shown: 0, folded: 1 } as const;
 /** The fold control's size, from its box in 1.1.4's HUD, in movie units. */
 const TOGGLE_SIZE = { w: 42.5, h: 41 };
 
-/**
- * Larger than its movie size, which drew a mark too small to tap on a phone:
- * 1.5 stands it at the share of the compass the owner's screenshot shows.
- */
-const TOGGLE_SCALE = 1.5;
+/** Three quarters of its movie size: the owner's pick, half of the 1.5 first tried. */
+const TOGGLE_SCALE = 0.75;
 
 /** How wide a service icon stands on the ground, in movie units. */
 const ICON_SIZE = 10;
