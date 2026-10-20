@@ -8,6 +8,7 @@ import { MENU_SCREEN } from './components/ArtMenuBar';
 import { ArtFocusPanel } from './components/ArtFocusPanel';
 import { ArtMapWindow } from './components/ArtMapWindow';
 import { ArtMinimap } from './components/ArtMinimap';
+import { SpellDragGhost } from './components/SpellDragGhost';
 import { useMapKeys } from './components/mapKeys';
 import { ArtPlayerFrame } from './components/ArtPlayerFrame';
 import type { TopbarAction } from './components/ArtTopbarMenu';
@@ -51,6 +52,7 @@ import {
   brokenCast as brokenCastSignal,
   cooldowns as cooldownsSignal,
   globalCooldown as globalCooldownSignal,
+  assignBarSlot,
   banner as bannerSignal,
   inCombat as inCombatSignal,
   mountSlot,
@@ -342,9 +344,12 @@ export function GameHud(): JSX.Element {
         power={currentPlayer?.mana ?? 0}
         dead={currentPlayer?.dead ?? false}
         onCast={handleCast}
+        onPlace={assignBarSlot}
         open={spellBarOpen.value}
         onOpenChange={setSpellBarOpen}
       />
+      {/* The spell in the air, from the bar or the spells window. */}
+      <SpellDragGhost />
       <ArtSpellWheel
         spells={wheelSlots.value}
         firstSlot={WHEEL_FIRST}

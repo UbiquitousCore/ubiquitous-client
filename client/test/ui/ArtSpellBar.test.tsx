@@ -51,6 +51,7 @@ function props(over: Partial<ArtSpellBarProps> = {}): ArtSpellBarProps {
     power: 1000,
     dead: false,
     onCast: () => {},
+    onPlace: () => {},
     open: true,
     onOpenChange: () => {},
     ...over,

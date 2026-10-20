@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { PiecePart } from '../../src/ui/art/piecePlan';
 import {
+  barSwap,
   FLASH_FACE_MS,
   LEAST_FIT,
   closedShift,
@@ -286,5 +287,31 @@ describe('barPlacement', () => {
 
   it('leaves the corner alone while closed', () => {
     expect(barPlacement(false, 300, 600, 400).covers).toBe(false);
+  });
+});
+
+describe('barSwap', () => {
+  const held = [101, 102, null, 900];
+
+  it('trades two slots, or moves a spell into an empty one', () => {
+    expect(barSwap(0, 1, held)).toEqual([
+      [1, 101],
+      [0, 102],
+    ]);
+    expect(barSwap(1, 2, held)).toEqual([
+      [2, 102],
+      [1, null],
+    ]);
+  });
+
+  it('asks for nothing on a drop back on itself, off the bar, or from an empty slot', () => {
+    expect(barSwap(0, 0, held)).toBeNull();
+    expect(barSwap(0, null, held)).toBeNull();
+    expect(barSwap(2, 0, held)).toBeNull();
+  });
+
+  it('leaves the mount’s own slot out of it', () => {
+    expect(barSwap(3, 0, held)).toBeNull();
+    expect(barSwap(0, 3, held)).toBeNull();
   });
 });

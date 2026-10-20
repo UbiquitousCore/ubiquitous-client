@@ -297,3 +297,22 @@ export function spellBarStates(
   });
   return { base, over };
 }
+
+/**
+ * What a slot held and let go over another slot asks for: the two trade
+ * places. Nothing for a drop back on itself or off the bar, and the mount's
+ * own slot (the last) neither gives nor takes.
+ */
+export function barSwap(
+  from: number,
+  to: number | null,
+  held: ReadonlyArray<number | null>,
+): Array<[number, number | null]> | null {
+  const mount = held.length - 1;
+  if (to === null || to === from || from === mount || to === mount) return null;
+  if (to < 0 || to >= held.length || held[from] == null) return null;
+  return [
+    [to, held[from] ?? null],
+    [from, held[to] ?? null],
+  ];
+}
