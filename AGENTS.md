@@ -430,7 +430,7 @@ These need a build on disk: start vite with `UBIQUITOUS_PACK_DIR=<packs>` and pa
 | Page | What it is |
 |---|---|
 | `/dev/front.html` | The screens before the world, over the ground they stand on, with no server behind them |
-| `/dev/screen-gallery.html` | Every worn screen with sample data, each tab in turn, and why any falls back |
+| `/dev/screen-gallery.html` | Every worn screen with sample data, each tab in turn, and why any falls back. See [client/docs/ui/SCREEN_GALLERY.md](client/docs/ui/SCREEN_GALLERY.md) |
 | `/dev/sound.html` | Every zone's music and ambience and every sound, through the client's audio engine. Needs `tables.bin` and `sound.bin` |
 | `/dev/shader-lab.html` | The build's own water program and our fallback on one plane, the program's inputs on sliders, a PNG capture and a fingerprint to measure the gap. `?dir=` names the folder of packs or a single `.ipa` |
 

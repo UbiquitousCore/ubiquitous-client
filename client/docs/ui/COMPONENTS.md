@@ -9,6 +9,9 @@
 
 `hud-lab` needs no game data. Nothing under `src/` imports them.
 
+`/dev/screen-gallery.html` draws every worn screen from a build on disk; see
+[SCREEN_GALLERY.md](SCREEN_GALLERY.md).
+
 ## Styling
 
 **Tailwind utilities at the call site. No component CSS classes.**
