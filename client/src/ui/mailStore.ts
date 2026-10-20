@@ -57,6 +57,11 @@ export function startLetter(to = '', subject = ''): void {
   mailDraft.value = { ...BLANK, to, subject };
 }
 
+/** Own choice: a reply's subject is the letter's with `Re: ` before it, once. */
+export function replySubject(subject: string): string {
+  return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
+}
+
 /** Change part of the letter being written; does nothing when there is none. */
 export function editLetter(change: Partial<MailDraft>): void {
   const draft = mailDraft.value;

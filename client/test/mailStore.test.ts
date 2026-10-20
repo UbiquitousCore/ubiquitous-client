@@ -20,6 +20,7 @@ import {
   mailDraft,
   MAIL_ATTACHMENTS,
   sendLetter,
+  replySubject,
   startLetter,
   applyMailDeleted,
   applyMailSent,
@@ -298,5 +299,12 @@ describe('a letter being written', () => {
     startLetter('Someone');
     closeMail();
     expect(mailDraft.value).toBeNull();
+  });
+});
+
+describe('replying', () => {
+  it('puts Re: before the subject once', () => {
+    expect(replySubject('Hello')).toBe('Re: Hello');
+    expect(replySubject('Re: Hello')).toBe('Re: Hello');
   });
 });

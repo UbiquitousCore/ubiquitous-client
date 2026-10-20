@@ -381,6 +381,23 @@ describe('ArtMailWindow', () => {
     itemNames.value = new Map();
   });
 
+  it('answers a letter with its own Reply control', () => {
+    uiSpec.value = {
+      screens: {
+        ...spec.screens,
+        mailRead: { dialog: 'theBox', frame: 'back', close: 'shut', actions: { up: 'reply' } },
+      },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    const onReply = vi.fn();
+    const read: MailMessage = { ...letter('a', true), body: '', items: [] };
+    const { getByLabelText } = render(
+      <ArtMailWindow {...nothing} onReply={onReply} inbox={[letter('a')]} message={read} />,
+    );
+    fireEvent.click(getByLabelText('reply'));
+    expect(onReply).toHaveBeenCalledWith(read);
+  });
+
   it('puts a letter away without shutting the box it came from', () => {
     // An opened letter must close again.
     uiSpec.value = {

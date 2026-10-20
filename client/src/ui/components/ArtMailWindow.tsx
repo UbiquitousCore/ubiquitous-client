@@ -38,6 +38,8 @@ export interface ArtMailWindowProps {
   onCloseLetter(): void;
   /** Start a letter of the player's own, which the box's own control does. */
   onWrite(): void;
+  /** Start a letter back to whoever sent the one being read. */
+  onReply?(message: MailMessage): void;
   onClose(): void;
 }
 
@@ -244,6 +246,7 @@ function Inbox({
 function Letter({
   message,
   notice,
+  onReply,
   onClaim,
   onDelete,
   onCloseLetter,
@@ -285,6 +288,7 @@ function Letter({
     if (what === 'claim') onClaim(message.id);
     else if (what === 'claimMoney') onClaim(message.id, { moneyOnly: true });
     else if (what === 'delete') onDelete(message.id);
+    else if (what === 'reply') onReply?.(message);
   };
 
   return (

@@ -23,6 +23,7 @@ import {
   mailOpen,
   readMail,
   sendLetter,
+  replySubject,
   startLetter,
 } from './mailStore';
 
@@ -51,6 +52,7 @@ export function MailWindowContainer(): JSX.Element | null {
         // Pressing it again while a letter is open puts it away, which
         // is what the box's own control does.
         onWrite={() => (mailDraft.value ? closeLetter() : startLetter())}
+        onReply={letter => startLetter(letter.senderName, replySubject(letter.subject))}
         onClose={dismissMail}
       />
       {draft && (

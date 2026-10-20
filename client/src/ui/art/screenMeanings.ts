@@ -1616,11 +1616,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       btnextractall: 'claim',
       btndelete: 'delete',
       'moneygroup/btnextractmoney': 'claimMoney',
+      btnreply: 'reply',
     },
     unavailable: { claimMoney: 'moneygroup/btnextractmoney/disable' },
-    // Answering and returning a letter are the game's and not yet ours:
-    // they wear the face of a control that is not available.
-    shown: ['btnreply/disable', 'btnsendback/disable'],
+    // Returning a letter is the game's and not yet ours: it wears the face
+    // of a control that is not available.
+    shown: ['btnsendback/disable'],
     captions: {
       textextractall: 'Take all',
       textdelete: 'Delete',
