@@ -4,7 +4,14 @@ import type { JSX } from 'preact';
 import { WornPiece } from '../art/WornPiece';
 import type { ScreenSpec } from '../art/uiSpec';
 import { LIGHT, useWorn, useWornScreen } from '../art/useWorn';
-import { mapState, minimapZoomStep, openMap, setMinimapZoomStep } from '../hudStore';
+import {
+  mapState,
+  minimapShown,
+  minimapZoomStep,
+  openMap,
+  setMinimapZoomStep,
+  toggleMinimap,
+} from '../hudStore';
 import { MINIMAP_ZOOMS } from '../../world/minimap';
 import type { MapMarker } from '../mapModel';
 import { arrowTurn, minimapBackground, minimapMark } from './minimapMarks';
@@ -25,6 +32,21 @@ export const HOLE_RADIUS = 42;
  * offset sat the ground 0.6 low and left the top edge thin.
  */
 const HOLE_OFFSET = { x: 0, y: 0 };
+
+/**
+ * The faces of the fold control: minus while the ring is out, plus while it
+ * is folded away. Read off 1.1.4's four faces (minus, plus, then each lit).
+ */
+const TOGGLE_FACE = { shown: 0, folded: 1 } as const;
+
+/** The fold control's size, from its box in 1.1.4's HUD, in movie units. */
+const TOGGLE_SIZE = { w: 42.5, h: 41 };
+
+/**
+ * Larger than its movie size, which drew a mark too small to tap on a phone:
+ * 1.5 stands it at the share of the compass the owner's screenshot shows.
+ */
+const TOGGLE_SCALE = 1.5;
 
 /** How wide a service icon stands on the ground, in movie units. */
 const ICON_SIZE = 10;
@@ -61,6 +83,10 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
   const background = minimapUrl && minimapWindow ? minimapBackground(minimapWindow) : null;
   const halfWorld = minimapWindow?.halfWorld ?? 1;
   const arrowAt = spec.groups?.player;
+  const shown = minimapShown.value;
+  const toggle = spec.pieces?.toggle;
+  /** Drawn pixels per movie unit, so the control stands at the ring's own scale. */
+  const unit = (parseFloat(String(worn.sized.width)) || frame.w) / frame.w;
 
   const place = (marker: MapMarker): JSX.Element | null => {
     if (marker.kind === 'player') return null;
@@ -119,27 +145,31 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
         className="pointer-events-auto relative block cursor-pointer border-0 bg-transparent p-0"
         style={worn.sized}
       >
-        <span
-          data-map="disc"
-          className="absolute overflow-hidden rounded-full bg-map-ground"
-          style={around(0, 0, HOLE_RADIUS * 2)}
-        >
+        {/* Folded away, the ground and the ring go and the letters, the
+            hero's arrow and the marks stay over the world. */}
+        {shown && (
           <span
-            data-map="minimap-surface"
-            className="absolute inset-0 block bg-no-repeat"
-            style={{
-              backgroundImage: minimapUrl ? `url("${minimapUrl}")` : undefined,
-              backgroundSize: background?.size,
-              backgroundPosition: background?.position,
-            }}
-          />
-        </span>
+            data-map="disc"
+            className="absolute overflow-hidden rounded-full bg-map-ground"
+            style={around(0, 0, HOLE_RADIUS * 2)}
+          >
+            <span
+              data-map="minimap-surface"
+              className="absolute inset-0 block bg-no-repeat"
+              style={{
+                backgroundImage: minimapUrl ? `url("${minimapUrl}")` : undefined,
+                backgroundSize: background?.size,
+                backgroundPosition: background?.position,
+              }}
+            />
+          </span>
+        )}
         <img
           ref={worn.pictureRef}
           src={worn.image.url}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className={`pointer-events-none absolute inset-0 ${shown ? '' : 'invisible'}`}
           style={worn.sized}
           draggable={false}
         />
@@ -165,6 +195,27 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
         )}
         {markers.map(place)}
       </button>
+      {toggle && (
+        <button
+          type="button"
+          data-map="fold"
+          aria-label={shown ? 'Fold the minimap away' : 'Bring the minimap back'}
+          aria-pressed={!shown}
+          onClick={toggleMinimap}
+          className="pointer-events-auto absolute top-0 right-0 z-10 block cursor-pointer border-0 bg-transparent p-0"
+          style={{
+            width: `${TOGGLE_SIZE.w * TOGGLE_SCALE * unit}px`,
+            height: `${TOGGLE_SIZE.h * TOGGLE_SCALE * unit}px`,
+          }}
+        >
+          <WornPiece
+            dialog={toggle.dialog ?? spec.dialog}
+            part={toggle.part}
+            face={shown ? TOGGLE_FACE.shown : TOGGLE_FACE.folded}
+            box={{ width: '100%', height: '100%' }}
+          />
+        </button>
+      )}
     </div>
   );
 }

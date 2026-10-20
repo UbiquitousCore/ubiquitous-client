@@ -377,6 +377,11 @@ export const mapTeleporting = signal(false);
 
 /** An index into `MINIMAP_ZOOMS`, so HUD and engine agree on the steps. */
 export const minimapZoomStep = signal(MINIMAP_DEFAULT_ZOOM);
+/** False while the minimap is folded away to its compass letters and marks. */
+export const minimapShown = signal(true);
+export function toggleMinimap(): void {
+  minimapShown.value = !minimapShown.value;
+}
 export function setMinimapZoomStep(step: number): void {
   minimapZoomStep.value = step;
 }

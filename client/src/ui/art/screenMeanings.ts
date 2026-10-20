@@ -480,6 +480,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     pieces: {
       quest: { part: 'mapindicator/questarrow01' },
+      // The HUD's own control that folds the ring away and back.
+      toggle: { dialog: 'hud', part: 'btnminimapcontrol' },
     },
   },
 
