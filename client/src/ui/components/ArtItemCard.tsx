@@ -277,12 +277,15 @@ function ArtWornCard({
         ['--arriving' as string]: `slide-in-from-${from} ${ARRIVING}ms ease-out`,
       }}
     >
+      {/* At the held card's own scale: left to its drawn pixels, it stood
+          about twice the size of the card it is held against. */}
       <img
         ref={worn.pictureRef}
         src={worn.image.url}
         alt=""
         aria-hidden="true"
         className="block"
+        style={{ width: `${width}px`, height: `${worn.frame.h * unit}px` }}
         draggable={false}
       />
       {said && <span style={worn.words(said, WORN_TONE)}>{spec.formats?.equippedTitle ?? ''}</span>}
