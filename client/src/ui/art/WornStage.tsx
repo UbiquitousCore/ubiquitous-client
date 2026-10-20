@@ -64,8 +64,12 @@ export interface WornStageProps {
    * of it. Nought fills whatever it is given.
    */
   inset?: number;
-  /** Dim what is behind; the character screens do not, since play carries on beside them. */
-  dim?: boolean;
+  /**
+   * Whether the screens take the pointer. The front end's do not, since
+   * dragging the place behind turns the character. Nothing behind is
+   * dimmed either way: a screen hovers over the world.
+   */
+  takesPointer?: boolean;
   /** Report the covered view so the hero stays visible; only for screens open during play. */
   cover?: boolean;
   children: ComponentChildren;
@@ -74,7 +78,7 @@ export interface WornStageProps {
 export function WornStage({
   align = 'centre',
   cover = false,
-  dim = true,
+  takesPointer = true,
   packed = false,
   inset = 0,
   children,
@@ -182,15 +186,13 @@ export function WornStage({
   return (
     <div
       ref={room}
-      // A dimming stage takes the pointer; the front end's does not, since
-      // dragging the place behind turns the character.
-      className={`fixed inset-0 z-window flex items-center ${
-        dim ? 'pointer-events-auto bg-black/65' : 'pointer-events-none'
-      } ${align === 'left' ? 'justify-start' : 'justify-center'}`}
+      className={`pointer-events-none fixed inset-0 z-window flex items-center ${
+        align === 'left' ? 'justify-start' : 'justify-center'
+      }`}
     >
       <div
         ref={stage}
-        className="relative"
+        className={takesPointer ? 'pointer-events-auto relative' : 'relative'}
         style={{
           width: `${extent.w * fit}px`,
           height: `${extent.h * fit}px`,

@@ -92,7 +92,7 @@ export function FrontEnd(): JSX.Element | null {
         {/* A screen wearing the build's own art stands on the movie's
             own screen, scaled to the page. */}
         {worn && (
-          <WornStage dim={false} inset={STAGE_INSET}>
+          <WornStage takesPointer={false} inset={STAGE_INSET}>
             {/* The build's own frame, behind every screen but the one
                 for signing in: that one is a panel of its own. */}
             {at !== 'signIn' && <WornFrame />}
