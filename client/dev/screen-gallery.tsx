@@ -1349,6 +1349,7 @@ function Page(): JSX.Element {
         destroy: nothing,
         sell: nothing,
         sort: nothing,
+        split: nothing,
         upgrade: nothing,
       });
       setStorageUpgrades([

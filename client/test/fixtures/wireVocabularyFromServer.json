@@ -125,6 +125,7 @@
     "mail.read",
     "mail.send",
     "mail.sent",
+    "mail.unread",
     "mount.dismount",
     "move.accepted",
     "navigation.ground",
