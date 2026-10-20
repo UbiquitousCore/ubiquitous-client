@@ -14,12 +14,15 @@ describe('Dialog', () => {
     expect(dialog.textContent).toContain('stock');
   });
 
-  it('takes pointer events back from the HUD', () => {
-    // The HUD passes clicks through to the world; a modal must not, or the
-    // player targets a mob through the window they are reading.
+  it('takes pointer events on its panel and hovers over the world around it', () => {
+    // A click on the window must not target a mob through it; a click
+    // beside it reaches the world, and nothing behind it is dimmed.
     const { container } = render(<Dialog label="Mira shop">stock</Dialog>);
 
-    expect(container.querySelector('[role="dialog"]')!.className).toContain('pointer-events-auto');
+    const host = container.querySelector('[role="dialog"]')!;
+    expect(container.querySelector('section')!.className).toContain('pointer-events-auto');
+    expect(host.className).toContain('pointer-events-none');
+    expect(host.className).not.toMatch(/\bbg-/);
   });
 
   it('never grows past the viewport, whatever is inside it', () => {

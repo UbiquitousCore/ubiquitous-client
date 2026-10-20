@@ -35,7 +35,6 @@ import {
 import { startSpellDrag } from './spellDrag';
 import { ArtSpellCard } from './ArtSpellCard';
 import type { WhereOnPage } from './ArtTalentCard';
-import { SpellDragGhost } from './SpellDragGhost';
 
 /** The name every seat on the riding page carries, before its number. */
 const SEAT = /\/rideskillbutton(\d+)$/;
@@ -411,8 +410,6 @@ function Worn({ onClose, spec }: ArtSpellsWindowProps & { spec: ScreenSpec }): J
               );
             })
         : null}
-
-      <SpellDragGhost />
 
       {reading ? (
         <ArtSpellCard

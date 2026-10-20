@@ -9,6 +9,7 @@ import type { ScreenSpec } from '../art/uiSpec';
 import { INK, LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { WornCaptions } from '../art/WornCaptions';
 import { WornEmblem } from '../art/WornEmblem';
+import { onPictureGrid } from '../art/onPictureGrid';
 import { unavailableFaces } from '../art/wornState';
 import { WornChevrons } from '../art/WornChevrons';
 import { WornRow } from '../art/WornRow';
@@ -17,7 +18,7 @@ import { listGestures, listSlice, rowsIn, useListScroll } from '../art/wornList'
 import { slotsOf } from '../art/wornSlots';
 import { itemIcons, itemName } from '../inventoryStore';
 import { coinsOf, formatMoney } from '../money';
-import type { MailAttachment, MailInboxEntry, MailMessage } from '../mailStore';
+import type { MailAttachment, MailInboxEntry, MailMessage, MailTake } from '../mailStore';
 import { ArtItemCard, HELD_CARD, cardFor } from './ArtItemCard';
 import { MAIL_ATTACH_SCREEN } from './ArtMailWriteWindow';
 
@@ -29,13 +30,17 @@ export interface ArtMailWindowProps {
   inbox: readonly MailInboxEntry[];
   message: MailMessage | null;
   notice: string | null;
+  /** True while a letter of the player's own is being written: the Write control is lit. */
+  writing?: boolean;
   onSelect(id: string): void;
-  onClaim(id: string): void;
+  onClaim(id: string, take?: MailTake): void;
   onDelete(id: string): void;
   /** Put the letter away, leaving the box open. */
   onCloseLetter(): void;
   /** Start a letter of the player's own, which the box's own control does. */
   onWrite(): void;
+  /** Start a letter back to whoever sent the one being read. */
+  onReply?(message: MailMessage): void;
   onClose(): void;
 }
 
@@ -54,7 +59,11 @@ export function ArtMailWindow(props: ArtMailWindowProps): JSX.Element | null {
       {/* What the letter carries, on the same strip a letter being written
           shows its own on, until it is taken. */}
       {letter && attached && message && !message.itemsClaimed && message.items.length > 0 && (
-        <Carried items={message.items} spec={attached} />
+        <Carried
+          items={message.items}
+          spec={attached}
+          onTake={slot => props.onClaim(message.id, { slot })}
+        />
       )}
     </>
   );
@@ -67,6 +76,7 @@ const HIT =
 function Inbox({
   inbox,
   message,
+  writing = false,
   onSelect,
   onWrite,
   onClose,
@@ -93,6 +103,11 @@ function Inbox({
       // The marks that say the list runs on are placed but not drawn:
       // each is drawn on its own so it can slide the way it points.
       withoutArt: slice.marks,
+      // Each control's second face is its lit one, worn while that control's
+      // letter is open.
+      frames: Object.fromEntries(
+        Object.keys(spec.actions ?? {}).map(where => [where, writing ? 1 : 0]),
+      ),
       shown: [...(spec.shown ?? []), ...(lit ? [lit] : [])],
       hidden: [
         ...(spec.hidden ?? []),
@@ -169,9 +184,11 @@ function Inbox({
             fields={fields}
             list={list}
             values={columnsOf(item)}
-            tone={INK}
-            // A letter not yet opened is the one worth noticing.
-            styleOf={() => (item.read ? undefined : 'font-semibold')}
+            tone={LIGHT}
+            // White whether read or not: the field's own colour is the dark
+            // ink of the sheet it was drawn on. A letter not yet opened is
+            // the one worth noticing.
+            styleOf={() => (item.read ? 'text-parchment-100' : 'font-semibold text-parchment-100')}
           />
         ))}
 
@@ -186,11 +203,13 @@ function Inbox({
       />
 
       {/* The emblems the screen draws on its own controls. */}
+      {/* Placed on the control's resting face: its lit face is drawn
+          larger, and the emblem would ride its glow. */}
       {Object.entries(spec.emblems ?? {}).map(([what, emblem]) => (
         <WornEmblem
           key={`emblem.${what}`}
           worn={worn}
-          at={worn.find(emblem.at)}
+          at={onPictureGrid(worn, emblem.at, spec.frame) ?? worn.find(emblem.at)}
           icon={emblem.icon}
           size={emblem.size}
         />
@@ -230,6 +249,7 @@ function Inbox({
 function Letter({
   message,
   notice,
+  onReply,
   onClaim,
   onDelete,
   onCloseLetter,
@@ -269,7 +289,9 @@ function Letter({
 
   const act = (what: string): void => {
     if (what === 'claim') onClaim(message.id);
+    else if (what === 'claimMoney') onClaim(message.id, { moneyOnly: true });
     else if (what === 'delete') onDelete(message.id);
+    else if (what === 'reply') onReply?.(message);
   };
 
   return (
@@ -319,7 +341,7 @@ function Letter({
       {Object.entries(spec.actions ?? {}).map(([where, what]) => {
         const part = worn.find(where);
         if (!part) return null;
-        const off = what === 'claim' && !holds;
+        const off = (what === 'claim' && !holds) || (what === 'claimMoney' && carried <= 0);
         return (
           <button
             key={where}
@@ -363,15 +385,17 @@ function Letter({
 /**
  * What a letter being read carries: one slot per thing, the rest of the
  * strip left out of the picture the way a letter being written leaves it.
- * Pressing one opens the card a thing you have opens, offering nothing:
- * taking it is the letter's own control.
+ * Pressing one opens the card a thing you have opens, which takes that one
+ * thing out of the letter.
  */
 function Carried({
   items,
   spec,
+  onTake,
 }: {
   items: readonly MailAttachment[];
   spec: ScreenSpec;
+  onTake(slot: number): void;
 }): JSX.Element | null {
   const [reading, setReading] = useState<{ at: number; x: number; y: number } | null>(null);
   const grid = Object.values(spec.grids ?? {})[0];
@@ -444,7 +468,15 @@ function Carried({
             <ArtItemCard
               listing={cardFor({ id: `mail-${reading.at}`, entry: read.entry, count: read.count })}
               wears={HELD_CARD}
-              actions={[]}
+              actions={[
+                {
+                  key: 'take',
+                  onPick: () => {
+                    onTake(reading.at);
+                    setReading(null);
+                  },
+                },
+              ]}
               anchor={{ x: reading.x, y: reading.y }}
               onClose={() => setReading(null)}
             />,

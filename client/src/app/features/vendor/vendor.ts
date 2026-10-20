@@ -4,12 +4,7 @@ import type { ResourceSystem } from '../../../assets/ResourceSystem';
 import { shopItemsFromTabs } from './shopInteractions';
 import type { AudioEngine } from '../../../audio/AudioEngine';
 import type { ConnectionEvents, GameConnection } from '../../../net/GameConnection';
-import {
-  closeDebugInteraction,
-  showDebugInteraction,
-  shopInteraction,
-  updateShopItems,
-} from '../../../ui/hudStore';
+import { shopInteraction, updateShopItems } from '../../../ui/hudStore';
 import { itemErrorMessage, itemResultOk } from '../../../net/itemErrors';
 import { reportToPlayer } from '../../../gameplay/SpellBook';
 
@@ -53,11 +48,7 @@ export function vendorHandlers(shop: {
         if (vendorId !== null) shop.connection.sendVendorOpen(vendorId);
         return;
       }
-      showDebugInteraction({
-        title: 'Not bought',
-        lines: [itemErrorMessage(code)],
-        actions: [{ label: 'Close', onClick: () => closeDebugInteraction() }],
-      });
+      reportToPlayer(itemErrorMessage(code));
     },
     onVendorSellResult: code => {
       shop.audio.play(itemResultOk(code) ? DEAL_SOUND : NO_DEAL_SOUND);

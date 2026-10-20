@@ -17,6 +17,7 @@ import {
   clearQuestMessages,
   expireQuestMessages,
   objectiveLine,
+  objectiveLines,
   questMessages,
   questText,
   setQuestText,
@@ -49,6 +50,26 @@ beforeEach(() => {
   questText.value = new Map();
   setQuestText(6920, 'Sample Errand');
   setQuestText(6927, 'Kill the wolves');
+});
+
+describe('every objective a quest asks for', () => {
+  it('writes one "objective  done/wanted" line per objective, in slot order', () => {
+    setQuestText(6928, 'Gather pelts');
+    const slot = (index: number, done: number, wanted: number, stringId: number) => ({
+      index,
+      killed: done,
+      triggered: 0,
+      held: 0,
+      objectiveItem: 0,
+      objectiveItemCount: 0,
+      goalCount: wanted,
+      objectiveStringId: stringId,
+    });
+    const lines = objectiveLines(
+      quest({ objectives: [slot(1, 3, 12, 6928), slot(0, 5, 5, 6927), slot(2, 0, 0, 6927)] }),
+    );
+    expect(lines.map(line => line.text)).toEqual(['Kill the wolves  5/5', 'Gather pelts  3/12']);
+  });
 });
 
 describe('one objective as a line', () => {

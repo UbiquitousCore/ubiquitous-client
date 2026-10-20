@@ -105,7 +105,18 @@ function Letter({
   }
   const writes = fitCoins(counted);
 
+  /** Money and attachments wear their lit face while the letter carries some, or their screen is open. */
+  const lit = (what: string): boolean =>
+    what === 'money'
+      ? draft.money > 0 || aside === 'money'
+      : what === 'attach'
+        ? carrying > 0 || aside === 'bag'
+        : false;
+
   const worn = useWorn(spec.dialog, spec.frame, () => ({
+    frames: Object.fromEntries(
+      Object.entries(spec.actions ?? {}).map(([where, what]) => [where, lit(what) ? 1 : 0]),
+    ),
     shown: [...(spec.shown ?? []), ...faces.shown],
     hidden: [
       ...(spec.hidden ?? []),

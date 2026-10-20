@@ -80,6 +80,11 @@ export function WornEdit({
       maxLength: max,
       onInput: took,
       onBlur: () => setTyping(false),
+      // A figure is replaced, not added to: typing a 7 over the 4 a field
+      // starts on made 47.
+      onFocus: number
+        ? (event: FocusEvent) => (event.currentTarget as HTMLInputElement).select()
+        : undefined,
       onKeyDown: stop,
       style: shape,
       className: TYPING,

@@ -69,7 +69,14 @@ function skin(): UiSkinData {
       {
         id: 24,
         frameCount: 1,
-        frames: [[place(11, 0, 0, 'btnempty'), place(23, 0, 0, 'teamsetting')]],
+        frames: [
+          [
+            place(11, 0, 0, 'btnempty'),
+            place(23, 0, 0, 'teamsetting'),
+            place(13, 0, 290, 'btnInvite'),
+            place(13, 40, 290, 'btnQuit'),
+          ],
+        ],
       },
     ],
     edits: [],
@@ -161,6 +168,17 @@ describe('kickChoice', () => {
   });
 });
 
+const withButtons = {
+  screens: {
+    team: {
+      ...spec.screens.team,
+      groups: { invite: 'btnInvite', quit: 'btnQuit' },
+      actions: { btnInvite: 'invite', btnQuit: 'quit' },
+      pieces: { nameField: { dialog: 'dlgteam', part: 'btnempty' } },
+    },
+  },
+};
+
 describe('ArtTeamWindow', () => {
   it('keeps the dropdown shut until it is pressed, then lists the rest of the party', () => {
     const { kick, voteKick } = actions();
@@ -188,6 +206,42 @@ describe('ArtTeamWindow', () => {
     const { queryByRole } = render(<ArtTeamWindow onClose={() => {}} />);
 
     expect(queryByRole('button', { name: 'Choose someone to kick out' })).toBeNull();
+  });
+
+  it('keeps Invite and Quit on the page in or out of a team, Quit only usable in one', () => {
+    actions();
+    uiSpec.value = withButtons;
+    setMovie({ skin: skin(), art: new Map() });
+    player.value = { id: 'me', name: 'Me' } as (typeof player)['value'];
+    setPartyRoster({ partyId: null, members: [] });
+    const { getByRole } = render(<ArtTeamWindow onClose={() => {}} />);
+
+    expect((getByRole('button', { name: 'Leave the party' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect(
+      (getByRole('button', { name: 'Invite someone by name' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it('opens a name field on Invite and invites whoever is typed on Enter', () => {
+    const all = actions();
+    const inviteNamed = vi.fn();
+    setPartyActions({ ...all, inviteNamed });
+    uiSpec.value = withButtons;
+    setMovie({ skin: skin(), art: new Map() });
+    player.value = { id: 'me', name: 'Me' } as (typeof player)['value'];
+    setPartyRoster({ partyId: null, members: [] });
+    const { getByRole, queryByRole } = render(<ArtTeamWindow onClose={() => {}} />);
+
+    expect(queryByRole('textbox', { name: 'Name to invite' })).toBeNull();
+    fireEvent.click(getByRole('button', { name: 'Invite someone by name' }));
+    const field = getByRole('textbox', { name: 'Name to invite' });
+    fireEvent.input(field, { target: { value: '  Ayla ' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+
+    expect(inviteNamed).toHaveBeenCalledWith('Ayla');
+    expect(queryByRole('textbox', { name: 'Name to invite' })).toBeNull();
   });
 
   it('asks the team to vote when a member who does not lead picks a name', () => {

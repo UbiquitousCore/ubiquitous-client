@@ -12,6 +12,10 @@ import type { JSX } from 'preact';
 import type { PiecePart } from '../art/piecePlan';
 import type { ScreenSpec } from '../art/uiSpec';
 import { LIGHT, useWorn, useWornScreen } from '../art/useWorn';
+import { WornPiece } from '../art/WornPiece';
+import { cornerOverhang } from '../art/cornerOverhang';
+import { onPictureGrid } from '../art/onPictureGrid';
+import { mailWaiting } from '../mailStore';
 import type { ResourceType, Unit } from '../hudStore';
 import { barRun, faceFor, shareOf } from '../art/faceRuns';
 
@@ -198,9 +202,12 @@ function Worn({
   // parts in hand, which say how many pips each length of meter holds.
   const framed = framedOn(spec.frame, heroFaces(unit, spec).hidden);
   const portraitAt = spec.groups?.portrait;
+  const letter = spec.groups?.newLetter;
+  // The letter stands past the ring's edge, so it is drawn on its own rather
+  // than widening the frame's picture.
   const faces = (whole: readonly PiecePart[]) => {
     const { hidden, frames } = heroFaces(unit, spec, whole);
-    return { hidden: [...hidden, ...strangers(whole, spec)], frames };
+    return { hidden: [...hidden, ...strangers(whole, spec), ...(letter ? [letter] : [])], frames };
   };
   // Measured without what the frame never draws, so the ring stands flush
   // in the corner rather than a lit ring's width, or a meter's ornament's,
@@ -227,10 +234,37 @@ function Worn({
   const lettered = over.image ? over : under;
   const level = lettered.fieldOf(lettered.find(spec.values?.level));
   const spot = portraitAt ? under.find(portraitAt) : undefined;
+  const letterAt =
+    letter && mailWaiting.value > 0 ? onPictureGrid(under, letter, framed) : undefined;
   const pct = (units: number, of: number): string => `${(units / of) * 100}%`;
 
+  const hangs = cornerOverhang(under.onStage, under.stage, 'left');
+  const perUnit = (parseFloat(String(under.sized.width)) || frame.w) / frame.w;
+
   return (
-    <div className="relative" style={under.sized}>
+    <div
+      className="relative"
+      style={{
+        ...under.sized,
+        transform: `translate(${hangs.x * perUnit}px, ${hangs.y * perUnit}px)`,
+      }}
+    >
+      {/* Under the ring, the way the movie tucks it behind the frame's edge. */}
+      {letter && letterAt && (
+        <span
+          data-hud="mail-waiting"
+          role="img"
+          aria-label={
+            mailWaiting.value === 1
+              ? 'A letter is waiting'
+              : `${mailWaiting.value} letters are waiting`
+          }
+          className="pointer-events-none absolute"
+          style={under.box(letterAt)}
+        >
+          <WornPiece dialog={spec.dialog} part={letter} box={{ width: '100%', height: '100%' }} />
+        </span>
+      )}
       {under.image && (
         <img
           ref={under.pictureRef}

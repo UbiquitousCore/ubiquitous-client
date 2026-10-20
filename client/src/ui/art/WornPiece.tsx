@@ -39,6 +39,8 @@ export interface WornPieceProps {
   alone?: boolean;
   /** Which movie it belongs to. The in-game one unless said otherwise. */
   movie?: UiMovie;
+  /** The face it wears, where it has more than one; its first otherwise. */
+  face?: number;
 }
 
 export function WornPiece({
@@ -50,6 +52,7 @@ export function WornPiece({
   within,
   alone,
   movie,
+  face,
 }: WornPieceProps): JSX.Element | null {
   const worn = useWorn(
     dialog,
@@ -57,6 +60,7 @@ export function WornPiece({
     whole => ({
       hidden: [...(without ?? []), ...besides(whole, part)],
       ...(alone ? { only: part } : {}),
+      ...(face !== undefined ? { frames: { [part]: face } } : {}),
     }),
     { floats: true, movie },
   );

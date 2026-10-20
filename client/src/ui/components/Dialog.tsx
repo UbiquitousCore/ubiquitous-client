@@ -1,5 +1,5 @@
-/** Modal frame (dimmed backdrop + centred panel). Focus not trapped — the
- * opener owns focus management. */
+/** A centred panel hovering over the world, nothing behind it dimmed. Focus
+ * not trapped — the opener owns focus management. */
 
 import type { ComponentChildren, JSX } from 'preact';
 import { cx } from './cx';
@@ -37,12 +37,12 @@ export function Dialog({
     <div
       role="dialog"
       aria-label={label}
-      className="pointer-events-auto fixed inset-0 z-dialog flex items-center justify-center bg-black/65 p-4"
+      className="pointer-events-none fixed inset-0 z-dialog flex items-center justify-center p-4"
       style={hostStyle}
     >
       <section
         className={cx(
-          'flex max-h-full w-full flex-col overflow-hidden rounded-chrome border border-brass-400',
+          'pointer-events-auto flex max-h-full w-full flex-col overflow-hidden rounded-chrome border border-brass-400',
           'bg-chrome-950 p-4 font-chrome text-xs text-parchment-200 shadow-frame',
           WIDTH[size],
           className,

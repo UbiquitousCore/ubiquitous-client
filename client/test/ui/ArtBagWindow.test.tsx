@@ -43,6 +43,7 @@ const ACTIONS = {
   destroy: vi.fn(),
   sell: vi.fn(),
   sort: vi.fn(),
+  split: vi.fn(),
   upgrade: vi.fn(),
 };
 
@@ -439,6 +440,12 @@ describe('the bag beside a trade', () => {
 describe('what a drag out of the bag asks for', () => {
   it('asks for nothing on a drop back onto the slot it came from', () => {
     expect(bagDrop({ area: 'bag', index: 2 }, { area: 'bag', index: 2 })).toBeNull();
+  });
+
+  it('splits a stack held and let go on its own slot in the bag, and nothing else', () => {
+    expect(bagDrop({ area: 'bag', index: 2 }, { area: 'bag', index: 2 }, 5)).toBe('split');
+    expect(bagDrop({ area: 'bag', index: 2 }, { area: 'bag', index: 2 }, 1)).toBeNull();
+    expect(bagDrop({ area: 'bank', index: 2 }, { area: 'bank', index: 2 }, 5)).toBeNull();
   });
 
   it('throws a thing from the bag away on a drop over nothing, and nothing worn', () => {

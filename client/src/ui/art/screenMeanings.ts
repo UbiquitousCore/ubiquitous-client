@@ -374,6 +374,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       pip2: 'rage2',
       pip3: 'rage3',
       pip4: 'rage4',
+      // The sealed letter beside the ring while letters wait unread.
+      newLetter: 'btnnewletter',
     },
     values: { level: 'btnCharFace/MClv' },
     // The signal marks and the ring lit round a picked portrait.
@@ -478,6 +480,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     pieces: {
       quest: { part: 'mapindicator/questarrow01' },
+      // The HUD's own control that folds the ring away and back.
+      toggle: { dialog: 'hud', part: 'btnminimapcontrol' },
     },
   },
 
@@ -835,6 +839,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
         unequip: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@296?~9dc2a6ba7a449246~7' },
         use: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@294?~5791c4f4ce83e388~3' },
         tryOn: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@583?~6f3c33a32ccc89bf~6' },
+        // Taking one thing out of a letter being read.
+        take: { control: 'btnEqu_Use', label: 'textEqu_Use', says: '@692?~9443f47ea8ec450a~7' },
       },
     },
     ...CARD_WORDS,
@@ -1203,17 +1209,16 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     groups: {
       invite: 'btnInvite',
       quit: 'btnQuit',
-      inviteWords: 'textInvite',
-      quitWords: 'textQuit',
     },
+    // The friends list's own name field, floated over Invite: the team
+    // page has none of its own.
+    pieces: { nameField: { dialog: 'dlgFriendList', part: 'btnName' } },
     unavailable: { resetDungeons: 'dungeonsetting/btndungeonreset/disable' },
     captions: {
       textteamsetting: '@419?~a2fd7d0ca7c0aab8~4',
       textdungeonsetting: '@1482?~c9fe34cd7b2c0931~7',
       'dungeonsetting/txtdungeonreset': '@1486?~40787936038e9c4a~18',
       'dungeonsetting/txtdungeonsave': '@492?~7011a3c571fe2689~13',
-      textInvite: '@489?~1386011048f5e5d4~6',
-      textQuit: '@491?~47878736d4ff9672~4',
       'teamsetting/txtLeader': '@488?~3e26757abeff021e~7',
       'teamsetting/txtKick': '@1402?~54eac627fd9afd6b~9',
       'teamsetting/txtNotinteam': 'You are not in a team.',
@@ -1221,6 +1226,9 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The arena page, the rules for sharing out loot, and the dungeon page's
     // exhaustion, are the build's and not yet this client's.
     hidden: [
+      // The buttons' words sit across the paper's edge; the icons say it.
+      'textInvite',
+      'textQuit',
       'btnPVPSetting',
       'txtTitleArena',
       'pvpsetting',
@@ -1492,8 +1500,16 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     formats: { attached: '@698?~24946e20a3ca49e4~11' },
     // The dark cover behind the letter, and the sample figures the movie
-    // parks where the sum goes.
-    hidden: ['btnBlack', 'textgold', 'textsliver', 'textcopper'],
+    // parks where the sum goes. Money and Attachments' grey layers, which
+    // cover their lit faces.
+    hidden: [
+      'btnBlack',
+      'textgold',
+      'textsliver',
+      'textcopper',
+      'btnaddmoney/disable',
+      'btnaddattch/disable',
+    ],
   },
 
   mailMoney: {
@@ -1527,6 +1543,20 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     dialog: 'mailattach',
     grids: { attached: { slot: 'attch' } },
     captions: { title: '@694?~1a545e81c9b7afd5~11' },
+  },
+
+  // How many to take off a stack held and let go on its own slot.
+  split: {
+    dialog: 'dlgsplit',
+    frame: 'btnempty',
+    edits: { 'btnContent/text': { holds: 'count', number: true } },
+    actions: { confirm: 'split' },
+    captions: {
+      txtLabel: '@1345?~7ff02c9bb5254e67~6',
+      textConfirm: '@696?~70daee4fc248182b~7',
+    },
+    // The sheet the movie lays across the whole screen behind the box.
+    hidden: ['btntrans'],
   },
 
   // A short stack of controls beside a unit or a row, lettered by the caller.
@@ -1570,6 +1600,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       inbox: { row: 'group/btn', fields: { sender: 'text', subject: 'text2' } },
     },
     actions: { btnwrite: 'write' },
+    // The grey layer every face of the control wears over it until it is
+    // taken off: left on, the lit face showed only as a red rim round it.
+    hidden: ['btnwrite/disable'],
+    // The quill on the control, in the room the movie leaves left of its word.
+    emblems: { write: { at: 'btnwrite', icon: 'mail/ui_mail_write.png', size: 30 } },
     captions: { title: 'Mailbox', textwrite: 'Write' },
     formats: { from: 'From' },
   },
@@ -1588,11 +1623,16 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The marks that say the letter runs on are the letter's to slide;
     // drawn into the picture they sit there whether it runs on or not.
     hidden: ['top', 'bottom'],
-    actions: { btnextractall: 'claim', btndelete: 'delete' },
+    actions: {
+      btnextractall: 'claim',
+      btndelete: 'delete',
+      'moneygroup/btnextractmoney': 'claimMoney',
+      btnreply: 'reply',
+    },
     unavailable: { claimMoney: 'moneygroup/btnextractmoney/disable' },
-    // Answering and returning a letter are the game's and not yet ours:
-    // they wear the face of a control that is not available.
-    shown: ['btnreply/disable', 'btnsendback/disable'],
+    // Returning a letter is the game's and not yet ours: it wears the face
+    // of a control that is not available.
+    shown: ['btnsendback/disable'],
     captions: {
       textextractall: 'Take all',
       textdelete: 'Delete',
@@ -1621,11 +1661,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
   storage: {
     dialog: 'dlgstoragebox',
     grids: {
-      bank: { slot: 'boxitem', pager: /^pageleftrightbox$/i },
+      // The one sort button stands under the chest's half.
+      bank: { slot: 'boxitem', pager: /^pageleftrightbox$/i, sort: 'btnsort' },
       bag: { slot: 'bagitem', pager: /^pageleftrightbag$/i },
     },
-    // The room offer, half labels and second currency are not ours yet;
-    // sorting both halves at once wears its unavailable face.
+    // The room offer, half labels and second currency are not ours yet.
     hidden: [
       'btnupgradebag',
       'btnupgradebox',
@@ -1634,7 +1674,6 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       'boxindicator',
       'Stone',
     ],
-    shown: ['btnsort/disable'],
     captions: { textsort: 'Sort' },
   },
 

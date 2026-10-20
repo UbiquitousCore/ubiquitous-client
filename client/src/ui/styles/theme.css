@@ -293,11 +293,11 @@
    * stacks from `core/lettering.ts`, pinned equal by `lettering.test.ts`.
    * ------------------------------------------------------------------ */
   --font-chrome:
-    'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman',
-    serif;
-  --font-title:
-    'UbiquitousTitle', 'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype',
+    'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style', 'Palatino Linotype',
     'Times New Roman', serif;
+  --font-title:
+    'UbiquitousTitle', 'UbiquitousBody', 'EB Garamond', Georgia, 'Iowan Old Style',
+    'Palatino Linotype', 'Times New Roman', serif;
   /* What the document itself, and so every element that inherits, starts
      in — rather than Tailwind's own sans stack. */
   --default-font-family: var(--font-chrome);
@@ -544,6 +544,11 @@
  * the map that asked for it. */
 @utility z-dialog {
   z-index: 60;
+}
+/** A line said to the player — a refusal, a letter sent — over whatever
+ * window it answers. It never takes the pointer. */
+@utility z-notice {
+  z-index: 65;
 }
 @utility z-boot {
   z-index: 70;

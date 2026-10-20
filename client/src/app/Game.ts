@@ -2974,7 +2974,7 @@ export class Game {
             sendVendorBuy: (id, slot, itemId, quantity) =>
               this.connection.sendVendorBuy(id, slot, itemId, quantity),
             sendVendorSell: (id, slot, itemId) => this.connection.sendVendorSell(id, slot, itemId),
-            openBag: () => openCharacterWindow('bag'),
+            openBag: () => openCharacterWindow('bag', true),
           }),
         );
         this.connection.sendVendorOpen(unitId);
@@ -3267,6 +3267,8 @@ export class Game {
       this.boot.progress(step.text, step.fraction, accent);
       await frameDelay();
     }
+    // Portraits taken while the world was still arriving round them are taken again.
+    this.renderer.forgetHeadshots();
     this.boot.hide();
   }
 

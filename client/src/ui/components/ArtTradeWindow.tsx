@@ -189,7 +189,7 @@ function Worn({
   };
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-window flex flex-col items-center justify-center gap-2 overflow-hidden bg-black/65 p-0 sm:p-4">
+    <div className="pointer-events-none fixed inset-0 z-window flex flex-col items-center justify-center gap-2 overflow-hidden p-0 sm:p-4">
       {/* The table on the left and the bag against its right edge, both
           up for as long as the trade is. */}
       <div
@@ -197,7 +197,7 @@ function Worn({
         // Each stands at its own size, so neither is stretched to the
         // other's height: the two share one scale, and the row as a whole
         // is shrunk to fit.
-        className="flex shrink-0 items-start"
+        className="pointer-events-auto flex shrink-0 items-start"
         style={{ transform: `scale(${fit})`, transformOrigin: 'center' }}
       >
         <div

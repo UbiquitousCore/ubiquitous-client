@@ -277,6 +277,14 @@ export function objectiveLine(
   };
 }
 
+/** Every objective a quest asks for, each as its own line, in slot order. */
+export function objectiveLines(quest: QuestRecord): { text: string; tone: QuestMessageTone }[] {
+  return [...(quest.objectives ?? [])]
+    .sort((a, b) => a.index - b.index)
+    .map(objective => objectiveLine(quest, objective.index))
+    .filter((line): line is NonNullable<typeof line> => line !== null);
+}
+
 /** Announce quest progress: name + moved objectives (yellow when hand-in
  * ready). Silent when no slot yields a line. */
 export function announceQuestProgress(

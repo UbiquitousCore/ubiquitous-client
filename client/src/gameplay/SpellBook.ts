@@ -442,12 +442,18 @@ export interface HudBanner {
   topic: string;
   /** Seconds it has been up. Aged by `tickSpells`. */
   age: number;
+  /** A refusal, or something done; refusals are what most lines are. */
+  tone: 'refused' | 'done';
+  /** A smaller line under it, such as what a letter cost. */
+  detail?: string;
 }
 
 /** How to raise a line, beyond its words. */
 export interface BannerLine {
   /** Lines that belong together, such as the two either side of a fight. Defaults to the words. */
   topic?: string;
+  tone?: HudBanner['tone'];
+  detail?: string;
   /** A quiet line goes up only over nothing, or over a line of its own topic. */
   quiet?: boolean;
 }
@@ -472,7 +478,14 @@ export function reportToPlayer(text: string, now = performance.now(), line: Bann
   const showing = banner.value;
   if (line.quiet && showing && showing.topic !== topic) return;
   raisedAt.set(text, now);
-  banner.value = { key: nextBannerKey++, text, topic, age: 0 };
+  banner.value = {
+    key: nextBannerKey++,
+    text,
+    topic,
+    age: 0,
+    tone: line.tone ?? 'refused',
+    ...(line.detail ? { detail: line.detail } : {}),
+  };
 }
 
 /** The words either side of a fight. */

@@ -482,6 +482,13 @@ describe.skipIf(!BUILDS.size)('the screen table, against the player’s builds',
     expect(skin.sprites.find(sprite => sprite.id === held.characterId)?.frameCount).toBe(2);
   });
 
+  it.skipIf(!TARGET)('gives the chest its sort button, live, in the target build', () => {
+    const spec = read.get(TARGET!)!.built.spec.screens.storage!;
+    expect(spec.grids?.bank?.sort).toBe('btnsort');
+    expect(spec.grids?.bag?.sort).toBeUndefined();
+    expect(spec.shown ?? []).not.toContain('btnsort/disable');
+  });
+
   it('names every talent tree the build’s tables list, in every build', () => {
     for (const [build, one] of read) {
       if (!one.trees.length) continue;

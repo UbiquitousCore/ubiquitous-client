@@ -221,13 +221,21 @@ export const targetId = signal<string | null>(null);
 /** One signal for open-and-which, so "open, showing nothing" cannot exist. */
 export const openScreen = signal<ScreenId | null>(null);
 
+/**
+ * True while the character window stands beside an NPC's window rather than
+ * in place of it: a shop with no sell page of its own opens the bag to sell from.
+ */
+export const openedBeside = signal(false);
+
 /** Tapping the hero's own frame opens the window on the bag. */
-export function openCharacterWindow(screen: ScreenId = 'bag'): void {
+export function openCharacterWindow(screen: ScreenId = 'bag', beside = false): void {
+  openedBeside.value = beside;
   openScreen.value = screen;
 }
 
 export function closeCharacterWindow(): void {
   openScreen.value = null;
+  openedBeside.value = false;
 }
 
 /** The viewport the character window covers, in CSS pixels, so the hero stays centred. */
@@ -377,6 +385,11 @@ export const mapTeleporting = signal(false);
 
 /** An index into `MINIMAP_ZOOMS`, so HUD and engine agree on the steps. */
 export const minimapZoomStep = signal(MINIMAP_DEFAULT_ZOOM);
+/** False while the minimap is folded away to its compass letters and marks. */
+export const minimapShown = signal(true);
+export function toggleMinimap(): void {
+  minimapShown.value = !minimapShown.value;
+}
 export function setMinimapZoomStep(step: number): void {
   minimapZoomStep.value = step;
 }

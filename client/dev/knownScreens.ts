@@ -29,6 +29,7 @@ import { ITEM_LIST_SCREEN } from '../src/ui/components/ArtItemListWindow';
 import { CHAT_PEEK_SCREEN } from '../src/ui/components/ArtChatPeek';
 import { CHAT_SAY_SCREEN, CHAT_SCREEN } from '../src/ui/components/ArtChatBar';
 import { LOOT_SCREEN } from '../src/ui/components/ArtLootWindow';
+import { SPLIT_SCREEN } from '../src/ui/components/ArtSplitWindow';
 import { PLAYER_FRAME_SCREEN } from '../src/ui/components/ArtPlayerFrame';
 import { FITTING_ROOM_SCREEN } from '../src/ui/components/ArtTryOn';
 import { HELD_CARD } from '../src/ui/components/ArtItemCard';
@@ -125,6 +126,7 @@ export const KNOWN_SCREENS: readonly string[] = [
   BAG_ASK_SCREEN,
   BAG_SHORT_SCREEN,
   DISCARD_ASK_SCREEN,
+  SPLIT_SCREEN,
   STORAGE_SCREEN,
   SAID_SCREEN,
   QUEST_SCREEN,

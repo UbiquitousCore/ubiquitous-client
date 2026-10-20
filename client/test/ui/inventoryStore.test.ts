@@ -90,6 +90,7 @@ beforeEach(() => {
     destroy: () => {},
     sell: () => {},
     sort: () => {},
+    split: () => {},
     upgrade: () => {},
   });
 });

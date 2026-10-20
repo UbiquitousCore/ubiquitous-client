@@ -8,6 +8,8 @@ import { MENU_SCREEN } from './components/ArtMenuBar';
 import { ArtFocusPanel } from './components/ArtFocusPanel';
 import { ArtMapWindow } from './components/ArtMapWindow';
 import { ArtMinimap } from './components/ArtMinimap';
+import { SpellDragGhost } from './components/SpellDragGhost';
+import { installWindowFocus } from './windowFocus';
 import { useMapKeys } from './components/mapKeys';
 import { ArtPlayerFrame } from './components/ArtPlayerFrame';
 import type { TopbarAction } from './components/ArtTopbarMenu';
@@ -51,6 +53,7 @@ import {
   brokenCast as brokenCastSignal,
   cooldowns as cooldownsSignal,
   globalCooldown as globalCooldownSignal,
+  assignBarSlot,
   banner as bannerSignal,
   inCombat as inCombatSignal,
   mountSlot,
@@ -270,7 +273,7 @@ export function GameHud(): JSX.Element {
        zone name, every number on both unit frames and every key hint on the
        bar. Anything that ever wants selecting,
        a chat log being the obvious one, opts back in with `select-text`. */
-    <div className="pointer-events-none fixed inset-0 z-hud flex items-start gap-2 overflow-hidden select-none max-sm:overflow-x-auto max-sm:p-2 sm:gap-3">
+    <div className="pointer-events-none fixed inset-0 z-hud flex items-start gap-2 overflow-hidden select-none max-sm:overflow-x-auto sm:gap-3">
       {currentPlayer && (
         /* `data-hud` rather than a class: `DamageNumbers` asks the document
            where the hero's portrait is, and a styling class is the wrong
@@ -342,9 +345,12 @@ export function GameHud(): JSX.Element {
         power={currentPlayer?.mana ?? 0}
         dead={currentPlayer?.dead ?? false}
         onCast={handleCast}
+        onPlace={assignBarSlot}
         open={spellBarOpen.value}
         onOpenChange={setSpellBarOpen}
       />
+      {/* The spell in the air, from the bar or the spells window. */}
+      <SpellDragGhost />
       <ArtSpellWheel
         spells={wheelSlots.value}
         firstSlot={WHEEL_FIRST}
@@ -409,9 +415,14 @@ export function GameHud(): JSX.Element {
           key={currentBanner.key}
           data-hud="banner"
           role="status"
-          className="pointer-events-none fixed top-1/3 left-1/2 z-hud-float -translate-x-1/2 animate-banner text-xl font-bold whitespace-nowrap text-alert text-shadow-world"
+          className={`pointer-events-none fixed top-1/3 left-1/2 z-notice flex -translate-x-1/2 animate-banner flex-col items-center text-xl font-bold whitespace-nowrap text-shadow-world ${
+            currentBanner.tone === 'done' ? 'text-row-ready' : 'text-alert'
+          }`}
         >
           {currentBanner.text}
+          {currentBanner.detail ? (
+            <span className="text-sm font-normal">{currentBanner.detail}</span>
+          ) : null}
         </div>
       )}
 
@@ -471,5 +482,6 @@ export function GameHud(): JSX.Element {
 }
 
 export function mountGameHud(container: HTMLElement): void {
+  installWindowFocus();
   render(<GameHud />, container);
 }

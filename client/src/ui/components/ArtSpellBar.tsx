@@ -4,7 +4,7 @@
  */
 
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 import { getSpellIcon, getSpellName, spellStats, wantSpellStats } from '../../gameplay/SpellBook';
 import { barRun } from '../art/faceRuns';
@@ -16,6 +16,7 @@ import { iconUrl } from '../iconUrl';
 import {
   closedShift,
   barPlacement,
+  barSwap,
   spellBarCoversCorner,
   governingCooldown,
   iconBox,
@@ -28,7 +29,7 @@ import {
 import type { SlotCooldown, SlotNames, SlotRef, SlotView } from '../spellBarModel';
 import { cx } from './cx';
 import { useFlashes } from './useFlashes';
-import { spellDragOver } from './spellDrag';
+import { spellDragOver, startSpellDrag } from './spellDrag';
 
 /** Our name for this screen. The spec says which dialog wears it. */
 export const SPELL_BAR_SCREEN = 'spellBar';
@@ -48,6 +49,8 @@ export interface ArtSpellBarProps {
   power: number;
   dead: boolean;
   onCast(spellId: number): void;
+  /** Put a spell in a slot, or empty it: a slot held and dropped on another trades places with it. */
+  onPlace(slot: number, spellId: number | null): void;
   open: boolean;
   onOpenChange(open: boolean): void;
 }
@@ -95,6 +98,7 @@ function Worn({
   power,
   dead,
   onCast,
+  onPlace,
   open,
   onOpenChange,
   spec,
@@ -116,6 +120,8 @@ function Worn({
   const flashes = useFlashes(cooling, flashRun);
   const dragOver = spellDragOver.value;
   const [pressedSlot, setPressedSlot] = useState<number | null>(null);
+  /** Set by a drag's drop, so the click that ends the same press does not cast. */
+  const dropped = useRef(false);
   const viewHeight = useViewportHeight();
 
   const viewOf = (slot: SlotRef): SlotView => {
@@ -263,13 +269,23 @@ function Worn({
               aria-label={spellId === null ? `Empty slot ${slot.index + 1}` : getSpellName(spellId)}
               title={spellId === null ? undefined : getSpellName(spellId)}
               aria-disabled={spellId === null || view.sweep !== null}
-              onPointerDown={() => {
-                if (spellId !== null) setPressedSlot(slot.index);
+              onPointerDown={(event: PointerEvent) => {
+                if (spellId === null) return;
+                setPressedSlot(slot.index);
+                startSpellDrag(event, spellId, (_spell, to) => {
+                  dropped.current = true;
+                  setPressedSlot(null);
+                  for (const [at, id] of barSwap(slot.index, to, held) ?? []) onPlace(at, id);
+                });
               }}
               onPointerUp={() => setPressedSlot(null)}
               onPointerLeave={() => setPressedSlot(null)}
               onPointerCancel={() => setPressedSlot(null)}
               onClick={() => {
+                if (dropped.current) {
+                  dropped.current = false;
+                  return;
+                }
                 if (spellId !== null && view.sweep === null) onCast(spellId);
               }}
               className={cx(

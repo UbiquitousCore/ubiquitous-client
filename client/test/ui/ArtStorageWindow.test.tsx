@@ -207,6 +207,7 @@ describe('ArtStorageWindow', () => {
       destroy: () => {},
       sell: () => {},
       sort,
+      split: () => {},
       upgrade: () => {},
     });
     uiSpec.value = {
@@ -265,6 +266,7 @@ describe('moving a thing between the two stores', () => {
       destroy: () => {},
       sell: () => {},
       sort: () => {},
+      split: () => {},
       upgrade: () => {},
     });
     uiSpec.value = spec;

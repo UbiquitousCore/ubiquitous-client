@@ -50,6 +50,12 @@ import { TargetRing, placeRing } from './TargetRing';
 import { GUIDE_MODEL, GUIDE_SCALE } from '../gameplay/questGuide';
 import type { Relation } from './TargetRing';
 
+/**
+ * Own choice: how far the HUD frames' camera stands back from a face, after
+ * the owner found the first framing too close. The character list stands
+ * further back still (`SelectionScene`).
+ */
+const HEADSHOT_PULL_BACK = 1.25;
 /** How tall a body is taken to be before it has been built. */
 const UNBUILT_BODY_HEIGHT = 1.8;
 /** Own choice: a ray this much beyond a body's largest side cannot touch it, whatever its pose. */
@@ -2910,8 +2916,10 @@ export class Renderer {
   }
 
   /**
-   * One entity's head as a data URL, rendered in an empty scene and put
-   * straight back. Undefined until the entity is built.
+   * One entity's head as a data URL, photographed from a copy of its body
+   * as it stands — gear and all, the way the character sheet's stage shows
+   * it — so the body in the world is never moved or posed for the picture.
+   * Undefined until the entity is built.
    */
   headshot(id: EntityId, size = 128): string | undefined {
     const view = this.views.get(id);
@@ -2926,10 +2934,46 @@ export class Renderer {
     // Never shoot a half-textured body: the grey mannequin would be cached all session.
     if (!this.isTextured(object)) return undefined;
 
-    const url = renderPortrait(this.gl, object, size);
+    const copy = this.copyBody(view);
+    if (!copy) return undefined;
+    // In the pose it has now: the helmet and the head it sits on move
+    // together there, which a pose of the photo's own did not keep.
+    const url = renderPortrait(this.gl, copy, size, HEADSHOT_PULL_BACK, false);
+    // The copy shares the body's geometry and materials; its skeletons are its own.
+    copy.traverse(node => (node as THREE.SkinnedMesh).skeleton?.dispose());
     if (!url) return undefined;
-    if (lookKey) this.headshotCache.set(lookKey, url);
+    // Shot while gear or textures are still arriving, it is shown but kept
+    // only once nothing is pending; the HUD asks again, and gets the whole body.
+    if (lookKey && this.pendingAttachments === 0 && this.pendingTextures === 0) {
+      this.headshotCache.set(lookKey, url);
+    }
     return url;
+  }
+
+  /** A body copied as it stands, without its name label or icon; null where it will not copy. */
+  private copyBody(view: EntityView): THREE.Object3D | null {
+    const source = view.object;
+    if (!source) return null;
+    // Lifted off for the synchronous clone and put straight back.
+    const held = new Array<{ object: THREE.Object3D; parent: THREE.Object3D | null }>();
+    for (const overlay of [view.nameLabel, view.interactionIcon]) {
+      if (!overlay) continue;
+      held.push({ object: overlay, parent: overlay.parent });
+      overlay.removeFromParent();
+    }
+    try {
+      return cloneSkinned(source);
+    } catch (error) {
+      log.once('warn', 'body:clone', `could not copy a body (${String(error)})`);
+      return null;
+    } finally {
+      for (const { object, parent } of held) parent?.add(object);
+    }
+  }
+
+  /** Forget every portrait, so each is taken again: the world has finished loading round them. */
+  forgetHeadshots(): void {
+    this.headshotCache.clear();
   }
 
   /**
@@ -2959,27 +3003,8 @@ export class Renderer {
         log.once('warn', 'stage:no-body', 'character stage: hero has no built body yet');
         return null;
       }
-      // Lifted off for the synchronous clone and put straight back.
-      const held = new Array<{ object: THREE.Object3D; parent: THREE.Object3D | null }>();
-      for (const overlay of [view.nameLabel, view.interactionIcon]) {
-        if (!overlay) continue;
-        held.push({ object: overlay, parent: overlay.parent });
-        overlay.removeFromParent();
-      }
-      let body: THREE.Object3D;
-      try {
-        body = cloneSkinned(source);
-      } catch (error) {
-        log.once(
-          'warn',
-          'stage:clone',
-          `character stage: could not clone the hero body (${String(error)})`,
-        );
-        return null;
-      } finally {
-        for (const { object, parent } of held) parent?.add(object);
-      }
-      return readyBody(body, view.modelPath);
+      const body = this.copyBody(view);
+      return body ? readyBody(body, view.modelPath) : null;
     };
     const readyBody = (
       body: THREE.Object3D,

@@ -433,6 +433,9 @@ export interface MailMessage extends MailInboxEntry {
   items: MailAttachment[];
 }
 
+/** Part of a letter to take: one attachment by its place in the letter, or only the money. */
+export type MailTake = { slot: number } | { moneyOnly: true };
+
 /** `networkId` is local; members resolve whether or not they are in view. */
 export interface RosterMember {
   networkId: number;
@@ -737,11 +740,19 @@ export interface ConnectionEvents {
   /** The full body of one message, in answer to reading it. */
   onMailMessage?(message: MailMessage): void;
   /** The send outcome, to the sender only. */
-  onMailSent?(ok: boolean, reason: string | null): void;
+  onMailSent?(ok: boolean, reason: string | null, code: string | null): void;
   /** The claim outcome, including what was actually granted. */
-  onMailClaimed?(ok: boolean, gold: number, items: MailAttachment[], reason: string | null): void;
+  onMailClaimed?(
+    ok: boolean,
+    gold: number,
+    items: MailAttachment[],
+    reason: string | null,
+    code: string | null,
+  ): void;
   /** The delete outcome. */
   onMailDeleted?(ok: boolean, id: string, reason: string | null): void;
+  /** How many letters wait unread: on entering the world, after reading one, and when one arrives. */
+  onMailUnread?(count: number): void;
 
   // — refusals with no result message of their own --------------------------
 
@@ -1061,8 +1072,8 @@ export interface GameConnection {
   ): void;
   /** Read one message in the caller's own inbox. Answered by `onMailMessage`. */
   sendMailRead(id: string): void;
-  /** Claim gold and items atomically: a full bag refuses the whole claim. */
-  sendMailClaim(id: string): void;
+  /** Claim gold and items atomically, or only `take`: a full bag refuses the whole claim. */
+  sendMailClaim(id: string, take?: MailTake): void;
   /** Delete one message outright, even one still carrying unclaimed goods. */
   sendMailDelete(id: string): void;
 

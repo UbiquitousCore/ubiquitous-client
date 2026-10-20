@@ -252,6 +252,7 @@ export const INBOUND = {
   mailClaimed: 'mail.claimed',
   /** The delete outcome. */
   mailDeleted: 'mail.deleted',
+  mailUnread: 'mail.unread',
   /**
    * Refusals with no dedicated result: `{ code, reason }`, `reason` for
    * people. Most party/guild/trade/duel failures arrive here.

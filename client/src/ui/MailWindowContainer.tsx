@@ -23,6 +23,7 @@ import {
   mailOpen,
   readMail,
   sendLetter,
+  replySubject,
   startLetter,
 } from './mailStore';
 
@@ -34,6 +35,7 @@ export function MailWindowContainer(): JSX.Element | null {
   const actions = mailActions();
   const message = mailMessage.value;
   const draft = mailDraft.value;
+  const notice = mailNotice.value;
   // One layer for everything the mailbox has open, so a letter opens
   // beside the box rather than on top of it.
   return (
@@ -41,7 +43,8 @@ export function MailWindowContainer(): JSX.Element | null {
       <ArtMailWindow
         inbox={mailInbox.value}
         message={message}
-        notice={mailNotice.value?.text ?? null}
+        notice={notice?.text ?? null}
+        writing={draft !== null}
         onSelect={readMail}
         onClaim={claimMail}
         onDelete={id => actions.remove(id)}
@@ -49,6 +52,7 @@ export function MailWindowContainer(): JSX.Element | null {
         // Pressing it again while a letter is open puts it away, which
         // is what the box's own control does.
         onWrite={() => (mailDraft.value ? closeLetter() : startLetter())}
+        onReply={letter => startLetter(letter.senderName, replySubject(letter.subject))}
         onClose={dismissMail}
       />
       {draft && (
