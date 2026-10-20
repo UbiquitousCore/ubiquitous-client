@@ -545,6 +545,11 @@
 @utility z-dialog {
   z-index: 60;
 }
+/** A line said to the player — a refusal, a letter sent — over whatever
+ * window it answers. It never takes the pointer. */
+@utility z-notice {
+  z-index: 65;
+}
 @utility z-boot {
   z-index: 70;
 }

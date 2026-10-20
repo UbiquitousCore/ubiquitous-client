@@ -414,7 +414,7 @@ export function GameHud(): JSX.Element {
           key={currentBanner.key}
           data-hud="banner"
           role="status"
-          className={`pointer-events-none fixed top-1/3 left-1/2 z-hud-float flex -translate-x-1/2 animate-banner flex-col items-center text-xl font-bold whitespace-nowrap text-shadow-world ${
+          className={`pointer-events-none fixed top-1/3 left-1/2 z-notice flex -translate-x-1/2 animate-banner flex-col items-center text-xl font-bold whitespace-nowrap text-shadow-world ${
             currentBanner.tone === 'done' ? 'text-row-ready' : 'text-alert'
           }`}
         >

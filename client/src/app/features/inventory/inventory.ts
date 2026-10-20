@@ -9,7 +9,7 @@ import type {
   InventoryItem,
   StorageSlot,
 } from '../../../net/GameConnection';
-import { closeDebugInteraction, showDebugInteraction } from '../../../ui/hudStore';
+import { reportToPlayer } from '../../../gameplay/SpellBook';
 import {
   addInventoryItem,
   bankOpen,
@@ -57,11 +57,7 @@ export function inventoryHandlers(art: UiArt): Partial<ConnectionEvents> {
       // and arrives as a slot change and an appearance change instead.
       if (!itemResultOk(code)) {
         log.warn(`equip refused ${code}: ${itemErrorMessage(code)}`);
-        showDebugInteraction({
-          title: 'Equipment',
-          lines: [itemErrorMessage(code)],
-          actions: [{ label: 'Close', onClick: () => closeDebugInteraction() }],
-        });
+        reportToPlayer(itemErrorMessage(code));
       }
     },
 
