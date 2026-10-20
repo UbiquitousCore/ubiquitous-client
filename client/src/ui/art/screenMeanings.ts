@@ -1500,8 +1500,16 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     formats: { attached: '@698?~24946e20a3ca49e4~11' },
     // The dark cover behind the letter, and the sample figures the movie
-    // parks where the sum goes.
-    hidden: ['btnBlack', 'textgold', 'textsliver', 'textcopper'],
+    // parks where the sum goes. Money and Attachments' grey layers, which
+    // cover their lit faces.
+    hidden: [
+      'btnBlack',
+      'textgold',
+      'textsliver',
+      'textcopper',
+      'btnaddmoney/disable',
+      'btnaddattch/disable',
+    ],
   },
 
   mailMoney: {
@@ -1592,6 +1600,9 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       inbox: { row: 'group/btn', fields: { sender: 'text', subject: 'text2' } },
     },
     actions: { btnwrite: 'write' },
+    // The grey layer every face of the control wears over it until it is
+    // taken off: left on, the lit face showed only as a red rim round it.
+    hidden: ['btnwrite/disable'],
     // The quill on the control, in the room the movie leaves left of its word.
     emblems: { write: { at: 'btnwrite', icon: 'mail/ui_mail_write.png', size: 30 } },
     captions: { title: 'Mailbox', textwrite: 'Write' },
