@@ -1209,17 +1209,16 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     groups: {
       invite: 'btnInvite',
       quit: 'btnQuit',
-      inviteWords: 'textInvite',
-      quitWords: 'textQuit',
     },
+    // The friends list's own name field, floated over Invite: the team
+    // page has none of its own.
+    pieces: { nameField: { dialog: 'dlgFriendList', part: 'btnName' } },
     unavailable: { resetDungeons: 'dungeonsetting/btndungeonreset/disable' },
     captions: {
       textteamsetting: '@419?~a2fd7d0ca7c0aab8~4',
       textdungeonsetting: '@1482?~c9fe34cd7b2c0931~7',
       'dungeonsetting/txtdungeonreset': '@1486?~40787936038e9c4a~18',
       'dungeonsetting/txtdungeonsave': '@492?~7011a3c571fe2689~13',
-      textInvite: '@489?~1386011048f5e5d4~6',
-      textQuit: '@491?~47878736d4ff9672~4',
       'teamsetting/txtLeader': '@488?~3e26757abeff021e~7',
       'teamsetting/txtKick': '@1402?~54eac627fd9afd6b~9',
       'teamsetting/txtNotinteam': 'You are not in a team.',
@@ -1227,6 +1226,9 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The arena page, the rules for sharing out loot, and the dungeon page's
     // exhaustion, are the build's and not yet this client's.
     hidden: [
+      // The buttons' words sit across the paper's edge; the icons say it.
+      'textInvite',
+      'textQuit',
       'btnPVPSetting',
       'txtTitleArena',
       'pvpsetting',

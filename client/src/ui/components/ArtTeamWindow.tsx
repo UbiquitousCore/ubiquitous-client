@@ -19,6 +19,7 @@ import { player, target } from '../hudStore';
 import { partyActions, partyRoster, removalBy } from '../partyStore';
 import { dungeonMode, instanceActions } from '../instanceStore';
 import { ArtAskBox } from './ArtAskBox';
+import { WornPiece } from '../art/WornPiece';
 
 /** Our name for this screen. The spec says which dialog wears it. */
 export const TEAM_SCREEN = 'team';
@@ -40,6 +41,9 @@ const HIT =
   'focus-visible:outline-2 focus-visible:outline-brass-300';
 
 const NOBODY: readonly RosterMember[] = [];
+
+/** The friends list's name field, borrowed for Invite: its size in movie units. */
+const NAME_FIELD = { w: 143, h: 34 };
 
 /** The smallest box holding both parts, for a control that spans two. */
 function around(one: PiecePart, other: PiecePart): PiecePart {
@@ -63,23 +67,6 @@ export function kickChoice(
   return { combo, members: others, can: others.length > 0 && inIt };
 }
 
-/**
- * The team page's Invite and Quit, each with its words, that the player's
- * standing leaves off: Quit until there is a team to quit, Invite for a
- * member who does not lead it.
- * Own choice: who may invite and quit, which the original has not been checked for.
- */
-export function teamControlsOff(
-  spec: Pick<ScreenSpec, 'groups'>,
-  standing: { inParty: boolean; leads: boolean },
-): string[] {
-  const groups = spec.groups ?? {};
-  return [
-    ...(standing.inParty ? [] : [groups.quit, groups.quitWords]),
-    ...(standing.leads ? [] : [groups.invite, groups.inviteWords]),
-  ].filter((path): path is string => Boolean(path));
-}
-
 export interface ArtTeamWindowProps {
   onClose(): void;
 }
@@ -97,6 +84,9 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
   /** Whom the control that brings someone in would ask. */
   const asking = target.value?.name ?? '';
   const [open, setOpen] = useState(false);
+  /** Whether the name field stands open over Invite, and what is typed in it. */
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState('');
   const [page, setPage] = useState<TeamPage>('team');
   const [askingReset, setAskingReset] = useState(false);
   const resetAsk = useWornScreen(DUNGEON_RESET_ASK);
@@ -113,7 +103,6 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
   const listing = kick.combo && !(open && kick.can) ? NOBODY : kick.members;
   /** The leader line and the kick dropdown, which belong to a team you are in. */
   const partyOnly = inParty ? [] : (spec.partyOnly ?? []);
-  const standingOff = teamControlsOff(spec, { inParty, leads });
 
   const columnsOf = (member: RosterMember): Record<string, string> => ({ name: member.name });
 
@@ -137,7 +126,6 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
         ...(otherPage ? [otherPage] : []),
         ...teamOnly,
         ...partyOnly,
-        ...standingOff,
         ...sliceOf(whole).hidden,
         // The note for a party you are not in, which only shows while you
         // are not in one.
@@ -187,7 +175,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
         worn={worn}
         spec={spec}
         tone={LIGHT}
-        hidden={[...(otherPage ? [otherPage] : []), ...teamOnly, ...partyOnly, ...standingOff]}
+        hidden={[...(otherPage ? [otherPage] : []), ...teamOnly, ...partyOnly]}
       />
 
       {page === 'team' && named && leaderName ? (
@@ -314,33 +302,73 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
           );
         }
         if (page !== 'team') return null;
-        if (standingOff.includes(where)) return null;
-        const can = what === 'invite' ? asking.length > 0 : inParty;
+        const can = what === 'invite' || inParty;
         // Said by the button itself: the screen's own words for these two
         // sit across the paper's edge above them, and are left off.
-        const label =
-          what === 'invite'
-            ? asking
-              ? `Invite ${asking}`
-              : 'Invite whoever you have targeted'
-            : 'Leave the party';
+        const label = what === 'invite' ? 'Invite someone by name' : 'Leave the party';
         return (
           <button
             key={where}
             type="button"
             aria-label={label}
             title={label}
+            aria-expanded={what === 'invite' ? naming : undefined}
             disabled={!can}
             onClick={() => {
               if (!can) return;
-              if (what === 'invite') actions.inviteTarget();
-              else actions.leave();
+              if (what === 'invite') {
+                setNaming(was => !was);
+                setName(asking);
+              } else actions.leave();
             }}
             style={worn.box(part)}
             className={HIT}
           />
         );
       })}
+
+      {page === 'team' && naming
+        ? (() => {
+            const invite = worn.find(
+              Object.entries(spec.actions ?? {}).find(([, what]) => what === 'invite')?.[0],
+            );
+            const field = spec.pieces?.nameField;
+            if (!invite || !field) return null;
+            const box = {
+              x: invite.box.x + invite.box.w - NAME_FIELD.w,
+              y: invite.box.y - NAME_FIELD.h,
+              w: NAME_FIELD.w,
+              h: NAME_FIELD.h,
+            };
+            const send = (): void => {
+              const who = name.trim();
+              if (!who) return;
+              actions.inviteNamed(who);
+              setNaming(false);
+            };
+            return (
+              <div data-team-name style={worn.box({ ...invite, box })}>
+                <WornPiece
+                  dialog={field.dialog ?? spec.dialog}
+                  part={field.part}
+                  box={{ width: '100%', height: '100%' }}
+                />
+                <input
+                  type="text"
+                  aria-label="Name to invite"
+                  value={name}
+                  autoFocus
+                  onInput={event => setName(event.currentTarget.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') send();
+                    if (event.key === 'Escape') setNaming(false);
+                  }}
+                  className="pointer-events-auto absolute inset-0 border-0 bg-transparent px-[8%] font-chrome text-xs text-parchment-100 outline-none"
+                />
+              </div>
+            );
+          })()
+        : null}
 
       {askingReset ? (
         <ArtAskBox
