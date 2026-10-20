@@ -2,7 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { installMailActions, mailHandlers } from '../src/app/features/mail/mail';
 import type { UiArt } from '../src/app/UiArt';
 import type { GameConnection } from '../src/net/GameConnection';
-import { mailActions, mailMessage } from '../src/ui/mailStore';
+import {
+  mailActions,
+  mailDraft,
+  mailMessage,
+  mailWaiting,
+  startLetter,
+  editLetter,
+} from '../src/ui/mailStore';
+import { banner } from '../src/gameplay/SpellBook';
 
 describe('the post', () => {
   it('sends each window request to the server', () => {
@@ -41,5 +49,31 @@ describe('the post', () => {
     } as unknown as Parameters<NonNullable<typeof handlers.onMailMessage>>[0]);
     expect(resolveLootArt.mock.calls).toEqual([[11], [12]]);
     expect(mailMessage.value?.id).toBe('1');
+  });
+
+  it('says a refusal in red in the middle of the screen, and keeps the letter', () => {
+    const handlers = mailHandlers({ resolveLootArt: () => {} } as unknown as UiArt);
+    startLetter('Myself');
+    handlers.onMailSent?.(false, 'You cannot mail yourself.', 'selfMail');
+    expect(banner.value).toMatchObject({ text: 'You cannot mail yourself.', tone: 'refused' });
+    expect(mailDraft.value).not.toBeNull();
+  });
+
+  it('says a letter went in yellow, with the money it carried', () => {
+    const handlers = mailHandlers({ resolveLootArt: () => {} } as unknown as UiArt);
+    startLetter('Arcane');
+    editLetter({ money: 10_000 });
+    handlers.onMailSent?.(true, null, null);
+    expect(banner.value).toMatchObject({ text: 'Sent Successfully', tone: 'done' });
+    expect(banner.value?.detail).toMatch(/^-/);
+    expect(mailDraft.value).toBeNull();
+  });
+
+  it('keeps the count of letters waiting the server last sent', () => {
+    const handlers = mailHandlers({ resolveLootArt: () => {} } as unknown as UiArt);
+    handlers.onMailUnread?.(2);
+    expect(mailWaiting.value).toBe(2);
+    handlers.onMailUnread?.(0);
+    expect(mailWaiting.value).toBe(0);
   });
 });

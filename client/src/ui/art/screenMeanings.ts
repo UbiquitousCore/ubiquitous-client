@@ -374,6 +374,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       pip2: 'rage2',
       pip3: 'rage3',
       pip4: 'rage4',
+      // The sealed letter beside the ring while letters wait unread.
+      newLetter: 'btnnewletter',
     },
     values: { level: 'btnCharFace/MClv' },
     // The signal marks and the ring lit round a picked portrait.
@@ -1572,6 +1574,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       inbox: { row: 'group/btn', fields: { sender: 'text', subject: 'text2' } },
     },
     actions: { btnwrite: 'write' },
+    // The quill on the control, in the room the movie leaves left of its word.
+    emblems: { write: { at: 'btnwrite', icon: 'mail/ui_mail_write.png', size: 30 } },
     captions: { title: 'Mailbox', textwrite: 'Write' },
     formats: { from: 'From' },
   },

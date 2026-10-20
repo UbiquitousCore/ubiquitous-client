@@ -381,26 +381,6 @@ describe('ArtMailWindow', () => {
     itemNames.value = new Map();
   });
 
-  it('says why the server refused, on the letter, where it can be seen', () => {
-    uiSpec.value = {
-      screens: { ...spec.screens, mailRead: { dialog: 'theBox', frame: 'back', close: 'shut' } },
-    };
-    setMovie({ skin: skin(), art: new Map() });
-    const bare: MailMessage = { ...letter('a', true), body: '', items: [] };
-    const { getByRole } = render(
-      <ArtMailWindow
-        {...nothing}
-        inbox={[letter('a')]}
-        message={bare}
-        refusal="Your bags are full — free a slot and claim again."
-      />,
-    );
-    const said = getByRole('alert');
-    expect(said.textContent).toContain('bags are full');
-    expect(said.className).toContain('text-ink-danger');
-    expect(said.className).not.toContain('sr-only');
-  });
-
   it('puts a letter away without shutting the box it came from', () => {
     // An opened letter must close again.
     uiSpec.value = {

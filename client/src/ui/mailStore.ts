@@ -17,6 +17,9 @@ export const mailOpen = signal(false);
 /** The inbox, newest first. Arrives alongside a successful open. */
 export const mailInbox = signal<readonly MailInboxEntry[]>([]);
 
+/** How many letters wait unread, which the HUD shows a mark beside the hero's frame for. */
+export const mailWaiting = signal(0);
+
 /** The message currently being read, if any. */
 export const mailMessage = signal<MailMessage | null>(null);
 

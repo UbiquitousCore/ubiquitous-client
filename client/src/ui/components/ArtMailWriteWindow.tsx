@@ -19,7 +19,6 @@ import { inventory, itemIcons, itemName } from '../inventoryStore';
 import type { InventoryItem } from '../inventoryStore';
 import type { MailDraft } from '../mailStore';
 import { MAIL_ATTACHMENTS } from '../mailStore';
-import { MailRefusal } from './MailRefusal';
 
 /** Our names for these screens. The spec says which dialog wears each. */
 export const MAIL_WRITE_SCREEN = 'mailWrite';
@@ -41,8 +40,6 @@ export interface ArtMailWriteWindowProps {
   onEmpty(): void;
   onSend(): void;
   onClose(): void;
-  /** Why the server refused the last send, in red; nothing while all is well. */
-  refusal?: string | null;
 }
 
 const HIT =
@@ -87,7 +84,6 @@ function Letter({
   onEdit,
   onSend,
   onClose,
-  refusal,
   spec,
   aside,
   onAside,
@@ -109,7 +105,18 @@ function Letter({
   }
   const writes = fitCoins(counted);
 
+  /** Money and attachments wear their lit face while the letter carries some, or their screen is open. */
+  const lit = (what: string): boolean =>
+    what === 'money'
+      ? draft.money > 0 || aside === 'money'
+      : what === 'attach'
+        ? carrying > 0 || aside === 'bag'
+        : false;
+
   const worn = useWorn(spec.dialog, spec.frame, () => ({
+    frames: Object.fromEntries(
+      Object.entries(spec.actions ?? {}).map(([where, what]) => [where, lit(what) ? 1 : 0]),
+    ),
     shown: [...(spec.shown ?? []), ...faces.shown],
     hidden: [
       ...(spec.hidden ?? []),
@@ -247,8 +254,6 @@ function Letter({
           className={HIT}
         />
       )}
-
-      {refusal && <MailRefusal text={refusal} />}
     </div>
   );
 }

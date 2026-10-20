@@ -5,12 +5,15 @@ import {
   applyMailClaimed,
   applyMailDeleted,
   applyMailSent,
+  mailDraft,
+  mailWaiting,
   setMailActions,
   setMailInbox,
   setMailMessage,
   setMailOpened,
 } from '../../../ui/mailStore';
 import { formatMoney } from '../../../ui/money';
+import { reportToPlayer } from '../../../gameplay/SpellBook';
 
 const log = logger('mail');
 
@@ -64,17 +67,33 @@ export function mailHandlers(art: UiArt): Partial<ConnectionEvents> {
     },
 
     onMailSent: (ok, reason, code) => {
+      // Read before the answer puts the letter away.
+      const paid = mailDraft.value?.money ?? 0;
       applyMailSent(ok, reason, code);
+      if (ok) {
+        reportToPlayer('Sent Successfully', undefined, {
+          tone: 'done',
+          ...(paid > 0 ? { detail: `-${formatMoney(paid)}` } : {}),
+        });
+      } else {
+        reportToPlayer(reason ?? 'Mail refused.');
+      }
       log.info(mailLogLine({ kind: 'sent', ok, reason }));
     },
 
     onMailClaimed: (ok, gold, items, reason, code) => {
       applyMailClaimed(ok, gold, items, reason, code);
+      if (!ok) reportToPlayer(reason ?? 'Claim refused.');
       log.info(mailLogLine({ kind: 'claimed', ok, gold, itemCount: items.length, reason }));
+    },
+
+    onMailUnread: count => {
+      mailWaiting.value = count;
     },
 
     onMailDeleted: (ok, id, reason) => {
       applyMailDeleted(ok, id, reason);
+      if (!ok) reportToPlayer(reason ?? 'Delete refused.');
       log.info(mailLogLine({ kind: 'deleted', ok, id, reason }));
     },
   };

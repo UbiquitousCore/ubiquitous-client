@@ -2089,6 +2089,10 @@ export class WebSocketConnection implements GameConnection {
         );
         return;
 
+      case INBOUND.mailUnread:
+        this.events.onMailUnread?.(optionalNumber(payload, 'count', 0));
+        return;
+
       case INBOUND.spellBookArrived: {
         const rawSpells = payload.spells;
         const spells = Array.isArray(rawSpells)

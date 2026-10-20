@@ -751,6 +751,8 @@ export interface ConnectionEvents {
   ): void;
   /** The delete outcome. */
   onMailDeleted?(ok: boolean, id: string, reason: string | null): void;
+  /** How many letters wait unread: on entering the world, after reading one, and when one arrives. */
+  onMailUnread?(count: number): void;
 
   // — refusals with no result message of their own --------------------------
 

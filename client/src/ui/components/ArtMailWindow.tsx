@@ -20,7 +20,6 @@ import { coinsOf, formatMoney } from '../money';
 import type { MailAttachment, MailInboxEntry, MailMessage, MailTake } from '../mailStore';
 import { ArtItemCard, HELD_CARD, cardFor } from './ArtItemCard';
 import { MAIL_ATTACH_SCREEN } from './ArtMailWriteWindow';
-import { MailRefusal } from './MailRefusal';
 
 /** Our names for these screens. The spec says which dialog wears each. */
 export const MAIL_SCREEN = 'mail';
@@ -30,8 +29,8 @@ export interface ArtMailWindowProps {
   inbox: readonly MailInboxEntry[];
   message: MailMessage | null;
   notice: string | null;
-  /** A refusal to show on the letter, in red; nothing while all is well. */
-  refusal?: string | null;
+  /** True while a letter of the player's own is being written: the Write control is lit. */
+  writing?: boolean;
   onSelect(id: string): void;
   onClaim(id: string, take?: MailTake): void;
   onDelete(id: string): void;
@@ -74,6 +73,7 @@ const HIT =
 function Inbox({
   inbox,
   message,
+  writing = false,
   onSelect,
   onWrite,
   onClose,
@@ -100,6 +100,11 @@ function Inbox({
       // The marks that say the list runs on are placed but not drawn:
       // each is drawn on its own so it can slide the way it points.
       withoutArt: slice.marks,
+      // Each control's second face is its lit one, worn while that control's
+      // letter is open.
+      frames: Object.fromEntries(
+        Object.keys(spec.actions ?? {}).map(where => [where, writing ? 1 : 0]),
+      ),
       shown: [...(spec.shown ?? []), ...(lit ? [lit] : [])],
       hidden: [
         ...(spec.hidden ?? []),
@@ -176,9 +181,11 @@ function Inbox({
             fields={fields}
             list={list}
             values={columnsOf(item)}
-            tone={INK}
-            // A letter not yet opened is the one worth noticing.
-            styleOf={() => (item.read ? undefined : 'font-semibold')}
+            tone={LIGHT}
+            // White whether read or not: the field's own colour is the dark
+            // ink of the sheet it was drawn on. A letter not yet opened is
+            // the one worth noticing.
+            styleOf={() => (item.read ? 'text-parchment-100' : 'font-semibold text-parchment-100')}
           />
         ))}
 
@@ -237,7 +244,6 @@ function Inbox({
 function Letter({
   message,
   notice,
-  refusal,
   onClaim,
   onDelete,
   onCloseLetter,
@@ -357,14 +363,10 @@ function Letter({
         ) : null;
       })()}
 
-      {refusal ? (
-        <MailRefusal text={refusal} />
-      ) : (
-        notice && (
-          <p role="status" className="sr-only">
-            {notice}
-          </p>
-        )
+      {notice && (
+        <p role="status" className="sr-only">
+          {notice}
+        </p>
       )}
       {message.items.length > 0 && (
         <p className="sr-only">{`${message.items.length} attached, ${formatMoney(carried)}`}</p>
