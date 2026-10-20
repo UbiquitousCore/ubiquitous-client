@@ -2974,7 +2974,7 @@ export class Game {
             sendVendorBuy: (id, slot, itemId, quantity) =>
               this.connection.sendVendorBuy(id, slot, itemId, quantity),
             sendVendorSell: (id, slot, itemId) => this.connection.sendVendorSell(id, slot, itemId),
-            openBag: () => openCharacterWindow('bag'),
+            openBag: () => openCharacterWindow('bag', true),
           }),
         );
         this.connection.sendVendorOpen(unitId);

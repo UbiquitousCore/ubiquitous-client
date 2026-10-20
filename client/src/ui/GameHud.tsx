@@ -9,6 +9,7 @@ import { ArtFocusPanel } from './components/ArtFocusPanel';
 import { ArtMapWindow } from './components/ArtMapWindow';
 import { ArtMinimap } from './components/ArtMinimap';
 import { SpellDragGhost } from './components/SpellDragGhost';
+import { installWindowFocus } from './windowFocus';
 import { useMapKeys } from './components/mapKeys';
 import { ArtPlayerFrame } from './components/ArtPlayerFrame';
 import type { TopbarAction } from './components/ArtTopbarMenu';
@@ -481,5 +482,6 @@ export function GameHud(): JSX.Element {
 }
 
 export function mountGameHud(container: HTMLElement): void {
+  installWindowFocus();
   render(<GameHud />, container);
 }
