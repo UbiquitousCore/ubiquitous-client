@@ -6,7 +6,7 @@
  */
 
 import type { JSX } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 
 import { ArtSellWindow, SELL_SCREEN } from './components/ArtSellWindow';
 import { ArtShopWindow, SHOP_SCREEN } from './components/ArtShopWindow';
@@ -23,6 +23,12 @@ export function ShopWindowContainer(): JSX.Element | null {
     globalThis.location?.search.includes('showing=sell') ? 'sell' : 'buy',
   );
   const shop = shopInteraction.value;
+  // This window outlives each vendor, so the page is put back to Buy
+  // whenever a vendor's shop shuts or another vendor's opens.
+  const vendor = shop?.vendorName ?? null;
+  useEffect(() => {
+    if (!globalThis.location?.search.includes('showing=sell')) setPage('buy');
+  }, [vendor]);
   if (!shop) return null;
 
   if (worn) {
