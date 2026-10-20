@@ -32,7 +32,9 @@ function Worn({
     spec.dialog,
     spec.frame,
     { shown: spec.shown ?? [], hidden: spec.hidden ?? [], frames: faces },
-    { movie: spec.movie, floats: true },
+    // At its own size, not at its place on the movie's screen: the box
+    // stands in the middle of whatever view it opens over.
+    { movie: spec.movie, unplaced: true },
   );
   const wanted = splitCount(typed, count);
   const split = (): void => {
