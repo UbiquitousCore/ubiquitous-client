@@ -4,14 +4,19 @@ import * as THREE from 'three';
 import { framePortrait, headOf, shippedCamera } from './portraitFraming';
 import { lightAsStage } from './stageLight';
 
-/** The portrait as a data URL; `pullBack` moves the camera further (`framePortrait`). The object is put back as found. */
+/**
+ * The portrait as a data URL; `pullBack` moves the camera further
+ * (`framePortrait`). `still` stands the bones as the file does first; a copy
+ * photographed as it stands passes false. The object is put back as found.
+ */
 export function renderPortrait(
   gl: THREE.WebGLRenderer,
   object: THREE.Object3D,
   size = 128,
   pullBack = 1,
+  still = true,
 ): string | null {
-  const unpose = holdStill(object);
+  const unpose = still ? holdStill(object) : () => {};
   try {
     return photograph(gl, object, size, pullBack);
   } finally {
