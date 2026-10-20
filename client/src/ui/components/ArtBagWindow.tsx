@@ -38,6 +38,7 @@ import {
   startItemDrag,
 } from './dragItem';
 import { ItemDragGhost, socketItemOf } from './ItemSocket';
+import { SplitStackPrompt } from './SplitStackPrompt';
 import { logger } from '../../core/log';
 
 const log = logger('bag');
@@ -77,14 +78,18 @@ export function ArtBagWindow(props: ArtBagWindowProps): JSX.Element | null {
 /**
  * A drop onto the body is a wear request: the server refuses a plain move
  * there silently. Let go over nothing, a thing from the bag is thrown away,
- * which is asked about first.
+ * which is asked about first. Held and let go on its own slot, a stack in the
+ * bag is split.
  */
 export function bagDrop(
   from: StorageSlot,
   to: StorageSlot | null,
-): 'wear' | 'move' | 'discard' | null {
+  count = 1,
+): 'wear' | 'move' | 'discard' | 'split' | null {
   if (to === null) return from.area === 'bag' ? 'discard' : null;
-  if (to.area === from.area && to.index === from.index) return null;
+  if (to.area === from.area && to.index === from.index) {
+    return from.area === 'bag' && count > 1 ? 'split' : null;
+  }
   if (from.area === 'equipment') return null;
   return to.area === 'equipment' ? 'wear' : 'move';
 }
@@ -102,6 +107,8 @@ function Worn({
   const askBox = useWornScreen(BAG_ASK_SCREEN);
   /** The thing let go over nothing, while the box asks whether to throw it away. */
   const [discarding, setDiscarding] = useState<InventoryItem | null>(null);
+  /** The stack held and let go on its own slot, while the player says how many to take off. */
+  const [splitting, setSplitting] = useState<InventoryItem | null>(null);
   const discardBox = useWornScreen(DISCARD_ASK_SCREEN);
 
   const state = inventory.value;
@@ -259,10 +266,11 @@ function Worn({
               if (item)
                 startItemDrag(event, dragged(item), where, {
                   onDrop: (_payload, from, to) => {
-                    const does = bagDrop(from, to);
+                    const does = bagDrop(from, to, item.count);
                     log.info(`bag: drop asks to ${does ?? 'do nothing'}`);
                     if (does === 'wear') actions.equip(item, to ?? undefined);
                     else if (does === 'move' && to) actions.move(from, to);
+                    else if (does === 'split' && !trading) setSplitting(item);
                     // Never unasked: with no box to ask in, nothing is
                     // thrown away. Nor beside a trade, where letting go
                     // short of the table is a miss, not a choice.
@@ -465,6 +473,18 @@ function Worn({
             actions.destroy(discarding);
           }}
           onDecline={() => setDiscarding(null)}
+        />
+      ) : null}
+
+      {splitting ? (
+        <SplitStackPrompt
+          name={itemName(splitting)}
+          count={splitting.count}
+          onSplit={count => {
+            setSplitting(null);
+            actions.split(splitting, count);
+          }}
+          onCancel={() => setSplitting(null)}
         />
       ) : null}
 

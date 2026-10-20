@@ -136,6 +136,11 @@ export function installInventoryActions(
       if (item.slot && vendorId !== null) connection.sendVendorSell(vendorId, item.slot, item.id);
     },
     sort: area => connection.sendInventorySort(area),
+    // Any slot the bag has not got: the server then picks the first empty one.
+    split: (item, count) => {
+      if (item.slot)
+        connection.sendInventorySplit(item.slot, item.id, count, { area: 'bag', index: -1 });
+    },
     upgrade: (area, slots) => connection.sendUpgradeStorage(area, slots),
   });
 }

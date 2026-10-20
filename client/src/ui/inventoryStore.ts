@@ -189,6 +189,8 @@ export interface InventoryActions {
   destroy(item: InventoryItem): void;
   sell(item: InventoryItem): void;
   sort(area: StorageArea): void;
+  /** Take `count` off a stack in the bag; the server puts it in an empty slot. */
+  split(item: InventoryItem, count: number): void;
   /**
    * Buy the next rung. `slots` is what the storage becomes, which is what the
    * server checks against — it re-finds the rung itself and refuses one that
@@ -205,6 +207,7 @@ const NOTHING: InventoryActions = {
   destroy: () => {},
   sell: () => {},
   sort: () => {},
+  split: () => {},
   upgrade: () => {},
 };
 
