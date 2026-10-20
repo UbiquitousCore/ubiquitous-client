@@ -13,6 +13,7 @@ import type { PiecePart } from '../art/piecePlan';
 import type { ScreenSpec } from '../art/uiSpec';
 import { LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { WornPiece } from '../art/WornPiece';
+import { cornerOverhang } from '../art/cornerOverhang';
 import { mailWaiting } from '../mailStore';
 import type { ResourceType, Unit } from '../hudStore';
 import { barRun, faceFor, shareOf } from '../art/faceRuns';
@@ -255,8 +256,17 @@ function Worn({
   const letterAt = letter && mailWaiting.value > 0 ? beside(under, letter, framed) : undefined;
   const pct = (units: number, of: number): string => `${(units / of) * 100}%`;
 
+  const hangs = cornerOverhang(under.onStage, under.stage, 'left');
+  const perUnit = (parseFloat(String(under.sized.width)) || frame.w) / frame.w;
+
   return (
-    <div className="relative" style={under.sized}>
+    <div
+      className="relative"
+      style={{
+        ...under.sized,
+        transform: `translate(${hangs.x * perUnit}px, ${hangs.y * perUnit}px)`,
+      }}
+    >
       {under.image && (
         <img
           ref={under.pictureRef}

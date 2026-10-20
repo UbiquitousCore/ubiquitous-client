@@ -2,6 +2,7 @@
 import type { JSX } from 'preact';
 
 import { WornPiece } from '../art/WornPiece';
+import { cornerOverhang } from '../art/cornerOverhang';
 import type { ScreenSpec } from '../art/uiSpec';
 import { LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import {
@@ -130,8 +131,12 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
 
   // The ring sits in the screen's corner itself, the way the hero's frame
   // sits in the opposite one: a notch's inset left a gap beside it.
+  const hangs = cornerOverhang(worn.onStage, worn.stage, 'right');
   return (
-    <div className="pointer-events-none fixed top-0 right-0 z-hud-float">
+    <div
+      className="pointer-events-none fixed top-0 right-0 z-hud-float"
+      style={{ transform: `translate(${hangs.x * unit}px, ${hangs.y * unit}px)` }}
+    >
       <button
         type="button"
         aria-label={zoneName ? `Open full map, ${zoneName}` : 'Open full map'}
