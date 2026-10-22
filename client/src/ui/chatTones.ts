@@ -9,6 +9,7 @@ export const CHANNEL_TEXT: Readonly<Record<string, string>> = {
   trade: 'text-brass-300',
   party: 'text-chat-party',
   notice: 'text-notice',
+  yell: 'text-alert',
   [WHISPER_CHANNEL]: 'text-chat-whisper',
 };
 

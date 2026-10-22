@@ -174,6 +174,8 @@ export interface ChatLine {
   channel: string;
   sender: string;
   text: string;
+  /** The speaker's network id, when the server names one: a creature has no name a player could match. */
+  senderId?: number;
 }
 
 export interface EntityValuesChanged {

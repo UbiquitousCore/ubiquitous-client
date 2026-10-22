@@ -1835,10 +1835,11 @@ export class Game {
   private chatHandlers(): Partial<ConnectionEvents> {
     return {
       onChat: message => {
-        // The wire names the speaker; a name nobody in view has is a log line only.
+        // A creature is named by id; anyone else by name, and a name nobody in view has is a log line only.
+        const { senderId, ...line } = message;
         noteChat(
-          { ...message, mine: message.sender === this.selectedCharacter?.name },
-          this.saidBy(message.sender),
+          { ...line, mine: message.sender === this.selectedCharacter?.name },
+          senderId === undefined ? this.saidBy(message.sender) : this.bodies.localIdOf(senderId),
         );
       },
       onWhisperReceived: (_senderNetworkId, senderName, text) => {

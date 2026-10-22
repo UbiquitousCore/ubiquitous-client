@@ -1032,6 +1032,24 @@ describe('receiving world state', () => {
     });
   });
 
+  it("delivers a creature's yell with the creature resolved to a local id", async () => {
+    await connected();
+
+    socket.emit('chat.received', {
+      channel: 'yell',
+      sender: 'Cosmo',
+      text: 'The dead fight for ME!',
+      senderId: 'Creature:7',
+    });
+
+    expect(events.onChat).toHaveBeenCalledWith({
+      channel: 'yell',
+      sender: 'Cosmo',
+      text: 'The dead fight for ME!',
+      senderId: expect.any(Number),
+    });
+  });
+
   it('delivers a whisper, with the sender resolved to a local id', async () => {
     await connected();
 

@@ -210,7 +210,7 @@ export function whisper(targetId: string, text: string): void {
 }
 
 /** Channels whose words also stand over the speaker; the rest reach further and stay in the log. */
-export const SPOKEN_ALOUD: ReadonlySet<string> = new Set(['say', 'party']);
+export const SPOKEN_ALOUD: ReadonlySet<string> = new Set(['say', 'party', 'yell']);
 
 /** Take a message in; without `networkId` it is only a log line. */
 export function noteChat(

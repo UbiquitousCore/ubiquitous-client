@@ -1476,6 +1476,9 @@ export class WebSocketConnection implements GameConnection {
           channel: readString(payload, 'channel', type),
           sender: readString(payload, 'sender', type),
           text: readString(payload, 'text', type),
+          ...(payload.senderId === undefined
+            ? {}
+            : { senderId: this.ids.idFor(payload.senderId, type) }),
         };
         this.events.onChat?.(message);
         return;
