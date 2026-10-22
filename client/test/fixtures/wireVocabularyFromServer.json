@@ -288,6 +288,7 @@
   "choiceResults": [
     "notEnoughMoney",
     "nothingHappens",
+    "started",
     "teleported"
   ],
   "questMarks": [

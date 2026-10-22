@@ -64,7 +64,12 @@ export function readSummonResult(value: unknown): SummonResult | null {
 }
 
 /** What picking a conversation choice did, as the server names it. */
-export const CHOICE_RESULTS = ['teleported', 'notEnoughMoney', 'nothingHappens'] as const;
+export const CHOICE_RESULTS = [
+  'teleported',
+  'notEnoughMoney',
+  'nothingHappens',
+  'started',
+] as const;
 
 export type ChoiceResult = (typeof CHOICE_RESULTS)[number];
 

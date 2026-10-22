@@ -242,6 +242,11 @@ describe('what the server says back', () => {
     expect(closesAfter('notEnoughMoney')).toBe(false);
   });
 
+  it('closes quietly on a choice that starts something, whose own words come from the speaker', () => {
+    expect(choiceNotice('started', harbour)).toBeNull();
+    expect(closesAfter('started')).toBe(true);
+  });
+
   it('says nothing of a journey, says so of a choice with nothing behind it, and names a price not met', () => {
     expect(choiceNotice('teleported', harbour)).toBeNull();
     expect(choiceNotice('nothingHappens', harbour)).toBe(NOTHING_HAPPENS);

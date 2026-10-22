@@ -80,7 +80,7 @@ export function classWord(playerClass: number): string {
  * one the page itself sells the teleport for.
  */
 export function choiceNotice(result: ChoiceResult, choice: GossipChoice | null): string | null {
-  if (result === 'teleported') return null;
+  if (result === 'teleported' || result === 'started') return null;
   if (result === 'nothingHappens') return NOTHING_HAPPENS;
   const cannot = itemErrorMessage('notEnoughMoney');
   const cost = choice?.teleport?.cost ?? 0;
