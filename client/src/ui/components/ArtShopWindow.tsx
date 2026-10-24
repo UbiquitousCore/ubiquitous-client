@@ -6,6 +6,7 @@ import { useState } from 'preact/hooks';
 import type { ScreenSpec } from '../art/uiSpec';
 import { INK, LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { WornCaptions } from '../art/WornCaptions';
+import { WornPiece } from '../art/WornPiece';
 import { WornSlot } from '../art/WornSlot';
 import { pageLabel, pagesFor, slotsOf } from '../art/wornSlots';
 import type { ShopItem } from '../hudStore';
@@ -53,7 +54,11 @@ function Worn({
   const grid = spec.grids?.goods;
   const list = spec.lists?.goods;
 
-  const worn = useWorn(spec.dialog, spec.frame, whole => {
+  const strip = spec.panels?.lessonStrip;
+  // Every card carries the strip its lesson banner is drawn on. It is left out of the picture and drawn again, over
+  // the card's picture, only for the cards that say something; `where` is the same screen with the strips in,
+  // for where they stand.
+  const states = (whole: Parameters<typeof slotsOf>[0], keepStrips: boolean) => {
     const cards = grid ? slotsOf(whole, { ...grid, driven: true }) : [];
     const perPage = cards.length || 1;
     const showing = items.slice(page * perPage, page * perPage + perPage);
@@ -68,7 +73,7 @@ function Worn({
       ),
       shown: spec.shown ?? [],
       hidden: [
-        ...(spec.hidden ?? []),
+        ...(spec.hidden ?? []).filter(name => !keepStrips || name !== strip),
         // The purse's coins go with their figures, the way a card's does.
         ...bareCoins(spec.coins, purseOf(balance)),
         // A card with nothing on it is not a card: show as many as the
@@ -79,7 +84,9 @@ function Worn({
         ...cards.flatMap(card => coins.map(coin => `${card.path}/${coin}`)),
       ],
     };
-  });
+  };
+  const worn = useWorn(spec.dialog, spec.frame, whole => states(whole, false));
+  const where = useWorn(spec.dialog, spec.frame, whole => states(whole, true));
 
   if (!worn.image || !worn.frame || !grid) return null;
 
@@ -168,6 +175,34 @@ function Worn({
               name={itemIcons.value.get(item.id) ? undefined : item.name}
               count={item.stock ?? undefined}
             />
+            {/* A lesson the player cannot take, or knows already, says so across its picture. */}
+            {item.lesson && strip
+              ? (() => {
+                  const stripPart = where.find(`${card.path}/${strip}`);
+                  const said =
+                    item.lesson === 'learned' ? spec.words?.learned : spec.words?.cannotLearn;
+                  return stripPart ? (
+                    <>
+                      <WornPiece
+                        dialog={spec.dialog}
+                        part={`${card.path}/${strip}`}
+                        alone
+                        movie={spec.movie}
+                        box={worn.box(stripPart)}
+                      />
+                      <span
+                        style={{
+                          ...worn.words(stripPart, INK),
+                          justifyContent: 'center',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {said ?? (item.lesson === 'learned' ? 'Already learned' : "Can't learn")}
+                      </span>
+                    </>
+                  ) : null;
+                })()
+              : null}
             {named ? (
               <span style={worn.words(named, INK)}>
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{item.name}</span>

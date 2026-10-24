@@ -1338,6 +1338,16 @@ export class WorldTables {
     return { itemClass: num(row[ITEM_CLASS]), subClass: num(row[ITEM_SUBCLASS]) };
   }
 
+  /** Every item's entry and the `String_Item_<lang>` id naming it; those with no name are left out. */
+  itemNames(): Array<{ entry: number; nameId: number }> {
+    const found: Array<{ entry: number; nameId: number }> = [];
+    for (const [entry, row] of this.keyedRows('items')) {
+      const nameId = num(row[ITEM_NAME_STRING]);
+      if (nameId > 0) found.push({ entry, nameId });
+    }
+    return found;
+  }
+
   /** The `String_Item_<lang>` id naming an item, not the item's own id. */
   itemNameId(entry: number): number | null {
     const row = this.keyedRows('items').get(entry);

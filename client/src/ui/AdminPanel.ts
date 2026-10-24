@@ -7,6 +7,8 @@
 
 import type { DebugTools } from '../app/DebugTools';
 import type { ZoneInfo } from '../assets/types';
+import { SHORTEST_ITEM_SEARCH } from './itemSearch';
+import type { ItemHit } from './itemSearch';
 import { BUTTON_BASE, BUTTON_CENTRED, BUTTON_SIZE, BUTTON_VARIANT } from './components/Button';
 
 /* Debug chrome in the shared design system; monospaced, not differently coloured. */
@@ -55,6 +57,16 @@ export interface AdminControls {
   teleportToZone(zoneId: number): Promise<void>;
   toggleHud(visible: boolean): void;
   getZoneList(): Promise<ZoneInfo[]>;
+  /** Items whose name or entry matches; the build's own names, so empty before it is mounted. */
+  searchItems(query: string): Promise<ItemHit[]>;
+  /** Ask the server for items. It refuses anyone who is not a GM. */
+  giveItem(entry: number, count: number): void;
+  /** Ask the server for whole gold. It refuses anyone who is not a GM. */
+  giveGold(gold: number): void;
+  /** Ask the server to set the character's level. It refuses anyone who is not a GM. */
+  setLevel(level: number): void;
+  /** Ask the server to teach every rank of the class's spells. It refuses anyone who is not a GM. */
+  learnSpells(): void;
 }
 
 export class AdminPanel {
@@ -97,6 +109,30 @@ export class AdminPanel {
         <select id="adm-zones" size="8" class="${SELECT}"><option>loading...</option></select>
         <div class="${HINT}" id="adm-zone-count"></div>
         <button id="adm-teleport" class="${BUTTON}">Teleport</button>
+
+        <label class="${LABEL}">Give item</label>
+        <input type="search" id="adm-item-filter" placeholder="search items by name or id..."
+               autocomplete="off" spellcheck="false" class="${FIELD}">
+        <select id="adm-items" size="8" class="${SELECT}"></select>
+        <div class="${HINT}" id="adm-item-count">Type ${SHORTEST_ITEM_SEARCH} letters or an item id.</div>
+        <div class="${ROW}">
+          <input type="number" id="adm-item-qty" min="1" max="1000" value="1" class="${FIELD}">
+          <button id="adm-item-give" class="${BUTTON}">Give</button>
+        </div>
+
+        <label class="${LABEL}">Level</label>
+        <div class="${ROW}">
+          <input type="number" id="adm-level" min="1" max="60" value="60" class="${FIELD}">
+          <button id="adm-level-set" class="${BUTTON}">Set</button>
+        </div>
+        <button id="adm-learn" class="${BUTTON}">Learn all spells</button>
+        <div class="${HINT}">Every rank of your class's spells, whatever the level.</div>
+
+        <label class="${LABEL}">Give gold</label>
+        <div class="${ROW}">
+          <input type="number" id="adm-gold" min="1" max="100000" value="100" class="${FIELD}">
+          <button id="adm-gold-give" class="${BUTTON}">Give</button>
+        </div>
 
         <div class="mt-2 flex flex-col gap-1">
           <label class="${CHECK}"><input type="checkbox" id="adm-hud-toggle"> Show debug HUD</label>
@@ -191,6 +227,8 @@ export class AdminPanel {
       }
       teleportBtn.disabled = false;
     });
+
+    this.wireGifts(status);
 
     this.on(hudToggle, 'change', () => {
       this.game.toggleHud(hudToggle.checked);
@@ -294,6 +332,80 @@ export class AdminPanel {
       select.innerHTML = '<option>not loaded yet</option>';
       this.zonesLoaded = false;
     }
+  }
+
+  /** Searching for an item and giving it, and giving gold. */
+  private wireGifts(status: HTMLElement): void {
+    const filter = this.$<HTMLInputElement>('adm-item-filter');
+    const list = this.$<HTMLSelectElement>('adm-items');
+    const count = this.$<HTMLElement>('adm-item-count');
+    const quantity = this.$<HTMLInputElement>('adm-item-qty');
+    const give = this.$<HTMLButtonElement>('adm-item-give');
+    const gold = this.$<HTMLInputElement>('adm-gold');
+    const giveGold = this.$<HTMLButtonElement>('adm-gold-give');
+
+    // Only the newest search draws, so a slow early one cannot overwrite it.
+    let asked = 0;
+    this.on(filter, 'input', async () => {
+      const ticket = ++asked;
+      const hits = await this.game.searchItems(filter.value).catch(() => []);
+      if (ticket !== asked) return;
+      list.replaceChildren(
+        ...hits.map(hit => {
+          const option = document.createElement('option');
+          option.value = String(hit.entry);
+          option.textContent = `${hit.name} (${hit.entry})`;
+          return option;
+        }),
+      );
+      if (hits.length) list.selectedIndex = 0;
+      count.textContent = hits.length
+        ? `${hits.length} found`
+        : filter.value.trim().length < SHORTEST_ITEM_SEARCH
+          ? `Type ${SHORTEST_ITEM_SEARCH} letters or an item id.`
+          : 'No items found.';
+    });
+
+    const giveSelected = (): void => {
+      const entry = parseInt(list.value, 10);
+      const amount = Math.floor(Number(quantity.value));
+      if (!Number.isFinite(entry) || !Number.isFinite(amount) || amount < 1) return;
+      this.game.giveItem(entry, amount);
+      status.textContent = `asked for ${amount} of item ${entry}`;
+    };
+    this.on(give, 'click', giveSelected);
+    this.on(list, 'dblclick', giveSelected);
+    this.on(filter, 'keydown', event => {
+      if ((event as KeyboardEvent).key === 'Enter') giveSelected();
+    });
+
+    const level = this.$<HTMLInputElement>('adm-level');
+    const setLevel = this.$<HTMLButtonElement>('adm-level-set');
+    const setTheLevel = (): void => {
+      const wanted = Math.floor(Number(level.value));
+      if (!Number.isFinite(wanted) || wanted < 1) return;
+      this.game.setLevel(wanted);
+      status.textContent = `asked for level ${wanted}`;
+    };
+    this.on(setLevel, 'click', setTheLevel);
+    this.on(level, 'keydown', event => {
+      if ((event as KeyboardEvent).key === 'Enter') setTheLevel();
+    });
+    this.on(this.$<HTMLButtonElement>('adm-learn'), 'click', () => {
+      this.game.learnSpells();
+      status.textContent = 'asked to learn every spell';
+    });
+
+    const giveTheGold = (): void => {
+      const amount = Math.floor(Number(gold.value));
+      if (!Number.isFinite(amount) || amount < 1) return;
+      this.game.giveGold(amount);
+      status.textContent = `asked for ${amount} gold`;
+    };
+    this.on(giveGold, 'click', giveTheGold);
+    this.on(gold, 'keydown', event => {
+      if ((event as KeyboardEvent).key === 'Enter') giveTheGold();
+    });
   }
 
   /** The panel's body, which collapsing hides. */

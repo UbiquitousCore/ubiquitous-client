@@ -56,6 +56,20 @@ describe('shopItemsFromTabs', () => {
     ]);
   });
 
+  it('carries a lesson the player knows or cannot take, and nothing for any other row', () => {
+    const rows = shopItemsFromTabs([
+      {
+        items: [
+          { entry: 1, slot: 0, buyPrice: 1, stock: null },
+          { entry: 2, slot: 1, buyPrice: 1, stock: null, lesson: 'cannot' },
+          { entry: 3, slot: 2, buyPrice: 1, stock: null, lesson: 'learned' },
+        ],
+      },
+    ]);
+    expect(rows.map(row => row.lesson)).toEqual([undefined, 'cannot', 'learned']);
+    expect('lesson' in rows[0]!).toBe(false);
+  });
+
   it('reads a null or zero stock as never running out, and a tab without items as empty', () => {
     const rows = shopItemsFromTabs([
       {

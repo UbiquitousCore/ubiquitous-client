@@ -26,6 +26,7 @@ import {
   networkAppearanceId,
   staticObjectModelId,
   teleportStopsId,
+  itemCatalogId,
   storageUpgradesId,
   talentsId,
   spellStringId,
@@ -140,6 +141,10 @@ export class ResourceSystem {
 
   storageUpgrades(): Promise<ResourceTypes['storageUpgrades']> {
     return this.get(storageUpgradesId());
+  }
+
+  itemCatalog(): Promise<ResourceTypes['itemCatalog']> {
+    return this.get(itemCatalogId());
   }
 
   talents(): Promise<ResourceTypes['talents']> {

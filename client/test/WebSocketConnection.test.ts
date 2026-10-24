@@ -23,6 +23,7 @@ function spyEvents() {
     onConnected: vi.fn(),
     onCharactersReturned: vi.fn(),
     onLoggedOut: vi.fn(),
+    onVendorItems: vi.fn(),
     onDungeonsRestarted: vi.fn(),
     onDungeonModeChosen: vi.fn(),
     onQuestShareOffered: vi.fn(),
@@ -347,6 +348,86 @@ describe('getting into the world', () => {
     await connected();
     socket.emit('account.loginResult', { ok: true, code: 2, isAdmin: true });
     expect(events.onLoginResult).toHaveBeenCalledWith(true, 2, undefined, true);
+  });
+
+  it('asks the server to give an item or gold, for a GM', async () => {
+    const conn = await connected();
+    conn.sendAdminGiveItem(1234, 3);
+    conn.sendAdminGiveGold(50);
+    expect(socket.ofType('admin.giveItem')[0]).toMatchObject({
+      payload: { entry: 1234, count: 3 },
+    });
+    expect(socket.ofType('admin.giveGold')[0]).toMatchObject({ payload: { gold: 50 } });
+  });
+
+  it('asks the server to set the level and learn the spells, for a GM', async () => {
+    const conn = await connected();
+    conn.sendAdminSetLevel(40);
+    conn.sendAdminLearnSpells();
+    expect(socket.ofType('admin.setLevel')[0]).toMatchObject({ payload: { level: 40 } });
+    expect(socket.ofType('admin.learnSpells')).toHaveLength(1);
+  });
+
+  it('reads which vendor rows are lessons the player knows or cannot take', async () => {
+    await connected();
+    socket.emit('npc.vendorItems', {
+      tabs: [
+        {
+          tabIndex: 0,
+          currency: 0,
+          count: 3,
+          itemDataDecoded: true,
+          items: [
+            {
+              slot: 0,
+              entry: 1,
+              nameTextId: 0,
+              displayInfoId: 0,
+              buyPrice: 5,
+              stock: null,
+              stackCount: 1,
+            },
+            {
+              slot: 1,
+              entry: 2,
+              nameTextId: 0,
+              displayInfoId: 0,
+              buyPrice: 5,
+              stock: null,
+              stackCount: 1,
+              lesson: 'cannot',
+            },
+            {
+              slot: 2,
+              entry: 3,
+              nameTextId: 0,
+              displayInfoId: 0,
+              buyPrice: 5,
+              stock: null,
+              stackCount: 1,
+              lesson: 'learned',
+            },
+            {
+              slot: 3,
+              entry: 4,
+              nameTextId: 0,
+              displayInfoId: 0,
+              buyPrice: 5,
+              stock: null,
+              stackCount: 1,
+              lesson: 'bogus',
+            },
+          ],
+        },
+      ],
+    });
+    const rows = events.onVendorItems!.mock.calls[0]![0][0]!.items!;
+    expect(rows.map((row: { lesson?: string }) => row.lesson)).toEqual([
+      undefined,
+      'cannot',
+      'learned',
+      undefined,
+    ]);
   });
 
   it('asks to sign out without closing, and hears that it has', async () => {

@@ -1144,6 +1144,22 @@ export class WebSocketConnection implements GameConnection {
     this.send(OUTBOUND.adminTeleport, { mapId, x, z });
   }
 
+  sendAdminGiveItem(entry: number, count: number): void {
+    this.send(OUTBOUND.adminGiveItem, { entry, count });
+  }
+
+  sendAdminGiveGold(gold: number): void {
+    this.send(OUTBOUND.adminGiveGold, { gold });
+  }
+
+  sendAdminSetLevel(level: number): void {
+    this.send(OUTBOUND.adminSetLevel, { level });
+  }
+
+  sendAdminLearnSpells(): void {
+    this.send(OUTBOUND.adminLearnSpells, {});
+  }
+
   sendStressTest(count: number): void {
     this.send(OUTBOUND.stressTest, { count });
   }
@@ -1622,6 +1638,9 @@ export class WebSocketConnection implements GameConnection {
                 items: rawItems.map(item => {
                   const entry = item as Record<string, unknown>;
                   const stock = entry['stock'];
+                  const said = entry['lesson'];
+                  const lesson: 'learned' | 'cannot' | undefined =
+                    said === 'learned' ? 'learned' : said === 'cannot' ? 'cannot' : undefined;
                   return {
                     slot: optionalNumber(entry, 'slot', 0),
                     entry: optionalNumber(entry, 'entry', 0),
@@ -1631,6 +1650,7 @@ export class WebSocketConnection implements GameConnection {
                     // Absent or null is unlimited, not zero.
                     stock: typeof stock === 'number' ? stock : null,
                     stackCount: optionalNumber(entry, 'stackCount', 0),
+                    lesson,
                   };
                 }),
               };

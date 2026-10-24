@@ -225,6 +225,10 @@ export class WorkerAssetProvider implements AssetProvider {
     return this.load({ kind: 'storageUpgrades' });
   }
 
+  itemCatalog(): Promise<ResourceTypes['itemCatalog']> {
+    return this.load({ kind: 'itemCatalog' });
+  }
+
   talents(): Promise<ResourceTypes['talents']> {
     return this.load({ kind: 'talents' });
   }

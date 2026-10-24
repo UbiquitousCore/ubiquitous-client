@@ -318,6 +318,8 @@ export interface ShopItem {
   name: string;
   price: number;
   stock: number | null;
+  /** Set for a spell lesson the player knows already or cannot take; the card says which. */
+  lesson?: 'learned' | 'cannot';
 }
 
 export interface ShopInteraction {

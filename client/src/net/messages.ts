@@ -129,6 +129,10 @@ export const OUTBOUND = {
   cancelSpell: 'spell.abort',
   /** An administrator's free move to any map and place; answered like any other arrival. */
   adminTeleport: 'admin.teleport',
+  adminGiveItem: 'admin.giveItem',
+  adminGiveGold: 'admin.giveGold',
+  adminSetLevel: 'admin.setLevel',
+  adminLearnSpells: 'admin.learnSpells',
   /** Get down off the mount; answered by the body's `mount` value going to 0. */
   dismount: 'mount.dismount',
   attackEngage: 'attack.engage',

@@ -467,6 +467,9 @@ export class PackAssetProvider implements AssetProvider {
       case 'talents':
         return (await this.worldTables()).talents() as ResourceTypes[K];
 
+      case 'itemCatalog':
+        return (await this.itemCatalog()) as ResourceTypes[K];
+
       case 'spellString':
         return (await this.spellString(target.id)) as ResourceTypes[K];
       case 'soundCatalogue':
@@ -718,6 +721,16 @@ export class PackAssetProvider implements AssetProvider {
     if (!nameId) return null;
     const strings = await this.tableString(tables, `String_Item_${this.opts.language}`);
     return strings.get(nameId) ?? null;
+  }
+
+  /** Every named item, for an administrator searching by name. */
+  async itemCatalog(): Promise<ResourceTypes['itemCatalog']> {
+    const tables = await this.worldTables();
+    const strings = await this.tableString(tables, `String_Item_${this.opts.language}`);
+    return tables
+      .itemNames()
+      .map(({ entry, nameId }) => ({ entry, name: strings.get(nameId) ?? '' }))
+      .filter(item => item.name !== '');
   }
 
   async itemText(id: number): Promise<string | null> {

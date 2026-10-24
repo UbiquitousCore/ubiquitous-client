@@ -49,6 +49,8 @@ export type ResourceId =
   | { readonly kind: 'teleportStops' }
   /** The bag and bank upgrade ladder, from the local tables. */
   | { readonly kind: 'storageUpgrades' }
+  /** Every item the build's tables hold, with its name, for searching. */
+  | { readonly kind: 'itemCatalog' }
   | { readonly kind: 'talents' }
   | { readonly kind: 'spellString'; readonly id: number }
   /** The bus network's legs, which decide what a teleport costs and whether it exists. */
@@ -218,6 +220,8 @@ export function resourceKey(id: ResourceId): string {
       return 'teleportStops';
     case 'storageUpgrades':
       return 'storageUpgrades';
+    case 'itemCatalog':
+      return 'itemCatalog';
     case 'talents':
       return 'talents';
     case 'spellString':
@@ -330,6 +334,7 @@ export const tileId = (mapId: number, tx: number, tz: number, world?: string): I
 export const modelId = (path: string): IdOf<'model'> => ({ kind: 'model', path });
 export const textureId = (ref: string): IdOf<'texture'> => ({ kind: 'texture', ref });
 export const teleportStopsId = (): IdOf<'teleportStops'> => ({ kind: 'teleportStops' });
+export const itemCatalogId = (): IdOf<'itemCatalog'> => ({ kind: 'itemCatalog' });
 export const storageUpgradesId = (): IdOf<'storageUpgrades'> => ({ kind: 'storageUpgrades' });
 export const talentsId = (): IdOf<'talents'> => ({ kind: 'talents' });
 export const spellStringId = (id: number): IdOf<'spellString'> => ({ kind: 'spellString', id });

@@ -840,6 +840,7 @@ export interface ResourceTypes {
   itemWeaponClass: { itemClass: number; subClass: number };
   heldItem: EquipmentAttachment[];
   itemName: string | null;
+  itemCatalog: ReadonlyArray<{ entry: number; name: string }>;
   itemText: string | null;
   spellVisual: SpellVisualData | null;
 }

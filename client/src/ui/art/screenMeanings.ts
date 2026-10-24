@@ -1744,6 +1744,9 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
         does: { inspect: 'btninfo' },
       },
     },
+    // The strip a card lays over its picture for a lesson the player cannot take or knows already.
+    words: { cannotLearn: '@1318?~53f6bc5479952bb8~11', learned: '@1321?~f6494d4c9b79daf0~15' },
+    panels: { lessonStrip: 'lock' },
     // A second strip of four tabs lies over the two this screen uses, and
     // the rest are currencies and offers this client does not keep.
     hidden: [

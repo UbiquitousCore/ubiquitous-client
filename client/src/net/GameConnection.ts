@@ -680,6 +680,8 @@ export interface ConnectionEvents {
         /** Null when the server reports no quantity — unlimited, not zero. */
         stock: number | null;
         stackCount: number;
+        /** A spell lesson this character knows already, or cannot take (other class, too high a level). */
+        lesson?: 'learned' | 'cannot';
       }>;
     }>,
   ): void;
@@ -1220,6 +1222,14 @@ export interface GameConnection {
   sendDismount(): void;
   /** Refused unless the account is an administrator. */
   sendAdminTeleport(mapId: number, x: number, z: number): void;
+  /** GM only: put an item in the bags. The server refuses anyone else. */
+  sendAdminGiveItem(entry: number, count: number): void;
+  /** GM only: add whole gold to the purse. The server refuses anyone else. */
+  sendAdminGiveGold(gold: number): void;
+  /** GM only: set the character's level, 1 to the cap. */
+  sendAdminSetLevel(level: number): void;
+  /** GM only: learn every rank of the class's spells. */
+  sendAdminLearnSpells(): void;
   /** Spawn stress-test bots near the player; dev/operator only. */
   sendStressTest(count: number): void;
   sendAttackStart(targetNetworkId: number): void;
@@ -1385,6 +1395,10 @@ export class OfflineConnection implements GameConnection {
   sendCancelSpell(): void {}
   sendDismount(): void {}
   sendAdminTeleport(): void {}
+  sendAdminGiveItem(): void {}
+  sendAdminGiveGold(): void {}
+  sendAdminSetLevel(): void {}
+  sendAdminLearnSpells(): void {}
   sendStressTest(): void {}
   sendAttackStart(): void {}
   sendActionSlot(): void {}

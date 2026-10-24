@@ -1017,6 +1017,12 @@ const SHOWN: Shown[] = [
           name: `Sample ${slot + 1}`,
           price: [102, 1_200, 30_045][slot]!,
           stock: null,
+          // The second card is a lesson this player cannot take, the third one already known.
+          ...(slot === 1
+            ? { lesson: 'cannot' as const }
+            : slot === 2
+              ? { lesson: 'learned' as const }
+              : {}),
         }))}
         onBuy={nothing}
         onSell={nothing}

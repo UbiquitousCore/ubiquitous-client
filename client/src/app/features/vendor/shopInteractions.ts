@@ -50,7 +50,13 @@ export function offlineVendorShopInteraction(vendorName: string, balance: number
  */
 export function shopItemsFromTabs(
   tabs: ReadonlyArray<{
-    items?: ReadonlyArray<{ entry: number; slot: number; buyPrice: number; stock: number | null }>;
+    items?: ReadonlyArray<{
+      entry: number;
+      slot: number;
+      buyPrice: number;
+      stock: number | null;
+      lesson?: 'learned' | 'cannot';
+    }>;
   }>,
 ): ShopItem[] {
   return tabs.flatMap(tab =>
@@ -60,6 +66,7 @@ export function shopItemsFromTabs(
       name: `Item ${item.entry}`,
       price: item.buyPrice,
       stock: item.stock !== null && item.stock > 0 ? item.stock : null,
+      ...(item.lesson ? { lesson: item.lesson } : {}),
     })),
   );
 }

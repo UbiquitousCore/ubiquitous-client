@@ -47,7 +47,8 @@ For a production build, `npm run build && npm run preview`. After pulling
 changes, run `npm ci` again when `client/package-lock.json` changed, and restart
 the dev server.
 
-The admin panel (teleport, walk speed, flight, collision wireframe) is for GMs.
+The admin panel (teleport, walk speed, flight, collision wireframe, and giving
+yourself items, searched by name or id, or gold) is for GMs.
 Against a server it appears only after signing in as a GM account
 (`account gm <name> on` on the server); played alone it shows under
 `npm run dev` and is hidden in a production build, and `admin=false` in

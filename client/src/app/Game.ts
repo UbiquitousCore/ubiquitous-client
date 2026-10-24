@@ -275,6 +275,8 @@ import { talentErrorMessage } from '../net/talentErrors';
 import { applyTalentState, setTalentActions } from '../gameplay/talents';
 import type { AdminControls, AdminPanel } from '../ui/AdminPanel';
 import { adminPanelAllowed } from '../core/FileConfig';
+import { searchItems } from '../ui/itemSearch';
+import type { ItemHit } from '../ui/itemSearch';
 import { approachStopDistance } from '../gameplay/approach';
 import { showsOnMap, isInteractable, serviceFor, type Service } from '../gameplay/npcInteraction';
 import { blowStartsFight } from '../gameplay/relationship';
@@ -329,6 +331,8 @@ const SOUNDSCAPE_EVERY_S = 0.25;
 /** Sounds named here are files in the user's sound pack, looked up by name. */
 const TITLE_MUSIC = 'm_title';
 const LEVEL_UP_SOUND = 'sfx_mc_level_up';
+/** The particle file the hero glows with on a new level, found as the spell visual that plays it alone. */
+const LEVEL_UP_EFFECT = 'character_buff_levelup_01.beff';
 const SKILL_REFUSED_SOUND = 'sfx_ui_ingame_skillbar_skill_unavail';
 const BLOCK_SOUND = 'sfx_shield_block_1';
 const WINDOW_OPEN_SOUND = 'sfx_ui_menu_window_open';
@@ -1089,6 +1093,11 @@ export class Game {
       // The debug HUD, not the game HUD.
       toggleHud: visible => setOption('diagnostics', visible),
       getZoneList: async () => (await this.resources.zoneIndex()).zones,
+      searchItems: async query => searchItems(await this.itemCatalog(), query),
+      giveItem: (entry, count) => this.connection.sendAdminGiveItem(entry, count),
+      giveGold: gold => this.connection.sendAdminGiveGold(gold),
+      setLevel: level => this.connection.sendAdminSetLevel(level),
+      learnSpells: () => this.connection.sendAdminLearnSpells(),
     };
   }
 
@@ -1837,10 +1846,12 @@ export class Game {
         if (share !== undefined) this.movement.setSpeedShare(share);
       },
       onPlayerExpGained: (amount, levelUp) => {
-        popExpGained(amount);
+        // A GM setting a level sends no experience, only the level.
+        if (amount > 0) popExpGained(amount);
         if (levelUp) {
           popLevelUp(player.value?.level ?? 0);
           this.audio.play(LEVEL_UP_SOUND);
+          this.playLevelUpEffect();
         }
       },
       onPlayerTeleported: (mapId, position, yaw) => {
@@ -3422,6 +3433,21 @@ export class Game {
    * a zone loaded here alone would leave it holding the old map. The
    * arrival comes back as `world.entered`. Offline, the zone just loads.
    */
+  /** Every named item in the build, read once for the admin panel's search. */
+  private itemCatalogue: Promise<ItemHit[]> | null = null;
+
+  private itemCatalog(): Promise<ItemHit[]> {
+    this.itemCatalogue ??= this.resources
+      .itemCatalog()
+      .then(items => [...items])
+      .catch(() => {
+        // Not mounted yet: ask again on the next search.
+        this.itemCatalogue = null;
+        return [];
+      });
+    return this.itemCatalogue;
+  }
+
   private async adminTeleport(zoneId: number): Promise<void> {
     if (!this.online || !this.connection.connected) return this.teleportToZone(zoneId);
     const zone = await this.resources.zone(zoneId).catch(() => null);
@@ -4134,6 +4160,20 @@ export class Game {
     }
     const at = this.whoIs.positionOf(networkId);
     if (at) this.audio.play(sound, at);
+  }
+
+  private playLevelUpEffect(): void {
+    const hero = this.selfNetworkId;
+    if (!hero) return;
+    void this.resources.impactVisual(LEVEL_UP_EFFECT).then(visual => {
+      if (visual !== null) this.combat.playHit(hero, visual);
+      else
+        log.once(
+          'debug',
+          `levelup:${LEVEL_UP_EFFECT}`,
+          `no spell visual plays ${LEVEL_UP_EFFECT} alone`,
+        );
+    });
   }
 
   private applyDefence(defenderId: number, outcome: Outcome | null, blow?: WeaponFamily): void {

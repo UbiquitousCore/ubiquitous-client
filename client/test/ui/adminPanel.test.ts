@@ -24,6 +24,14 @@ function controls(over: Partial<AdminControls> = {}) {
     teleportToZone: vi.fn(async () => undefined),
     toggleHud: vi.fn(),
     getZoneList: async () => zones,
+    searchItems: vi.fn(async () => [
+      { entry: 7, name: 'Iron Sword' },
+      { entry: 9, name: 'Sword of Dawn' },
+    ]),
+    giveItem: vi.fn(),
+    giveGold: vi.fn(),
+    setLevel: vi.fn(),
+    learnSpells: vi.fn(),
     ...over,
   };
   return c;
@@ -166,5 +174,74 @@ describe('AdminPanel against AdminControls', () => {
     await vi.waitFor(() => expect(select.textContent).toBe('not loaded yet'));
     select.dispatchEvent(new Event('focus'));
     await vi.waitFor(() => expect(select.options.length).toBe(2));
+  });
+
+  describe('gifts', () => {
+    async function search(text: string): Promise<void> {
+      const filter = $<HTMLInputElement>('adm-item-filter');
+      filter.value = text;
+      filter.dispatchEvent(new Event('input'));
+      await vi.waitFor(() =>
+        expect($<HTMLSelectElement>('adm-items').options.length).toBeGreaterThan(0),
+      );
+    }
+
+    it('lists the items a search finds and gives the chosen one in the quantity typed', async () => {
+      const game = await open();
+      await search('sword');
+      $<HTMLSelectElement>('adm-items').selectedIndex = 1;
+      $<HTMLInputElement>('adm-item-qty').value = '3';
+      $<HTMLButtonElement>('adm-item-give').click();
+
+      expect(game.searchItems).toHaveBeenCalledWith('sword');
+      expect($<HTMLSelectElement>('adm-items').options[0]!.textContent).toBe('Iron Sword (7)');
+      expect(game.giveItem).toHaveBeenCalledWith(9, 3);
+    });
+
+    it('gives nothing for a quantity that is not a whole number above zero', async () => {
+      const game = await open();
+      await search('sword');
+      for (const bad of ['0', '-2', '']) {
+        $<HTMLInputElement>('adm-item-qty').value = bad;
+        $<HTMLButtonElement>('adm-item-give').click();
+      }
+      expect(game.giveItem).not.toHaveBeenCalled();
+    });
+
+    it('gives the gold typed, and nothing for a bad amount', async () => {
+      const game = await open();
+      $<HTMLInputElement>('adm-gold').value = '250';
+      $<HTMLButtonElement>('adm-gold-give').click();
+      $<HTMLInputElement>('adm-gold').value = '0';
+      $<HTMLButtonElement>('adm-gold-give').click();
+
+      expect(game.giveGold).toHaveBeenCalledTimes(1);
+      expect(game.giveGold).toHaveBeenCalledWith(250);
+    });
+
+    it('sets the level typed, and nothing for a bad one', async () => {
+      const game = await open();
+      $<HTMLInputElement>('adm-level').value = '35';
+      $<HTMLButtonElement>('adm-level-set').click();
+      $<HTMLInputElement>('adm-level').value = '0';
+      $<HTMLButtonElement>('adm-level-set').click();
+
+      expect(game.setLevel).toHaveBeenCalledTimes(1);
+      expect(game.setLevel).toHaveBeenCalledWith(35);
+    });
+
+    it('asks to learn every spell', async () => {
+      const game = await open();
+      $<HTMLButtonElement>('adm-learn').click();
+      expect(game.learnSpells).toHaveBeenCalledTimes(1);
+    });
+
+    it('says so when a search finds nothing', async () => {
+      await open({ searchItems: vi.fn(async () => []) });
+      const filter = $<HTMLInputElement>('adm-item-filter');
+      filter.value = 'zzzz';
+      filter.dispatchEvent(new Event('input'));
+      await vi.waitFor(() => expect($('adm-item-count').textContent).toBe('No items found.'));
+    });
   });
 });
