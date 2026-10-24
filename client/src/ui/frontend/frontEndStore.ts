@@ -68,6 +68,15 @@ export const looks = signal<LookOptions>({
 export const outfit = signal<readonly number[]>([]);
 /** What the screen has to say: a refusal, or what it is waiting for. */
 export const notice = signal<string>('');
+
+/** A box laid over the screen, which is answered before anything under it. */
+export type FrontDialog = { kind: 'connecting' } | { kind: 'message'; text: string };
+
+export const dialog = signal<FrontDialog | null>(null);
+
+export function showDialog(next: FrontDialog | null): void {
+  dialog.value = next;
+}
 /** True while something is in flight, so a control cannot be pressed twice. */
 export const busy = signal<boolean>(false);
 
@@ -111,6 +120,8 @@ export interface FrontEndActions {
   remove(nameOrGuid: string): Promise<void>;
   /** Leave the account and go back to signing in. */
   signOut(): void;
+  /** Give up on waiting for the server: start over with a fresh connection. */
+  cancelSignIn(): void;
   /** Set light round the character on the dais when one has just been
    * made. */
   celebrate(): void;
@@ -138,6 +149,7 @@ const IDLE: FrontEndActions = {
   async choose() {},
   async remove() {},
   signOut() {},
+  cancelSignIn() {},
   celebrate() {},
   preview() {},
   askOutfit() {},

@@ -15,10 +15,10 @@ export const DELETE_SCREEN = 'deleteCharacter';
 export const HOLD_TO_DELETE = 3000;
 
 /** Where the question goes in the box, as a share of its backdrop. */
-const ROOM_FOR_THE_QUESTION = { left: 0.06, top: 0.26, width: 0.88, height: 0.38 };
+export const ROOM_FOR_THE_QUESTION = { left: 0.06, top: 0.26, width: 0.88, height: 0.38 };
 
 /** How the question is set in that room. */
-const SET_THE_QUESTION = {
+export const SET_THE_QUESTION = {
   textAlign: 'center' as const,
   justifyContent: 'center' as const,
   alignItems: 'center' as const,
@@ -29,19 +29,24 @@ const SET_THE_QUESTION = {
 const NAME_COLOUR = 'var(--color-asked-name)';
 
 /** The mark the build puts on a box that asks something like this. */
-const WARNING_ICON = 'msgbox/warnning.png';
+export const WARNING_ICON = 'msgbox/warnning.png';
 
 /** The mark's spot in the box's top ring; the movie gives only a point. */
-const ROOM_FOR_THE_MARK = { left: 0.5, top: 0.12, width: 0, height: 0.13 };
+export const ROOM_FOR_THE_MARK = { left: 0.5, top: 0.12, width: 0, height: 0.13 };
 
 /** How the mark stands in that room: centred on it, as wide as its shape makes it. */
-const STAND_THE_MARK = { width: 'auto', transform: 'translate(-50%, -50%)' };
+export const STAND_THE_MARK = { width: 'auto', transform: 'translate(-50%, -50%)' };
 
 /**
  * Where the sheet the box lays behind itself goes: over the whole view,
  * the way the movie lays it over the whole of its screen.
  */
-const ACROSS_THE_VIEW = { position: 'absolute', inset: 0, width: '100%', height: '100%' } as const;
+export const ACROSS_THE_VIEW = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+} as const;
 
 export function ArtConfirmDelete({
   name,

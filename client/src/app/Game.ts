@@ -1568,6 +1568,10 @@ export class Game {
         this.status = `sign-in refused: ${why}`;
         log.warn(this.status);
       },
+      restart: () => {
+        this.connection.disconnect();
+        window.location.reload();
+      },
       chose: character => {
         this.selectedCharacter = character;
       },

@@ -115,6 +115,9 @@ export class AccountSession {
    */
   disconnected(reason: string): void {
     this.failed?.(`disconnected: ${reason}`);
+    const signingIn = this.pendingLogin;
+    this.pendingLogin = null;
+    signingIn?.({ ok: false, code: 0, reason: `Disconnected: ${reason}` });
   }
 
   /**

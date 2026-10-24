@@ -109,6 +109,13 @@ describe('AccountSession', () => {
     expect(session.offeredRaces).toBeNull();
   });
 
+  it('answers a sign-in refused when the connection goes while it waits', async () => {
+    const { session } = setup();
+    const answer = session.signIn('ann', 'hash');
+    session.disconnected('gone');
+    await expect(answer).resolves.toEqual({ ok: false, code: 0, reason: 'Disconnected: gone' });
+  });
+
   it('fails a sign-out when the connection goes', async () => {
     const { session } = setup();
     const out = session.signOut();

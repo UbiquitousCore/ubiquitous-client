@@ -10,6 +10,7 @@ import {
   setKinds,
   setStage,
   working,
+  showDialog,
 } from '../../../ui/frontend/frontEndStore';
 import { resourceForClass, setPlayer } from '../../../ui/hudStore';
 import type { AccountSession } from './AccountSession';
@@ -21,6 +22,8 @@ export interface FrontEndHost {
   signingIn(): void;
   /** The server refused the sign-in. */
   refused(why: string): void;
+  /** Drop the connection and start again from a fresh one. */
+  restart(): void;
   /** The character about to be entered, or none if the name matched nobody. */
   chose(character: CharacterSummary | null): void;
   /** The races and classes the player's own copy of the game knows. */
@@ -86,15 +89,19 @@ export class FrontEnd {
         this.host.signingIn();
         working(true);
         say('Signing in...');
+        showDialog({ kind: 'connecting' });
         const login = await this.account.signIn(userId, passHash);
         if (!login.ok) {
           const why = login.reason ?? `code ${login.code}`;
           this.host.refused(why);
           working(false);
           say(`Sign-in refused (${why}). Check the name and password and try again.`);
+          // The build's message box says it where it cannot be missed.
+          showDialog({ kind: 'message', text: why });
           return;
         }
 
+        showDialog(null);
         setCharacters(await this.account.fetchCharacters());
         // What a race and a class *are* comes from the player's own copy of
         // the game, like every other look. Which of them may be played is
@@ -180,15 +187,18 @@ export class FrontEnd {
 
       celebrate: () => this.ground.celebrate(),
 
+      // A connection that is waiting cannot be told to stop waiting, so a
+      // fresh one is the only way to cancel.
+      cancelSignIn: () => this.host.restart(),
+
       signOut: () => {
         void (async () => {
           working(true);
           try {
             await this.account.signOut();
           } catch {
-            // The server could not sign this connection out: a fresh page can.
-            this.connection.disconnect();
-            window.location.reload();
+            // The server could not sign this connection out: a fresh one can.
+            this.host.restart();
             return;
           }
 

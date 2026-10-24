@@ -11,7 +11,9 @@ import { SIGN_IN_SCREEN } from './ArtSignIn';
 import { useWornScreen } from '../art/useWorn';
 import { WornStage } from '../art/WornStage';
 import { WornFrame } from './wornBits';
-import { frontEndActions, notice, stage } from './frontEndStore';
+import { ArtConnecting } from './ArtConnecting';
+import { ArtNotice } from './ArtNotice';
+import { dialog, frontEndActions, notice, showDialog, stage } from './frontEndStore';
 
 /**
  * How much of the view the screens leave to the place behind them: the
@@ -114,6 +116,15 @@ export function FrontEnd(): JSX.Element | null {
           {notice.value}
         </p>
       </div>
+
+      {/* Over everything, as the build lays them: waiting on the server,
+          and what the server said back. */}
+      {dialog.value?.kind === 'connecting' && (
+        <ArtConnecting onCancel={() => frontEndActions().cancelSignIn()} />
+      )}
+      {dialog.value?.kind === 'message' && (
+        <ArtNotice text={dialog.value.text} onClose={() => showDialog(null)} />
+      )}
     </div>
   );
 }

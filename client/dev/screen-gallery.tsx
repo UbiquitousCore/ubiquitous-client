@@ -72,6 +72,8 @@ import { ArtSignIn } from '../src/ui/frontend/ArtSignIn';
 import { ArtAbout } from '../src/ui/frontend/ArtAbout';
 import { ArtChooseCharacter } from '../src/ui/frontend/ArtChooseCharacter';
 import { ArtConfirmDelete } from '../src/ui/frontend/ArtConfirmDelete';
+import { ArtConnecting } from '../src/ui/frontend/ArtConnecting';
+import { ArtNotice } from '../src/ui/frontend/ArtNotice';
 import { setCharacters } from '../src/ui/frontend/frontEndStore';
 import { ArtMailWriteWindow } from '../src/ui/components/ArtMailWriteWindow';
 import { ArtPlayerLinkMenu } from '../src/ui/components/ArtPlayerLinkMenu';
@@ -675,6 +677,21 @@ const SHOWN: Shown[] = [
     screen: 'deleteCharacter',
     label: 'Asking before a character is deleted',
     draw: () => <ArtConfirmDelete name="Someone" onConfirm={nothing} onCancel={nothing} />,
+  },
+  {
+    screen: 'connecting',
+    label: 'Waiting for the server to answer a sign-in',
+    draw: () => <ArtConnecting onCancel={nothing} />,
+  },
+  {
+    screen: 'notice',
+    label: 'What the server said back (a refused sign-in)',
+    draw: () => (
+      <ArtNotice
+        text="This username does not exist, or the password is incorrect."
+        onClose={nothing}
+      />
+    ),
   },
   ...(['teamAsk', 'voteKickAsk', 'tradeAsk', 'duelAsk'] as const).map(screen => ({
     screen,

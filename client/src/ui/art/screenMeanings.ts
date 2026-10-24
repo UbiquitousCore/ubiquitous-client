@@ -205,6 +205,27 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     ],
   },
 
+  // Waiting on the server, before the world: the build's "connecting" box.
+  connecting: {
+    dialog: 'connect_panel',
+    movie: 'LGM',
+    actions: { btnCancel: 'cancel' },
+    captions: { textConnect: '@310?~666ad1e3c4eb2907~13', textCancel: 'Cancel' },
+  },
+
+  // The build's message box with one button, for what the server answers.
+  // The movie lays its two buttons out for a question, so the one that is
+  // kept (`btnYes`) is drawn on its own, in the middle.
+  notice: {
+    dialog: 'dlgMsg',
+    movie: 'LGM',
+    frame: 'background',
+    values: { message: 'textMsg' },
+    panels: { sheet: 'btnempty' },
+    actions: { btnYes: 'confirm' },
+    hidden: ['btnNo', 'textNo', 'btnRight', 'btnMsgInfo'],
+  },
+
   deleteCharacter: {
     dialog: 'dlgMsg',
     frame: 'background',

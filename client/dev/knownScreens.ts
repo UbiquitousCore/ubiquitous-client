@@ -17,6 +17,8 @@ import {
 } from '../src/ui/AskPromptContainer';
 import { CHARACTERS_SCREEN } from '../src/ui/frontend/ArtChooseCharacter';
 import { DELETE_SCREEN } from '../src/ui/frontend/ArtConfirmDelete';
+import { CONNECTING_SCREEN } from '../src/ui/frontend/ArtConnecting';
+import { NOTICE_SCREEN } from '../src/ui/frontend/ArtNotice';
 import { SIGN_IN_SCREEN } from '../src/ui/frontend/ArtSignIn';
 import { ABOUT_SCREEN } from '../src/ui/frontend/ArtAbout';
 import {
@@ -96,6 +98,8 @@ export const KNOWN_SCREENS: readonly string[] = [
   SUMMON_ASK_SCREEN,
   CHARACTERS_SCREEN,
   DELETE_SCREEN,
+  CONNECTING_SCREEN,
+  NOTICE_SCREEN,
   SIGN_IN_SCREEN,
   ABOUT_SCREEN,
   RACE_SCREEN,

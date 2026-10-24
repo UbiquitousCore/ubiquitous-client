@@ -19,6 +19,8 @@ import {
   setStage,
   working,
   type DraftCharacter,
+  dialog,
+  showDialog,
 } from '../src/ui/frontend/frontEndStore';
 import { player, setPlayer } from '../src/ui/hudStore';
 
@@ -59,6 +61,7 @@ function setup(over: { login?: { ok: boolean; code: number; reason: string | nul
   const host = {
     signingIn: vi.fn(),
     refused: vi.fn(),
+    restart: vi.fn(),
     chose: vi.fn(),
     kinds: vi.fn(async () => ({
       races: [{ race: 1 }, { race: 2 }],
@@ -85,6 +88,7 @@ beforeEach(() => {
   setJustMade(null);
   working(false);
   setPlayer(null as never);
+  showDialog(null);
 });
 
 afterEach(() => {
@@ -174,6 +178,35 @@ describe('sign-in', () => {
     const { run, host } = setup({ login: { ok: false, code: 7, reason: null } });
     await run.signIn('user', 'hash');
     expect(host.refused).toHaveBeenCalledWith('code 7');
+  });
+});
+
+describe('the boxes over sign-in', () => {
+  it('shows the connecting box while the server answers, and takes it down on success', async () => {
+    let answer: (login: { ok: boolean; code: number; reason: string | null }) => void = () => {};
+    const { run, account } = setup();
+    account.signIn.mockImplementationOnce(
+      () => new Promise(resolve => void (answer = resolve)) as never,
+    );
+
+    const signing = run.signIn('user', 'hash');
+    expect(dialog.value).toEqual({ kind: 'connecting' });
+
+    answer({ ok: true, code: 2, reason: null });
+    await signing;
+    expect(dialog.value).toBeNull();
+  });
+
+  it('swaps the connecting box for a message box saying why it was refused', async () => {
+    const { run } = setup({ login: { ok: false, code: 1, reason: 'bad password' } });
+    await run.signIn('user', 'hash');
+    expect(dialog.value).toEqual({ kind: 'message', text: 'bad password' });
+  });
+
+  it('starts over with a fresh connection when the wait is cancelled', () => {
+    const { run, host } = setup();
+    run.cancelSignIn();
+    expect(host.restart).toHaveBeenCalledTimes(1);
   });
 });
 
