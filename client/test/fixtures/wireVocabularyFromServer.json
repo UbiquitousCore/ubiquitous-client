@@ -1,7 +1,9 @@
 {
   "messageTypes": [
+    "account.loggedOut",
     "account.login",
     "account.loginResult",
+    "account.logout",
     "actionBar.assign",
     "actionBar.assigned",
     "admin.teleport",

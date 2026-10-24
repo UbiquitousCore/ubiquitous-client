@@ -10,6 +10,7 @@ function setup(patienceMs = 1000) {
   const session = new AccountSession(
     {
       login: (user: string) => void sent.push(`login ${user}`),
+      logout: () => void sent.push('logout'),
       listCharacters: () => void sent.push('list'),
       createCharacter: (c: NewCharacter) => void sent.push(`create ${c.name}`),
       deleteCharacter: (n: string) => void sent.push(`delete ${n}`),
@@ -72,6 +73,69 @@ describe('AccountSession', () => {
     const made = session.create({ name: 'Bo' } as NewCharacter);
     session.refuse('Nope.');
     await expect(made).resolves.toEqual({ ok: false, reason: 'Nope.' });
+  });
+
+  it('knows the account is a GM only while a GM is signed in', async () => {
+    const { session } = setup();
+    const answer = session.signIn('ann', 'hash');
+    session.loginAnswered(true, 2, undefined, true);
+    await answer;
+    expect(session.isAdmin).toBe(true);
+
+    const out = session.signOut();
+    session.loggedOut();
+    await out;
+    expect(session.isAdmin).toBe(false);
+  });
+
+  it('is not a GM after a refused sign-in, whatever was claimed', async () => {
+    const { session } = setup();
+    const answer = session.signIn('ann', 'hash');
+    session.loginAnswered(false, 1, 'no', true);
+    await answer;
+    expect(session.isAdmin).toBe(false);
+  });
+
+  it('signs out on the same connection, forgetting the characters', async () => {
+    const { session, sent } = setup();
+    session.listed([hero('Ann')], [1]);
+
+    const out = session.signOut();
+    session.loggedOut();
+    await out;
+
+    expect(sent).toEqual(['logout']);
+    expect(session.characters).toEqual([]);
+    expect(session.offeredRaces).toBeNull();
+  });
+
+  it('fails a sign-out when the connection goes', async () => {
+    const { session } = setup();
+    const out = session.signOut();
+    session.disconnected('gone');
+    await expect(out).rejects.toThrow('disconnected: gone');
+  });
+
+  it('lets a second sign-in follow a refused one', async () => {
+    const { session, sent } = setup();
+    const first = session.signIn('ann', 'wrong');
+    session.loginAnswered(false, 1, 'Invalid credentials.');
+    await first;
+    const second = session.signIn('ann', 'right');
+    session.loginAnswered(true, 2, undefined);
+    expect(sent).toEqual(['login ann', 'login ann']);
+    await expect(second).resolves.toEqual({ ok: true, code: 2, reason: null });
+  });
+
+  it('turns a protocol refusal of a sign-in into a refused answer rather than a hang', async () => {
+    const { session } = setup();
+    const answer = session.signIn('ann', 'hash');
+    session.refuse('Too many failed sign-ins on this connection; reload the page.');
+    await expect(answer).resolves.toEqual({
+      ok: false,
+      code: 0,
+      reason: 'Too many failed sign-ins on this connection; reload the page.',
+    });
   });
 
   it('carries on with the last list when a fresh one never comes', async () => {

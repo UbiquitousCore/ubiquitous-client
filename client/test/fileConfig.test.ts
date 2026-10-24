@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { adminPanelWanted, serverFromQuery, serverUrlFor } from '../src/core/FileConfig';
+import {
+  adminPanelAllowed,
+  adminPanelWanted,
+  serverFromQuery,
+  serverUrlFor,
+} from '../src/core/FileConfig';
 
 const SHIPPED = readFileSync(resolve(__dirname, '../public/config.txt'), 'utf8');
 
@@ -117,7 +122,10 @@ describe('a server named in the address bar', () => {
   });
 
   it('refuses a development build pointed at another machine', () => {
-    expect(serverFromQuery('wss://play.example:7020', true)).toEqual({ asked: false, server: null });
+    expect(serverFromQuery('wss://play.example:7020', true)).toEqual({
+      asked: false,
+      server: null,
+    });
     expect(serverFromQuery('ws://192.168.1.20:8781', true)).toEqual({
       asked: false,
       server: null,
@@ -132,5 +140,21 @@ describe('a server named in the address bar', () => {
   it('does not override when the address says nothing', () => {
     expect(serverFromQuery(null, true)).toEqual({ asked: false, server: null });
     expect(serverFromQuery(null, false)).toEqual({ asked: false, server: null });
+  });
+});
+
+describe('adminPanelAllowed', () => {
+  it('shows the panel against a server only to a GM', () => {
+    expect(adminPanelAllowed(true, true, true)).toBe(true);
+    expect(adminPanelAllowed(true, true, false)).toBe(false);
+  });
+
+  it('leaves it to the build and file when played alone', () => {
+    expect(adminPanelAllowed(true, false, false)).toBe(true);
+    expect(adminPanelAllowed(false, false, false)).toBe(false);
+  });
+
+  it('never shows it when not wanted, GM or not', () => {
+    expect(adminPanelAllowed(false, true, true)).toBe(false);
   });
 });

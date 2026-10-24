@@ -14,6 +14,7 @@ export const OUTBOUND = {
   /** A sign of life, so a quiet connection is not taken for a dead one. */
   ping: 'session.ping',
   login: 'account.login',
+  logout: 'account.logout',
   listCharacters: 'characters.list',
   chooseCharacter: 'characters.choose',
   createCharacter: 'characters.create',
@@ -150,6 +151,7 @@ export const OUTBOUND = {
 export const INBOUND = {
   pong: 'session.pong',
   loginResult: 'account.loginResult',
+  loggedOut: 'account.loggedOut',
   characters: 'characters.listed',
   characterChosen: 'characters.chosen',
   characterCreated: 'characters.created',

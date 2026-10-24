@@ -114,6 +114,15 @@ export function adminPanelWanted(
 }
 
 /**
+ * Whether the admin panel may be built. Played against a server, only a GM
+ * account gets it, whatever the build or file says; played alone there is no
+ * account, so the build and file decide.
+ */
+export function adminPanelAllowed(wanted: boolean, online: boolean, isGameMaster: boolean): boolean {
+  return wanted && (!online || isGameMaster);
+}
+
+/**
  * A server address named in the address bar, for a development build only.
  *
  * A released client must not be pointable at somebody else's socket by a link

@@ -631,6 +631,10 @@ export class WebSocketConnection implements GameConnection {
     this.send(OUTBOUND.login, { userId, passHash });
   }
 
+  logout(): void {
+    this.send(OUTBOUND.logout, {});
+  }
+
   returnToCharacterList(): void {
     this.send(OUTBOUND.returnToCharacters, {});
   }
@@ -1234,7 +1238,12 @@ export class WebSocketConnection implements GameConnection {
           payload.ok === true,
           readNumber(payload, 'code', type),
           typeof payload.reason === 'string' ? payload.reason : undefined,
+          payload.isAdmin === true,
         );
+        return;
+
+      case INBOUND.loggedOut:
+        this.events.onLoggedOut?.();
         return;
 
       case INBOUND.characters:

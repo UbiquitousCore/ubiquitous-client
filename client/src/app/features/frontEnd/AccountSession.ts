@@ -6,6 +6,7 @@ import { waitOrFail, waitOrGiveUp, type Assign } from './waitFor';
 type Sends = Pick<
   GameConnection,
   | 'login'
+  | 'logout'
   | 'listCharacters'
   | 'createCharacter'
   | 'deleteCharacter'
@@ -29,10 +30,13 @@ export class AccountSession {
   characters: CharacterSummary[] = [];
   /** The races the server opened with, or null where it did not say. */
   offeredRaces: number[] | null = null;
+  /** Whether the signed-in account is a GM, as the server last said. */
+  isAdmin = false;
 
   private listArrived: (() => void) | null = null;
   private entered: (() => void) | null = null;
   private returned: (() => void) | null = null;
+  private signedOut: (() => void) | null = null;
   private failed: ((why: string) => void) | null = null;
   private pendingLogin: ((answer: LoginAnswer) => void) | null = null;
   private pendingCreate: ((answer: Answer) => void) | null = null;
@@ -51,7 +55,13 @@ export class AccountSession {
 
   // — what the server says --------------------------------------------------
 
-  loginAnswered(ok: boolean, code: number, reason: string | null | undefined): void {
+  loginAnswered(
+    ok: boolean,
+    code: number,
+    reason: string | null | undefined,
+    isAdmin = false,
+  ): void {
+    this.isAdmin = ok && isAdmin;
     const pending = this.pendingLogin;
     this.pendingLogin = null;
     pending?.({ ok, code, reason: reason ?? null });
@@ -61,6 +71,11 @@ export class AccountSession {
     this.characters = characters;
     this.offeredRaces = races;
     this.listArrived?.();
+  }
+
+  loggedOut(): void {
+    this.signedOut?.();
+    this.signedOut = null;
   }
 
   returnedToList(): void {
@@ -104,24 +119,39 @@ export class AccountSession {
 
   /**
    * A refusal arrives as an error of its own rather than as the word the
-   * screens are waiting for, so it is handed to whichever of making and
-   * deleting a character is listening.
+   * screens are waiting for, so it is handed to whichever of signing in,
+   * making and deleting a character is listening.
    */
   refuse(reason: string): void {
     const waiting = [this.pendingCreate, this.pendingDelete];
     this.pendingCreate = null;
     this.pendingDelete = null;
     for (const answer of waiting) answer?.({ ok: false, reason });
+    const signingIn = this.pendingLogin;
+    this.pendingLogin = null;
+    signingIn?.({ ok: false, code: 0, reason });
   }
 
   // — what the player asks --------------------------------------------------
 
-  /** One login attempt per connection: the server kills a session that logs in twice. */
+  /** The server allows a few refused attempts per connection, and none once signed in. */
   signIn(userId: string, passHash: string): Promise<LoginAnswer> {
     return new Promise(resolve => {
       this.pendingLogin = resolve;
       this.connection.login(userId, passHash);
     });
+  }
+
+  /** Sign out on the same connection, so the sign-in screen can be used again. */
+  async signOut(): Promise<void> {
+    const done = this.waitForAnswer(resolve => {
+      this.signedOut = resolve;
+    });
+    this.connection.logout();
+    await done;
+    this.characters = [];
+    this.offeredRaces = null;
+    this.isAdmin = false;
   }
 
   /** Ask for the characters and wait for them. Rejects if the server refuses or hangs up. */

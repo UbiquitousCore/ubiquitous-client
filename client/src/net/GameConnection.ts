@@ -575,9 +575,12 @@ export interface ConnectionEvents {
 
   /**
    * Read `ok`, not the code: which codes mean success is the server's to say.
-   * A failure ends the connection: the server refuses a second attempt.
+   * A refusal may be followed by another attempt on the same connection, a few
+   * times. `isAdmin` is true only for a GM account that signed in.
    */
-  onLoginResult?(ok: boolean, code: number, reason?: string): void;
+  onLoginResult?(ok: boolean, code: number, reason?: string, isAdmin?: boolean): void;
+  /** The server has signed the connection out; a new login may follow. */
+  onLoggedOut?(): void;
   /** `races` is null where the server says nothing (older servers). */
   onCharacters?(characters: CharacterSummary[], races: number[] | null): void;
   /**
@@ -961,6 +964,8 @@ export interface GameConnection {
 
   /** Authenticate the account. Answered by `onLoginResult`. */
   login(userId: string, passHash: string): void;
+  /** Sign out without closing the connection. Answered by `onLoggedOut`. */
+  logout(): void;
   /** Ask for the account's characters. Answered by `onCharacters`. */
   listCharacters(): void;
   /** Enter the world as one of them, by name or by `guid`. */
@@ -1244,6 +1249,10 @@ export class OfflineConnection implements GameConnection {
   // need not branch on which transport it holds.
   login(): void {
     // Nothing to authenticate against.
+  }
+
+  logout(): void {
+    // No account to sign out of.
   }
 
   listCharacters(): void {

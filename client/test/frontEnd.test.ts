@@ -42,6 +42,7 @@ function setup(over: { login?: { ok: boolean; code: number; reason: string | nul
     ),
     find: vi.fn((name: string) => roster.find(one => one.name === name) ?? null),
     choose: vi.fn(async () => undefined),
+    signOut: vi.fn(async () => undefined),
   };
   const ground = {
     celebrate: vi.fn(),
@@ -148,19 +149,47 @@ describe('sign-in', () => {
     expect(stage.value).toBe('characters');
   });
 
-  it('on a refusal says why, tells the host, and stays busy: the connection takes one attempt', async () => {
+  it('on a refusal says why, tells the host, and offers the form again', async () => {
     const { run, host } = setup({ login: { ok: false, code: 7, reason: 'bad password' } });
     await run.signIn('user', 'hash');
     expect(host.refused).toHaveBeenCalledWith('bad password');
-    expect(notice.value).toBe('Sign-in refused (bad password). Reload to try again.');
-    expect(busy.value).toBe(true);
+    expect(notice.value).toBe(
+      'Sign-in refused (bad password). Check the name and password and try again.',
+    );
+    expect(busy.value).toBe(false);
     expect(stage.value).toBe('signIn');
+  });
+
+  it('signs in on a second try after a refusal', async () => {
+    const { run, account } = setup({ login: { ok: false, code: 7, reason: 'bad password' } });
+    await run.signIn('user', 'wrong');
+    account.signIn.mockResolvedValueOnce({ ok: true, code: 2, reason: null });
+    await run.signIn('user', 'right');
+    expect(account.signIn).toHaveBeenCalledTimes(2);
+    expect(stage.value).toBe('characters');
+    expect(busy.value).toBe(false);
   });
 
   it('names the code when the server gave no reason', async () => {
     const { run, host } = setup({ login: { ok: false, code: 7, reason: null } });
     await run.signIn('user', 'hash');
     expect(host.refused).toHaveBeenCalledWith('code 7');
+  });
+});
+
+describe('logging out', () => {
+  it('goes back to the sign-in form on the same connection, without reloading', async () => {
+    const { run, account, connection } = setup();
+    await run.signIn('user', 'hash');
+    expect(stage.value).toBe('characters');
+
+    run.signOut();
+    await vi.waitFor(() => expect(stage.value).toBe('signIn'));
+
+    expect(account.signOut).toHaveBeenCalledTimes(1);
+    expect(connection.disconnect).not.toHaveBeenCalled();
+    expect(characters.value).toEqual([]);
+    expect(busy.value).toBe(false);
   });
 });
 

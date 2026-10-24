@@ -86,17 +86,12 @@ export class FrontEnd {
         this.host.signingIn();
         working(true);
         say('Signing in...');
-        /*
-         * ONE LOGIN ATTEMPT PER CONNECTION. The server kills a session that
-         * logs in twice, so re-offering the form turns a wrong password into
-         * an unexplained disconnect. Retrying means reloading.
-         */
         const login = await this.account.signIn(userId, passHash);
         if (!login.ok) {
           const why = login.reason ?? `code ${login.code}`;
           this.host.refused(why);
-          say(`Sign-in refused (${why}). Reload to try again.`);
-          // Left working: this connection cannot carry a second attempt.
+          working(false);
+          say(`Sign-in refused (${why}). Check the name and password and try again.`);
           return;
         }
 
@@ -185,10 +180,23 @@ export class FrontEnd {
 
       celebrate: () => this.ground.celebrate(),
 
-      // The server takes one sign-in per connection, so sign-in needs a fresh page.
       signOut: () => {
-        this.connection.disconnect();
-        window.location.reload();
+        void (async () => {
+          working(true);
+          try {
+            await this.account.signOut();
+          } catch {
+            // The server could not sign this connection out: a fresh page can.
+            this.connection.disconnect();
+            window.location.reload();
+            return;
+          }
+
+          void this.ground.show(null);
+          setCharacters([]);
+          setStage('signIn');
+          working(false);
+        })();
       },
 
       preview: look => void this.ground.show(look),

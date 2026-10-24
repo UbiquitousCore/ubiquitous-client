@@ -22,6 +22,7 @@ function spyEvents() {
   return {
     onConnected: vi.fn(),
     onCharactersReturned: vi.fn(),
+    onLoggedOut: vi.fn(),
     onDungeonsRestarted: vi.fn(),
     onDungeonModeChosen: vi.fn(),
     onQuestShareOffered: vi.fn(),
@@ -328,13 +329,33 @@ describe('getting into the world', () => {
       reason: 'Sample refusal: wrong password.',
     });
 
-    expect(events.onLoginResult).toHaveBeenCalledWith(false, 7, 'Sample refusal: wrong password.');
+    expect(events.onLoginResult).toHaveBeenCalledWith(
+      false,
+      7,
+      'Sample refusal: wrong password.',
+      false,
+    );
   });
 
   it('reports a login result that carries no reason', async () => {
     await connected();
     socket.emit('account.loginResult', { ok: true, code: 3 });
-    expect(events.onLoginResult).toHaveBeenCalledWith(true, 3, undefined);
+    expect(events.onLoginResult).toHaveBeenCalledWith(true, 3, undefined, false);
+  });
+
+  it('passes on whether the server says the account is a GM', async () => {
+    await connected();
+    socket.emit('account.loginResult', { ok: true, code: 2, isAdmin: true });
+    expect(events.onLoginResult).toHaveBeenCalledWith(true, 2, undefined, true);
+  });
+
+  it('asks to sign out without closing, and hears that it has', async () => {
+    const conn = await connected();
+    conn.logout();
+    expect(socket.ofType('account.logout')).toHaveLength(1);
+
+    socket.emit('account.loggedOut', {});
+    expect(events.onLoggedOut).toHaveBeenCalledTimes(1);
   });
 
   it('asks to leave the world for the character list, and hears that it has', async () => {

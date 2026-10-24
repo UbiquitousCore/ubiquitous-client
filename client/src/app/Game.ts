@@ -274,6 +274,7 @@ import { spellErrorMessage } from '../net/spellErrors';
 import { talentErrorMessage } from '../net/talentErrors';
 import { applyTalentState, setTalentActions } from '../gameplay/talents';
 import type { AdminControls, AdminPanel } from '../ui/AdminPanel';
+import { adminPanelAllowed } from '../core/FileConfig';
 import { approachStopDistance } from '../gameplay/approach';
 import { showsOnMap, isInteractable, serviceFor, type Service } from '../gameplay/npcInteraction';
 import { blowStartsFight } from '../gameplay/relationship';
@@ -489,7 +490,8 @@ export class Game {
   private readonly hud: Hud;
   private readonly boot: BootScreen;
   /** Only when the config asks for it: the panel is its own chunk, so a build without `admin` never fetches it. */
-  private readonly admin: Promise<AdminPanel> | null;
+  private admin: Promise<AdminPanel> | null = null;
+  private readonly adminWanted: boolean;
 
   private running = false;
   /** Casts, impacts, auras and projectiles. Everything combat draws. */
@@ -961,9 +963,21 @@ export class Game {
     window.addEventListener('pointercancel', this.onPointerCancel);
     // The right button attacks, so the browser menu must not open.
     this.canvas.addEventListener('contextmenu', this.onContextMenu);
-    this.admin = fileConfig.admin
-      ? import('../ui/AdminPanel').then(({ AdminPanel }) => new AdminPanel(this.adminControls()))
-      : null;
+    this.adminWanted = fileConfig.admin === true;
+    this.showAdminPanel(false);
+  }
+
+  /** Built when the account may use it: at once offline, at sign-in as a GM online. */
+  private showAdminPanel(isGameMaster: boolean): void {
+    if (this.admin || !adminPanelAllowed(this.adminWanted, this.online, isGameMaster)) return;
+    this.admin = import('../ui/AdminPanel').then(
+      ({ AdminPanel }) => new AdminPanel(this.adminControls()),
+    );
+  }
+
+  private hideAdminPanel(): void {
+    void this.admin?.then(panel => panel.dispose());
+    this.admin = null;
   }
 
   async start(): Promise<void> {
@@ -1471,7 +1485,14 @@ export class Game {
         say(`Disconnected: ${reason}`);
         account.disconnected(reason);
       },
-      onLoginResult: (ok, code, reason) => account.loginAnswered(ok, code, reason),
+      onLoginResult: (ok, code, reason, isAdmin) => {
+        account.loginAnswered(ok, code, reason, isAdmin);
+        if (ok) this.showAdminPanel(isAdmin === true);
+      },
+      onLoggedOut: () => {
+        this.hideAdminPanel();
+        account.loggedOut();
+      },
       onCharacters: (list, races) => account.listed(list, races),
       onCharactersReturned: () => account.returnedToList(),
       onCharacterCreated: (ok, code, reason) => {
