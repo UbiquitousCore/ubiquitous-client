@@ -127,8 +127,8 @@ export class AdminPanel {
           <input type="number" id="adm-level" min="1" max="60" value="60" class="${FIELD}">
           <button id="adm-level-set" class="${BUTTON}">Set</button>
         </div>
-        <button id="adm-learn" class="${BUTTON}">Learn all spells</button>
         <label class="${CHECK}"><input type="checkbox" id="adm-invincible"> Invincible (until you leave the world)</label>
+        <button id="adm-learn" class="${BUTTON}">Learn all spells</button>
         <div class="${HINT}">Every rank of your class's spells, whatever the level.</div>
 
         <label class="${LABEL}">Give gold</label>
