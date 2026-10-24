@@ -23,6 +23,7 @@ function spyEvents() {
     onConnected: vi.fn(),
     onCharactersReturned: vi.fn(),
     onLoggedOut: vi.fn(),
+    onAdminInvincible: vi.fn(),
     onVendorItems: vi.fn(),
     onDungeonsRestarted: vi.fn(),
     onDungeonModeChosen: vi.fn(),
@@ -428,6 +429,15 @@ describe('getting into the world', () => {
       'learned',
       undefined,
     ]);
+  });
+
+  it('asks for invincibility and hears whether it is on', async () => {
+    const conn = await connected();
+    conn.sendAdminSetInvincible(true);
+    expect(socket.ofType('admin.setInvincible')[0]).toMatchObject({ payload: { on: true } });
+
+    socket.emit('admin.invincible', { on: true });
+    expect(events.onAdminInvincible).toHaveBeenCalledWith(true);
   });
 
   it('asks to sign out without closing, and hears that it has', async () => {

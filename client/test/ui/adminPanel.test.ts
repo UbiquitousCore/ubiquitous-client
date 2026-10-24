@@ -32,6 +32,7 @@ function controls(over: Partial<AdminControls> = {}) {
     giveGold: vi.fn(),
     setLevel: vi.fn(),
     learnSpells: vi.fn(),
+    setInvincible: vi.fn(),
     ...over,
   };
   return c;
@@ -234,6 +235,27 @@ describe('AdminPanel against AdminControls', () => {
       const game = await open();
       $<HTMLButtonElement>('adm-learn').click();
       expect(game.learnSpells).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks for invincibility as the box is ticked and unticked', async () => {
+      const game = await open();
+      const box = $<HTMLInputElement>('adm-invincible');
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+      box.checked = false;
+      box.dispatchEvent(new Event('change'));
+      expect(game.setInvincible).toHaveBeenNthCalledWith(1, true);
+      expect(game.setInvincible).toHaveBeenNthCalledWith(2, false);
+    });
+
+    it('shows what the server says about invincibility, whatever was ticked', async () => {
+      await open();
+      const box = $<HTMLInputElement>('adm-invincible');
+      box.checked = true;
+      panels[0]!.showInvincible(false);
+      expect(box.checked).toBe(false);
+      panels[0]!.showInvincible(true);
+      expect(box.checked).toBe(true);
     });
 
     it('says so when a search finds nothing', async () => {

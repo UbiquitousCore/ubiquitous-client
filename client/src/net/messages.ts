@@ -132,6 +132,7 @@ export const OUTBOUND = {
   adminGiveItem: 'admin.giveItem',
   adminGiveGold: 'admin.giveGold',
   adminSetLevel: 'admin.setLevel',
+  adminSetInvincible: 'admin.setInvincible',
   adminLearnSpells: 'admin.learnSpells',
   /** Get down off the mount; answered by the body's `mount` value going to 0. */
   dismount: 'mount.dismount',
@@ -156,6 +157,7 @@ export const INBOUND = {
   pong: 'session.pong',
   loginResult: 'account.loginResult',
   loggedOut: 'account.loggedOut',
+  adminInvincible: 'admin.invincible',
   characters: 'characters.listed',
   characterChosen: 'characters.chosen',
   characterCreated: 'characters.created',

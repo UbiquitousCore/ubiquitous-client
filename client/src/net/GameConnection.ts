@@ -581,6 +581,8 @@ export interface ConnectionEvents {
   onLoginResult?(ok: boolean, code: number, reason?: string, isAdmin?: boolean): void;
   /** The server has signed the connection out; a new login may follow. */
   onLoggedOut?(): void;
+  /** The server says whether the character is invincible now (GM only). */
+  onAdminInvincible?(on: boolean): void;
   /** `races` is null where the server says nothing (older servers). */
   onCharacters?(characters: CharacterSummary[], races: number[] | null): void;
   /**
@@ -1230,6 +1232,8 @@ export interface GameConnection {
   sendAdminSetLevel(level: number): void;
   /** GM only: learn every rank of the class's spells. */
   sendAdminLearnSpells(): void;
+  /** GM only: take no damage while on. */
+  sendAdminSetInvincible(on: boolean): void;
   /** Spawn stress-test bots near the player; dev/operator only. */
   sendStressTest(count: number): void;
   sendAttackStart(targetNetworkId: number): void;
@@ -1399,6 +1403,7 @@ export class OfflineConnection implements GameConnection {
   sendAdminGiveGold(): void {}
   sendAdminSetLevel(): void {}
   sendAdminLearnSpells(): void {}
+  sendAdminSetInvincible(): void {}
   sendStressTest(): void {}
   sendAttackStart(): void {}
   sendActionSlot(): void {}

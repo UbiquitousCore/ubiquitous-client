@@ -67,6 +67,8 @@ export interface AdminControls {
   setLevel(level: number): void;
   /** Ask the server to teach every rank of the class's spells. It refuses anyone who is not a GM. */
   learnSpells(): void;
+  /** Ask the server for invincibility. It refuses anyone who is not a GM. */
+  setInvincible(on: boolean): void;
 }
 
 export class AdminPanel {
@@ -126,6 +128,7 @@ export class AdminPanel {
           <button id="adm-level-set" class="${BUTTON}">Set</button>
         </div>
         <button id="adm-learn" class="${BUTTON}">Learn all spells</button>
+        <label class="${CHECK}"><input type="checkbox" id="adm-invincible"> Invincible (until you leave the world)</label>
         <div class="${HINT}">Every rank of your class's spells, whatever the level.</div>
 
         <label class="${LABEL}">Give gold</label>
@@ -391,6 +394,11 @@ export class AdminPanel {
     this.on(level, 'keydown', event => {
       if ((event as KeyboardEvent).key === 'Enter') setTheLevel();
     });
+    const invincible = this.$<HTMLInputElement>('adm-invincible');
+    this.on(invincible, 'change', () => {
+      this.game.setInvincible(invincible.checked);
+      status.textContent = `asked for invincible ${invincible.checked ? 'on' : 'off'}`;
+    });
     this.on(this.$<HTMLButtonElement>('adm-learn'), 'click', () => {
       this.game.learnSpells();
       status.textContent = 'asked to learn every spell';
@@ -406,6 +414,11 @@ export class AdminPanel {
     this.on(gold, 'keydown', event => {
       if ((event as KeyboardEvent).key === 'Enter') giveTheGold();
     });
+  }
+
+  /** What the server says: the box shows it, so a relog or a refusal cannot leave it lying. */
+  showInvincible(on: boolean): void {
+    this.$<HTMLInputElement>('adm-invincible').checked = on;
   }
 
   /** The panel's body, which collapsing hides. */

@@ -1160,6 +1160,10 @@ export class WebSocketConnection implements GameConnection {
     this.send(OUTBOUND.adminLearnSpells, {});
   }
 
+  sendAdminSetInvincible(on: boolean): void {
+    this.send(OUTBOUND.adminSetInvincible, { on });
+  }
+
   sendStressTest(count: number): void {
     this.send(OUTBOUND.stressTest, { count });
   }
@@ -1260,6 +1264,10 @@ export class WebSocketConnection implements GameConnection {
 
       case INBOUND.loggedOut:
         this.events.onLoggedOut?.();
+        return;
+
+      case INBOUND.adminInvincible:
+        this.events.onAdminInvincible?.(payload.on === true);
         return;
 
       case INBOUND.characters:

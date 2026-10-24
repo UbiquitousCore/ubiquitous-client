@@ -1098,6 +1098,7 @@ export class Game {
       giveGold: gold => this.connection.sendAdminGiveGold(gold),
       setLevel: level => this.connection.sendAdminSetLevel(level),
       learnSpells: () => this.connection.sendAdminLearnSpells(),
+      setInvincible: on => this.connection.sendAdminSetInvincible(on),
     };
   }
 
@@ -1498,6 +1499,7 @@ export class Game {
         account.loginAnswered(ok, code, reason, isAdmin);
         if (ok) this.showAdminPanel(isAdmin === true);
       },
+      onAdminInvincible: on => void this.admin?.then(panel => panel.showInvincible(on)),
       onLoggedOut: () => {
         this.hideAdminPanel();
         account.loggedOut();
@@ -1607,6 +1609,8 @@ export class Game {
       },
       onWorldEntered: (mapId, position, selfNetworkId, heroAuras) => {
         this.spawn = { mapId, position };
+        // The server starts every entry without it.
+        void this.admin?.then(panel => panel.showInvincible(false));
         // Cleared here, not by the zone load: the server sends this world's
         // state straight after `world.entered`, before the zone lands.
         this.world.clearBarriers();
