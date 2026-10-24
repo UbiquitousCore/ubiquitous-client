@@ -19,7 +19,9 @@ import {
   lookFromRow,
   modelStem,
   shippedHairColours,
+  skinBelongsToModel,
   visibleMeshes,
+  wearsNoArmour,
 } from '../src/assets/formats/avatar';
 import type { Look, SheetPiece, WornSlot } from '../src/assets/formats/avatar';
 import { type Footprints, type SheetMesh, footprints } from '../src/assets/formats/avatarSheet';
@@ -98,6 +100,46 @@ describe('lookFromRow', () => {
 
   it('wears nothing in a column the row stops short of', () => {
     expect(lookFromRow([7, 0x11, 1, 1]).worn.offHand).toBe(0);
+  });
+});
+
+describe('skinBelongsToModel', () => {
+  it("knows a texture named for its model, by the model's stem", () => {
+    expect(skinBelongsToModel('ariel.tga', 'model/npc/creature/dungeon/ariel/ariel.bdae')).toBe(
+      true,
+    );
+    expect(skinBelongsToModel('cosmo_demon.tga', 'model/x/cosmo_demon/cosmo_demon.bdae')).toBe(
+      true,
+    );
+    expect(skinBelongsToModel('Ariel.TGA', 'model/x/ariel.bdae')).toBe(true);
+  });
+
+  it("does not take another creature's texture for the model's own", () => {
+    expect(
+      skinBelongsToModel('armored_skeleton_body_02.tga', 'model/x/executioner/executioner_h.bdae'),
+    ).toBe(false);
+  });
+});
+
+describe('wearsNoArmour', () => {
+  it('is true for a row with no item in an armour slot, hair and all', () => {
+    expect(wearsNoArmour(lookFromRow([7, 0x11, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))).toBe(
+      true,
+    );
+  });
+
+  it('is true when the only item is a weapon in the hands', () => {
+    // twoHand is column 13.
+    expect(wearsNoArmour(lookFromRow([7, 0x11, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5451, 0, 0]))).toBe(
+      true,
+    );
+  });
+
+  it('is false once armour is worn', () => {
+    // chest is column 7.
+    expect(wearsNoArmour(lookFromRow([7, 0x11, 1, 1, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0]))).toBe(
+      false,
+    );
   });
 });
 

@@ -79,6 +79,23 @@ export const LOOK_ROW_ITEMS: Readonly<Record<WornSlot, number>> = {
   offHand: 15,
 };
 
+/** The slots armour goes in; weapons are held, not worn, and leave the body as it is. */
+const ARMOUR_SLOTS: readonly WornSlot[] = [
+  'head',
+  'shoulders',
+  'shirt',
+  'chest',
+  'feet',
+  'hands',
+  'back',
+  'legs',
+];
+
+/** Whether a look puts no armour on the body, whatever it holds in its hands. */
+export function wearsNoArmour(look: Look): boolean {
+  return ARMOUR_SLOTS.every(slot => look.worn[slot] === 0);
+}
+
 /** The first item column; the item columns follow it without gaps. */
 export const LOOK_ROW_FIRST_ITEM = 4;
 
@@ -488,6 +505,17 @@ export function modelStem(modelPath: string): [string, boolean] {
   base = base.replace(/\.[^.]*$/, '');
   if (base.length > 2 && base[base.length - 2] === '_') base = base.slice(0, -2);
   return [base, base.endsWith('_f')];
+}
+
+/**
+ * Whether a texture file is the model's own, by name: `ariel.tga` is for `ariel.bdae`, `cosmo_demon.tga`
+ * for `cosmo_demon.bdae`. A display row can name a texture left over from another creature (the
+ * Executioner's names an armoured skeleton's); those do not belong to the model.
+ */
+export function skinBelongsToModel(skin: string, modelPath: string): boolean {
+  const stem = modelStem(modelPath)[0].toLowerCase();
+  const file = (skin.split('/').pop() ?? skin).toLowerCase();
+  return stem.length > 0 && file.startsWith(stem);
 }
 
 const NO_STYLES: ReadonlySet<number> = new Set();

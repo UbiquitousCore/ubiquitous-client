@@ -85,6 +85,148 @@ async function withBody(over: Partial<EntitySnapshot> = {}) {
   return { w, bodies, entity };
 }
 
+describe('a body turned into another shape', () => {
+  const demon = { model: 'demon.bdae', scale: 2.7, appearance: look('skin:demon.tga') };
+  const flush = async (): Promise<void> => {
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+  };
+
+  function turnable() {
+    const v = views();
+    const w = world();
+    const asked: Array<{ displayInfoId: number }> = [];
+    const bodies = new NetworkBodies(
+      w,
+      v,
+      lookups({
+        networkAppearance: async input => {
+          asked.push({ displayInfoId: input.shape ?? 0 });
+          return input.shape === 1962 ? demon : { model: 'wolf.bdae', scale: 1 };
+        },
+      }),
+    );
+    bodies.open();
+    return { v, w, bodies, asked };
+  }
+
+  it("takes the other display's model, size and look, and rebuilds its view", async () => {
+    const { v, w, bodies } = turnable();
+    bodies.take({ kind: 'spawned', snapshot: snapshot() });
+    await flush();
+
+    bodies.transform(1, 1962);
+    await flush();
+
+    const entity = [...w.entities.values()][0]!;
+    expect(entity.model).toBe('demon.bdae');
+    expect(entity.scale).toEqual([2.7, 2.7, 2.7]);
+    expect(entity.appearance?.key).toBe('skin:demon.tga');
+    expect(v.refreshAppearance).toHaveBeenCalledWith(entity);
+  });
+
+  it('builds one body when the same shape is asked for twice (a spell announced for each of its effects)', async () => {
+    const { v, bodies } = turnable();
+    bodies.take({ kind: 'spawned', snapshot: snapshot() });
+    await flush();
+
+    bodies.transform(1, 1962);
+    bodies.transform(1, 1962);
+    await flush();
+
+    expect(v.refreshAppearance).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes back to its own display when told 0', async () => {
+    const { w, bodies, asked } = turnable();
+    bodies.take({ kind: 'spawned', snapshot: snapshot() });
+    await flush();
+    bodies.transform(1, 1962);
+    await flush();
+
+    bodies.transform(1, 0);
+    await flush();
+
+    const entity = [...w.entities.values()][0]!;
+    expect(entity.model).toBe('wolf.bdae');
+    expect(asked.at(-1)).toEqual({ displayInfoId: 0 });
+  });
+
+  it('waits for a body still loading and turns it as soon as it is there', async () => {
+    const { w, bodies } = turnable();
+    bodies.take({ kind: 'spawned', snapshot: snapshot() });
+
+    bodies.transform(1, 1962);
+    await flush();
+    await flush();
+
+    expect([...w.entities.values()][0]!.model).toBe('demon.bdae');
+  });
+
+  it('leaves a corpse as it lies', async () => {
+    const { w, bodies } = turnable();
+    bodies.take({ kind: 'spawned', snapshot: snapshot({ dead: true }) });
+    await flush();
+
+    bodies.transform(1, 1962);
+    await flush();
+
+    expect([...w.entities.values()][0]!.model).toBe('wolf.bdae');
+  });
+
+  it('holds a still pose in a shape whose model lies down, and idles again when it ends', async () => {
+    const v = views();
+    const w = world();
+    const lying = { model: 'ariel_dead.bdae', scale: 1, appearance: look('skin:ariel_dead.tga') };
+    const bodies = new NetworkBodies(
+      w,
+      v,
+      lookups({
+        networkAppearance: async input =>
+          input.shape === 1978 ? lying : { model: 'ariel.bdae', scale: 1 },
+      }),
+    );
+    bodies.open();
+    bodies.take({ kind: 'spawned', snapshot: snapshot() });
+    await flush();
+
+    bodies.transform(1, 1978);
+    await flush();
+    bodies.updateClips(1 / 60);
+    expect(v.poseEntityClip).toHaveBeenCalledWith(expect.anything(), 'dead_ground');
+
+    vi.mocked(v.poseEntityClip).mockClear();
+    bodies.transform(1, 0);
+    await flush();
+    bodies.updateClips(1 / 60);
+    expect(v.poseEntityClip).not.toHaveBeenCalled();
+    expect(v.setEntityClip).toHaveBeenCalled();
+  });
+
+  it('turns a body whose aura arrived before the body did', async () => {
+    const { w, bodies } = turnable();
+
+    bodies.transform(1, 1962);
+    bodies.take({ kind: 'spawned', snapshot: snapshot() });
+    await flush();
+
+    expect([...w.entities.values()][0]!.model).toBe('demon.bdae');
+  });
+
+  it('turns another player too, and back again', async () => {
+    const { w, bodies } = turnable();
+    bodies.take({ kind: 'spawned', snapshot: snapshot({ entry: 0 }) });
+    await flush();
+
+    bodies.transform(1, 1962);
+    await flush();
+    expect([...w.entities.values()][0]!.model).toBe('demon.bdae');
+
+    bodies.transform(1, 0);
+    await flush();
+    expect([...w.entities.values()][0]!.model).toBe('wolf.bdae');
+  });
+});
+
 describe('getting a body into the world', () => {
   it('resolves the model locally and mirrors the server facing', async () => {
     const { entity } = await withBody({ orientation: 2.7053 });
@@ -133,9 +275,63 @@ describe('getting a body into the world', () => {
     expect(v.poseEntityClip).toHaveBeenCalledWith(expect.anything(), 'die');
   });
 
+  it('poses a corpse again when its view was rebuilt standing, and leaves it once it holds', async () => {
+    const v = views();
+    let clip: string | null = null;
+    v.clipOf = () => clip;
+    const w = world();
+    const bodies = new NetworkBodies(w, v, lookups({ animationNamed: async () => 'die' }));
+    bodies.open();
+    bodies.take({ kind: 'spawned', snapshot: snapshot({ dead: true }) });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    bodies.updateClips(1 / 60);
+    expect(v.poseEntityClip).toHaveBeenCalledTimes(1);
+
+    // The view is replaced and stands: it is posed again.
+    bodies.updateClips(1 / 60);
+    expect(v.poseEntityClip).toHaveBeenCalledTimes(2);
+
+    // Now it holds the corpse clip: no more asking.
+    clip = 'die';
+    bodies.updateClips(1 / 60);
+    bodies.updateClips(1 / 60);
+    expect(v.poseEntityClip).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops asking for a pose a model cannot give', async () => {
+    const v = views();
+    v.clipOf = () => null;
+    const w = world();
+    const bodies = new NetworkBodies(w, v, lookups({ animationNamed: async () => 'die' }));
+    bodies.open();
+    bodies.take({ kind: 'spawned', snapshot: snapshot({ dead: true }) });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    for (let frame = 0; frame < 100; frame++) bodies.updateClips(1 / 60);
+
+    expect(vi.mocked(v.poseEntityClip).mock.calls.length).toBeLessThanOrEqual(30);
+  });
+
+  it('stops a body that is already dead where it lies', async () => {
+    const { w, entity } = await withBody({ dead: true, position: [5, 1, 7] });
+
+    expect(entity.networkDead).toBe(true);
+    expect(entity.position[0]).toBe(5);
+    expect(entity.position[2]).toBe(7);
+    expect(w.entities.get(entity.id)?.network?.path ?? []).toEqual([]);
+  });
+
   it('poses a corpse once its view is built, not only if it already was', async () => {
     let built = false;
-    const v = views({ isAnimated: () => built });
+    // As the renderer does: a pose sets the clip the view holds, and a rebuilt view starts with none.
+    let held: string | null = null;
+    const v = views({ isAnimated: () => built, clipOf: () => held });
+    v.poseEntityClip = vi.fn(async (_id, clip) => {
+      held = clip;
+    });
     const bodies = new NetworkBodies(world(), v, lookups({ animationNamed: async () => 'die' }));
     bodies.open();
     bodies.take({ kind: 'spawned', snapshot: snapshot({ dead: true }) });
@@ -152,6 +348,7 @@ describe('getting a body into the world', () => {
 
     // The view is rebuilt, say after streaming out and back: posed again.
     built = false;
+    held = null;
     bodies.updateClips(1 / 60);
     built = true;
     bodies.updateClips(1 / 60);

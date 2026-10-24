@@ -2,7 +2,7 @@
 
 import { logger } from '../core/log';
 import type { IdOf } from '../assets/ids';
-import type { NetworkAppearance } from '../assets/types';
+import type { Appearance, NetworkAppearance } from '../assets/types';
 import { EntityMovementState, NetworkEntityMap } from '../net/GameConnection';
 import type { EntityMove, EntitySnapshot, EquippedHands } from '../net/GameConnection';
 import { FIELD_IDS } from '../net/unitFields';
@@ -65,6 +65,14 @@ export type UnownedAppearance = (
   weapons?: EquippedHands,
 ) => void;
 
+/** How often a corpse is posed again before it is left as it is (a clip the model lacks never holds). */
+/** A model that is a body lying down, which no clip lays down. */
+/** The one-frame clip a model drawn standing has for lying down. */
+const LYING_CLIP = 'dead_ground';
+const LYING_MODEL = /_dead[^/]*$/i;
+
+const MOST_POSE_TRIES = 30;
+
 /** Only a bound on a load that never completes; a crowd needs the headroom. */
 const MAX_PENDING_ENTITY_EVENTS = 4096;
 
@@ -95,6 +103,8 @@ interface NetworkActor {
   /** For creatures, whose movement has no facing; otherwise they slide sideways. */
   derivedYaw: number | null;
   dead: boolean;
+  /** A shape whose model lies on the ground (a `_dead` model): held in a still pose, not breathing. */
+  lying: boolean;
   /** The clip a corpse lies in, posed whenever its view is (re)built. */
   corpseClip: string | null;
   /** Whether the current view already lies in `corpseClip`. */
@@ -117,6 +127,12 @@ interface NetworkActor {
   fidgets: IdleFidgets;
   /** What the look was resolved from; the server does not resend it with an equipment change. */
   appearanceInput: AppearanceInput | null;
+  /** A shape asked for before the body had finished loading; applied the moment it has. */
+  pendingTransform: number | null;
+  /** The display the body is turned into, or asked to be, so the same ask twice builds one body, not two. */
+  shape: number;
+  /** How many times a corpse's pose has been asked for since it last held, so a missing clip gives up. */
+  poseTries: number;
   grounded: boolean;
   /** World ground revision used by the last ground pass. */
   groundRevision: number;
@@ -135,6 +151,7 @@ function newActor(random: () => number): NetworkActor {
     sendsFacing: false,
     derivedYaw: null,
     dead: false,
+    lying: false,
     corpseClip: null,
     posed: false,
     pendingEmote: null,
@@ -146,6 +163,9 @@ function newActor(random: () => number): NetworkActor {
     rate: 1,
     restingClip: null,
     appearanceInput: null,
+    pendingTransform: null,
+    shape: 0,
+    poseTries: 0,
     grounded: false,
     groundRevision: -1,
   };
@@ -808,6 +828,11 @@ export class NetworkBodies {
           actor.dead = true;
           actor.posture = 'stand';
           actor.direction = 'stop';
+          // As a body that dies in front of us: stopped where it lies and set on the ground, or the
+          // route it was walking slides it away.
+          const [x, y, z] = entity.position;
+          this.world.setPosition(entity, x, groundUnder(this.world, x, y, z), z);
+          this.world.stopNetworkMotion(entity);
           void this.lookups.animationNamed(DEATH_CLIP).then(name => {
             if (this.networkActors.get(snapshot.networkId) !== actor) return;
             actor.corpseClip = name;
@@ -828,6 +853,11 @@ export class NetworkBodies {
         );
 
         const actor = this.actorFor(snapshot.networkId);
+        if (actor.pendingTransform !== null) {
+          const wanted = actor.pendingTransform;
+          actor.pendingTransform = null;
+          this.transform(snapshot.networkId, wanted);
+        }
         actor.lastReported ??= [...snapshot.position];
         actor.lastYaw ??= gameYaw(snapshot.orientation);
         // The spawn's animation replaces `idle`, always looped: playing the
@@ -876,6 +906,46 @@ export class NetworkBodies {
         void this.views.refreshAppearance(entity);
       })
       .catch(err => log.warn(`could not refresh entity ${networkId} appearance: ${String(err)}`));
+  }
+
+  /**
+   * Turn a body into another creature display (an aura's shape, as Cosmo's demon or a cookie), or back
+   * to its own with 0. A creature or another player changes; a corpse is left as it lies.
+   */
+  transform(networkId: number, displayInfoId: number): void {
+    // On a relog the auras can arrive before the body does; the ask waits for it.
+    const actor = this.actorFor(networkId);
+    if (actor.dead) return;
+    const input = actor.appearanceInput;
+    if (!input || this.networkEntities.local(networkId) === undefined) {
+      actor.pendingTransform = displayInfoId;
+      return;
+    }
+    // A spell with two effects announces its aura twice; the second must not build a second body.
+    if (actor.shape === displayInfoId) return;
+    actor.shape = displayInfoId;
+    const wanted: AppearanceInput = { ...input, shape: displayInfoId > 0 ? displayInfoId : 0 };
+    void this.lookups
+      .networkAppearance(wanted)
+      .then(look => {
+        if (this.networkActors.get(networkId) !== actor || actor.dead) return;
+        const local = this.networkEntities.local(networkId);
+        const entity = local === undefined ? undefined : this.world.entities.get(local);
+        if (!entity) return;
+        actor.appearanceInput = wanted;
+        entity.model = look.model;
+        entity.scale = [look.scale, look.scale, look.scale];
+        actor.restingClip = look.animationName ?? null;
+        actor.lying = LYING_MODEL.test(look.model);
+        actor.corpseClip = actor.lying ? LYING_CLIP : null;
+        actor.posed = false;
+        actor.poseTries = 0;
+        actor.clips.invalidate();
+        if (look.appearance) this.world.setAppearance(entity, look.appearance as Appearance);
+        else entity.version++;
+        void this.views.refreshAppearance(entity);
+      })
+      .catch(err => log.warn(`could not transform entity ${networkId}: ${String(err)}`));
   }
 
   /**
@@ -1022,15 +1092,21 @@ export class NetworkBodies {
 
       const durationOf = (clip: string): number | null => this.views.clipLength(local, clip);
 
-      if (actor.dead) {
+      if (actor.dead || actor.lying) {
         if (actor.pendingEmote !== null) {
           const deathClip = actor.pendingEmote;
           actor.pendingEmote = null;
           void this.views.setEntityClip(local, deathClip, 1, true);
           actor.posed = true;
-        } else if (!actor.posed && actor.corpseClip !== null) {
-          void this.views.poseEntityClip(local, actor.corpseClip);
-          actor.posed = true;
+        } else if (actor.corpseClip !== null) {
+          // Held, or posed again: a view rebuilt under a corpse (its gear arriving) starts standing.
+          const holding = this.views.clipOf(local)?.startsWith(actor.corpseClip) === true;
+          if (holding) actor.poseTries = 0;
+          else if (actor.poseTries < MOST_POSE_TRIES) {
+            actor.poseTries++;
+            actor.posed = true;
+            void this.views.poseEntityClip(local, actor.corpseClip);
+          }
         }
         continue;
       }

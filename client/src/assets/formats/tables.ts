@@ -353,6 +353,7 @@ export const OPTIONAL_TABLE_NAMES = [
   'teleport_spot',
   'chat_menu',
   'spell_new',
+  'spell_effect',
   'c_spellvisual',
   'c_spellvisualstate',
   'c_spellvisualeffect',
@@ -619,6 +620,12 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const trim = (v: unknown): string => str(v).replace(/\0+$/, '');
 
 /** Every table the client reads, decoded once per source (6 MB, cheap to hold). */
+/** The three columns of a spell row that hold the ids of its effect rows. */
+const SPELL_EFFECT_SLOTS = [33, 34, 35] as const;
+/** In an effect row: the written name of what it does, and the number it does it with. */
+const SPELL_EFFECT_LABEL = 22;
+const SPELL_EFFECT_ARGUMENT = 11;
+
 export class WorldTables {
   private readonly tables = new Map<string, FTable>();
   private readonly rows = new Map<string, Row[]>();
@@ -1336,6 +1343,25 @@ export class WorldTables {
     const row = this.keyedRows('items').get(entry);
     if (!row) return { itemClass: 0, subClass: 0 };
     return { itemClass: num(row[ITEM_CLASS]), subClass: num(row[ITEM_SUBCLASS]) };
+  }
+
+  /**
+   * The creature display a spell's aura turns its wearer into, from the spell's
+   * effect slots: the effect labelled "Avatar" names a `creaturedisplayinfo` row
+   * in its argument column. 0 when the spell changes no one's shape.
+   */
+  spellAvatarDisplay(spellId: number): number {
+    const row = this.keyedRows('spell_new').get(spellId);
+    if (!row) return 0;
+    const effects = this.keyedRows('spell_effect');
+    for (const slot of SPELL_EFFECT_SLOTS) {
+      const effect = effects.get(num(row[slot]));
+      if (!effect) continue;
+      const label = effect[SPELL_EFFECT_LABEL];
+      if (typeof label === 'string' && label.startsWith('Avatar'))
+        return num(effect[SPELL_EFFECT_ARGUMENT]);
+    }
+    return 0;
   }
 
   /** Every item's entry and the `String_Item_<lang>` id naming it; those with no name are left out. */

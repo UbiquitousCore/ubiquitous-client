@@ -271,15 +271,62 @@ export function buildTableFiles(): Array<{ name: string; data: Uint8Array }> {
 
   const creatureSpawns = t('uuufffffu', [[0, 500, 13, 5, 6, 7, 1.2, 0, 0]], [1]);
   // creature_appearance: the name's string id at column 1, the display at 5.
-  const creatureAppearance = t('uuuuuuu', [[0, 42, 0, 0, 0, 300, 0]], [500]);
+  // 601: a boss with its own texture and an empty look row; 602: the same
+  // with a weapon in its look; 603: no texture of its own, an empty look row.
+  const creatureAppearance = t(
+    'uuuuuuu',
+    [
+      [0, 42, 0, 0, 0, 300, 0],
+      [0, 42, 0, 0, 0, 301, 0],
+      [0, 42, 0, 0, 0, 302, 0],
+      [0, 42, 0, 0, 0, 303, 0],
+      [0, 42, 0, 0, 0, 304, 0],
+      [0, 42, 0, 0, 0, 305, 0],
+    ],
+    [500, 601, 602, 603, 604, 605],
+  );
   const creatureNames = t('us', [[42, 'Grey Wolf']], [42]);
-  const creatureDisplay = t('uuufusuu', [[0, 400, 0, 120, 0, '', 0, 0]], [300]);
+  const creatureDisplay = t(
+    'uuufusuu',
+    [
+      [0, 400, 0, 120, 0, '', 0, 0],
+      [0, 400, 0, 100, 0, 'wolf_boss.tga', 0, 5],
+      [0, 400, 0, 100, 0, 'wolf_armoured.tga', 0, 6],
+      [0, 400, 0, 100, 0, '', 0, 5],
+      [0, 400, 0, 100, 0, 'wolf_demon.tga', 0, 7],
+      [0, 400, 0, 100, 0, 'armored_skeleton_body_02.tga', 0, 5],
+    ],
+    [300, 301, 302, 303, 304, 305],
+  );
   const creatureModel = t('uus', [[0, 0, 'model/npc/wolf.bdae']], [400]);
   const creatureProto = t('uuuuuuuuuufu', [[0, 0, 0, 0, 1, 5, 0, 0, 0, 0, 1, 0]], [500]);
 
   const itemModel = t('uus', [[0, 0, 'model/item/sword.bdae']], [1]);
-  const displayExtra = t('uu', [[0, 0]], [1]);
+  // creaturedisplayinfoextra: id, features, hair style and colour, then twelve
+  // item columns (the main hand is the second to last). Row 5 wears nothing; row 6 holds item 1.
+  const bare = [5, 257, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const armed = [6, 257, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+  const holding = [7, 258, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0];
+  const displayExtra = t(
+    'uuuuuuuuuuuuuuuu',
+    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], bare, armed, holding],
+    [1, 5, 6, 7],
+  );
   const itemDisplay = t('uus', [[0, 0, '']], [1]);
+
+  // spell_new: spell 9001's first effect slot (column 33) is effect row 7001.
+  // spell_effect: that row is an aura labelled "Avatar", its argument display 301.
+  const spellRow: number[] = new Array(53).fill(0);
+  spellRow[0] = 9001;
+  spellRow[33] = 7001;
+  const spellNew = t('u'.repeat(53), [spellRow], [9001]);
+  const effectRow: (number | string)[] = new Array(24).fill(0);
+  effectRow[0] = 7001;
+  effectRow[11] = 301;
+  effectRow[21] = 'Aura';
+  effectRow[22] = 'Avatar<miscValue:displayinfo>';
+  effectRow[23] = 'None';
+  const spellEffect = t('u'.repeat(21) + 'sss', [effectRow], [7001]);
 
   return tableEntries({
     mapInfo,
@@ -297,6 +344,8 @@ export function buildTableFiles(): Array<{ name: string; data: Uint8Array }> {
     itemModel,
     displayExtra,
     itemDisplay,
+    spellNew,
+    spellEffect,
   });
 }
 
@@ -318,6 +367,8 @@ function tableEntries(t: Record<string, Uint8Array>): Array<{ name: string; data
     itemModel,
     displayExtra,
     itemDisplay,
+    spellNew,
+    spellEffect,
   } = t;
   return [
     { name: 'tables/map_info.tbl', data: mapInfo },
@@ -335,5 +386,7 @@ function tableEntries(t: Record<string, Uint8Array>): Array<{ name: string; data
     { name: 'tables/itemmodeldata.tbl', data: itemModel },
     { name: 'tables/creaturedisplayinfoextra.tbl', data: displayExtra },
     { name: 'tables/itemdisplayinfo.tbl', data: itemDisplay },
+    { name: 'tables/spell_new.tbl', data: spellNew },
+    { name: 'tables/spell_effect.tbl', data: spellEffect },
   ];
 }

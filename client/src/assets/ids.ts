@@ -51,6 +51,8 @@ export type ResourceId =
   | { readonly kind: 'storageUpgrades' }
   /** Every item the build's tables hold, with its name, for searching. */
   | { readonly kind: 'itemCatalog' }
+  /** The display a spell's aura turns its wearer into (a boss's demon shape), 0 for none. */
+  | { readonly kind: 'spellAvatar'; readonly id: number }
   | { readonly kind: 'talents' }
   | { readonly kind: 'spellString'; readonly id: number }
   /** The bus network's legs, which decide what a teleport costs and whether it exists. */
@@ -106,6 +108,8 @@ export type ResourceId =
       readonly hairColor: number;
       readonly equipment: readonly number[];
       readonly animationId: number;
+      /** A creature display this body has been turned into (an aura's shape); 0 or absent for its own. */
+      readonly shape?: number;
     }
   /** A replicated static object's model, from `staticobject_proto`; it has none of what `networkAppearance` reads. */
   | { readonly kind: 'staticObjectModel'; readonly entry: number }
@@ -222,6 +226,8 @@ export function resourceKey(id: ResourceId): string {
       return 'storageUpgrades';
     case 'itemCatalog':
       return 'itemCatalog';
+    case 'spellAvatar':
+      return `spellAvatar:${id.id}`;
     case 'talents':
       return 'talents';
     case 'spellString':
@@ -257,7 +263,7 @@ export function resourceKey(id: ResourceId): string {
     case 'networkAppearance':
       return (
         `networkAppearance:${id.entry}|${id.displayInfoId}|${id.race}|${id.gender}|` +
-        `${id.skin}|${id.face}|${id.hairStyle}|${id.hairColor}|${id.animationId}|${id.equipment.join(',')}`
+        `${id.skin}|${id.face}|${id.hairStyle}|${id.hairColor}|${id.animationId}|${id.equipment.join(',')}|${id.shape ?? 0}`
       );
     case 'staticObjectModel':
       return `staticObjectModel:${id.entry}`;
@@ -334,6 +340,7 @@ export const tileId = (mapId: number, tx: number, tz: number, world?: string): I
 export const modelId = (path: string): IdOf<'model'> => ({ kind: 'model', path });
 export const textureId = (ref: string): IdOf<'texture'> => ({ kind: 'texture', ref });
 export const teleportStopsId = (): IdOf<'teleportStops'> => ({ kind: 'teleportStops' });
+export const spellAvatarId = (id: number): IdOf<'spellAvatar'> => ({ kind: 'spellAvatar', id });
 export const itemCatalogId = (): IdOf<'itemCatalog'> => ({ kind: 'itemCatalog' });
 export const storageUpgradesId = (): IdOf<'storageUpgrades'> => ({ kind: 'storageUpgrades' });
 export const talentsId = (): IdOf<'talents'> => ({ kind: 'talents' });

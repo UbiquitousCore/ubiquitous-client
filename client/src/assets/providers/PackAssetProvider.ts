@@ -41,6 +41,8 @@ import {
   lookFrom,
   heldItemsOf,
   lookFromRow,
+  skinBelongsToModel,
+  wearsNoArmour,
   modelStem,
   TEXTURE_DIR,
   visibleMeshes,
@@ -469,6 +471,9 @@ export class PackAssetProvider implements AssetProvider {
 
       case 'itemCatalog':
         return (await this.itemCatalog()) as ResourceTypes[K];
+
+      case 'spellAvatar':
+        return (await this.worldTables()).spellAvatarDisplay(target.id) as ResourceTypes[K];
 
       case 'spellString':
         return (await this.spellString(target.id)) as ResourceTypes[K];
@@ -1458,14 +1463,20 @@ export class PackAssetProvider implements AssetProvider {
 
   private async loadNetworkAppearance(id: IdOf<'networkAppearance'>): Promise<NetworkAppearance> {
     const tables = await this.worldTables();
-    const resolved = id.entry
-      ? tables.creatureModel(id.entry)
-      : tables.creatureDisplayModel(id.displayInfoId);
+    // A body turned into a creature display (an aura's shape) is that display, whoever it was before.
+    const shape = id.shape ?? 0;
+    const resolved =
+      id.entry && !shape
+        ? tables.creatureModel(id.entry)
+        : tables.creatureDisplayModel(shape || id.displayInfoId);
     if (!resolved.path) {
       // A player id with an unresolvable display row still gets a body; a
       // creature entry with no model is a real data gap and stays an error.
-      if (id.entry)
-        throw new ResourceNotFoundError('networkAppearance', `no model for entry ${id.entry}`);
+      if (id.entry || shape)
+        throw new ResourceNotFoundError(
+          'networkAppearance',
+          `no model for ${shape ? `shape ${shape}` : `entry ${id.entry}`}`,
+        );
       log.once(
         'warn',
         `no-display:${id.displayInfoId}`,
@@ -1476,9 +1487,12 @@ export class PackAssetProvider implements AssetProvider {
       resolved.skin = null;
     }
 
-    if (id.entry) {
-      const appearanceRow = tables.keyedRows('creature_appearance').get(id.entry);
-      const displayId = appearanceRow ? Number(appearanceRow[5]) : id.displayInfoId;
+    if (id.entry || shape) {
+      const stem = shape ? `display:${shape}` : `creature:${id.entry}`;
+      const appearanceRow = shape
+        ? undefined
+        : tables.keyedRows('creature_appearance').get(id.entry);
+      const displayId = shape || (appearanceRow ? Number(appearanceRow[5]) : id.displayInfoId);
       const display = tables.keyedRows('creaturedisplayinfo').get(displayId);
       const extra = display
         ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
@@ -1488,6 +1502,33 @@ export class PackAssetProvider implements AssetProvider {
         const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
         const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
         const heldItems = heldItemsOf(look, itemId => tables.itemWeaponClass(itemId));
+        const attachments = attachmentsFor(look, items, itemModels, true, itemId =>
+          tables.itemWeaponClass(itemId),
+        );
+        // A creature whose display row names the model's own texture and whose look row puts no armour on
+        // it (a boss, a beast with a weapon) is not a body to dress: it keeps that texture and its weapon,
+        // where composing a humanoid skin for it leaves it blank.
+        if (
+          resolved.skin &&
+          resolved.path &&
+          skinBelongsToModel(resolved.skin, resolved.path) &&
+          wearsNoArmour(look)
+        ) {
+          return {
+            model: resolved.path,
+            scale: resolved.scale,
+            animationName: tables.animationName(id.animationId) ?? undefined,
+            animationLoops: tables.animationLoops(id.animationId),
+            ...(heldItems ? { heldItems } : {}),
+            appearance: {
+              skin: resolved.skin,
+              meshes: [],
+              skinReplacesAll: true,
+              key: `skin:${resolved.skin}`,
+              ...(attachments.length > 0 ? { attachments } : {}),
+            },
+          };
+        }
         const { visible, meshTextures } = visibleMeshes(
           await this.meshNames(resolved.path),
           look,
@@ -1500,14 +1541,12 @@ export class PackAssetProvider implements AssetProvider {
           animationLoops: tables.animationLoops(id.animationId),
           ...(heldItems ? { heldItems } : {}),
           appearance: {
-            skin: `${AVATAR_PREFIX}creature:${id.entry}`,
+            skin: `${AVATAR_PREFIX}${stem}`,
             meshes: visible,
             meshTextures,
             skinReplacesAll: false,
-            key: `creature:${id.entry}`,
-            attachments: attachmentsFor(look, items, itemModels, true, itemId =>
-              tables.itemWeaponClass(itemId),
-            ),
+            key: stem,
+            attachments,
           },
         };
       }
@@ -1740,7 +1779,16 @@ export class PackAssetProvider implements AssetProvider {
 
     let modelPath: string;
     let look: Look;
-    if (parts[1] === 'creature') {
+    if (parts[1] === 'display') {
+      const display = tables.keyedRows('creaturedisplayinfo').get(Number(parts[2]));
+      const { path } = tables.creatureDisplayModel(Number(parts[2]));
+      const extra = display
+        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
+        : undefined;
+      if (!path || !extra) throw new ResourceNotFoundError(`texture:${ref}`);
+      modelPath = path;
+      look = lookFromRow(extra);
+    } else if (parts[1] === 'creature') {
       const entry = Number(parts[2]);
       const { path } = tables.creatureModel(entry);
       if (!path) throw new ResourceNotFoundError(`texture:${ref}`);

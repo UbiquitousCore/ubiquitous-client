@@ -27,6 +27,7 @@ import {
   staticObjectModelId,
   teleportStopsId,
   itemCatalogId,
+  spellAvatarId,
   storageUpgradesId,
   talentsId,
   spellStringId,
@@ -102,6 +103,7 @@ const CACHEABLE: ReadonlySet<ResourceKind> = new Set<ResourceKind>([
   // Read on every cast, and the same handful of ids all session.
   'spellVisual',
   'spellVisualOf',
+  'spellAvatar',
   'spellCastable',
   'spellRank',
   'spellCastingTime',
@@ -141,6 +143,15 @@ export class ResourceSystem {
 
   storageUpgrades(): Promise<ResourceTypes['storageUpgrades']> {
     return this.get(storageUpgradesId());
+  }
+
+  /** The display a spell's aura turns its wearer into, or 0; a missing row is "none", not an error. */
+  async spellAvatar(id: number): Promise<number> {
+    try {
+      return await this.get(spellAvatarId(id));
+    } catch {
+      return 0;
+    }
   }
 
   itemCatalog(): Promise<ResourceTypes['itemCatalog']> {

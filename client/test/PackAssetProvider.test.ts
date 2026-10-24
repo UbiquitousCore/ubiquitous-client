@@ -363,6 +363,111 @@ describe('PackAssetProvider', () => {
     expect(look.model).toBe('model/npc/character/human/male/human_m_h.bdae');
   });
 
+  describe('a creature with a look row and a texture of its own', () => {
+    const appearanceOf = async (entry: number) => {
+      const provider = new PackAssetProvider();
+      await provider.useSource(provider.offer(ipaFile({ 'tables.bin': buildTablesPack() })).id);
+      return provider.load({
+        kind: 'networkAppearance',
+        entry,
+        displayInfoId: 0,
+        race: 0,
+        gender: 0,
+        skin: 0,
+        face: 0,
+        hairStyle: 0,
+        hairColor: 0,
+        equipment: [],
+        animationId: 0,
+      });
+    };
+
+    it('takes the display it is turned into over the one its entry names', async () => {
+      const provider = new PackAssetProvider();
+      await provider.useSource(provider.offer(ipaFile({ 'tables.bin': buildTablesPack() })).id);
+
+      // Entry 500 is the wolf (display 300); display 301 is the boss's, with its own texture.
+      const turned = await provider.load({
+        kind: 'networkAppearance',
+        entry: 500,
+        displayInfoId: 0,
+        race: 0,
+        gender: 0,
+        skin: 0,
+        face: 0,
+        hairStyle: 0,
+        hairColor: 0,
+        equipment: [],
+        animationId: 0,
+        shape: 301,
+      });
+
+      expect(turned.appearance).toMatchObject({ skin: 'wolf_boss.tga', skinReplacesAll: true });
+    });
+
+    it('turns a player into the display it is shaped as', async () => {
+      const provider = new PackAssetProvider();
+      await provider.useSource(provider.offer(ipaFile({ 'tables.bin': buildTablesPack() })).id);
+
+      const turned = await provider.load({
+        kind: 'networkAppearance',
+        entry: 0,
+        displayInfoId: 0,
+        race: 1,
+        gender: 0,
+        skin: 0,
+        face: 0,
+        hairStyle: 0,
+        hairColor: 0,
+        equipment: [],
+        animationId: 0,
+        shape: 301,
+      });
+
+      expect(turned.model).toBe('model/npc/wolf.bdae');
+      expect(turned.appearance).toMatchObject({ skin: 'wolf_boss.tga', skinReplacesAll: true });
+    });
+
+    it('reads the display a spell turns its wearer into from its effect rows', async () => {
+      const provider = new PackAssetProvider();
+      await provider.useSource(provider.offer(ipaFile({ 'tables.bin': buildTablesPack() })).id);
+
+      expect(await provider.load({ kind: 'spellAvatar', id: 9001 })).toBe(301);
+      expect(await provider.load({ kind: 'spellAvatar', id: 123456 })).toBe(0);
+    });
+
+    it('wears its own texture when its look row wears nothing (a boss is not a body to dress)', async () => {
+      const look = await appearanceOf(601);
+
+      expect(look.appearance).toMatchObject({ skin: 'wolf_boss.tga', skinReplacesAll: true });
+    });
+
+    it('is dressed from its look row when that row puts armour on it', async () => {
+      const look = await appearanceOf(602);
+
+      expect(look.appearance?.skin).toBe('avatar:creature:602');
+    });
+
+    it('keeps its own texture, and its weapon, when its look row holds only a weapon', async () => {
+      const look = await appearanceOf(604);
+
+      expect(look.appearance).toMatchObject({ skin: 'wolf_demon.tga', skinReplacesAll: true });
+    });
+
+    it("is still dressed from its look row when the texture its display names is another creature's", async () => {
+      // The Executioner's display row names an armoured skeleton's texture.
+      const look = await appearanceOf(605);
+
+      expect(look.appearance?.skin).toBe('avatar:creature:605');
+    });
+
+    it('is dressed from its look row when it has no texture of its own', async () => {
+      const look = await appearanceOf(603);
+
+      expect(look.appearance?.skin).toBe('avatar:creature:603');
+    });
+  });
+
   it('still fails a creature entry whose displayInfoId names no row', async () => {
     // A creature is a real, catalogued spawn — an unresolvable one is a data
     // gap worth surfacing, not something to paper over with a human body.

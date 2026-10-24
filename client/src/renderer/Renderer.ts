@@ -145,6 +145,7 @@ import {
 } from './picking';
 import type { StaticBatch, StaticBatchEntry } from './staticBatch';
 import { renderPortrait } from './portrait';
+import { markTransientEffect, stripTransientEffects } from './transientEffects';
 import { lightAsStage } from './stageLight';
 import { createEffectMaterial } from './effectMaterial';
 import type { ViewCover } from './viewCentre';
@@ -173,6 +174,8 @@ const scratchShadowUp = new THREE.Vector3();
 export interface EntityView {
   object: THREE.Object3D;
   version: number;
+  /** Pieces of this body's gear still being fetched, so its portrait waits for its own, not the scene's. */
+  equipmentPending?: number;
   batch?: StaticBatch;
   /** This placement's row in `batch`; the row number moves, the entry does not. */
   batchEntry?: StaticBatchEntry;
@@ -1712,6 +1715,8 @@ export class Renderer {
     const wanted = combatClipName(clipName, view.weapons ?? null);
     const clip = await this.loadClip(view.modelPath, wanted, null, null);
     if (!clip || !view.mixer) return;
+    // Whatever was playing would blend into the pose: a corpse that breathes.
+    view.mixer.stopAllAction();
     const action = view.mixer.clipAction(clip);
     action.reset();
     action.setEffectiveWeight(1);
@@ -2389,6 +2394,24 @@ export class Renderer {
     props?: THREE.Object3D[],
   ): Promise<void> {
     if (!attachments?.length) return;
+    const dressed = this.views.get(entityId);
+    if (dressed) dressed.equipmentPending = (dressed.equipmentPending ?? 0) + 1;
+    try {
+      await this.attachEachItem(body, entityId, bodyPath, attachments, at, seq, props);
+    } finally {
+      if (dressed) dressed.equipmentPending = Math.max(0, (dressed.equipmentPending ?? 1) - 1);
+    }
+  }
+
+  private async attachEachItem(
+    body: THREE.Object3D,
+    entityId: EntityId,
+    bodyPath: string,
+    attachments: readonly EquipmentAttachment[],
+    at?: readonly [number, number, number],
+    seq = this.zoneSeq,
+    props?: THREE.Object3D[],
+  ): Promise<void> {
     for (const item of attachments) {
       // Each item costs a prototype build; a teleport must not pay for the old zone.
       if (seq !== this.zoneSeq) return;
@@ -2588,6 +2611,7 @@ export class Renderer {
     const container = new THREE.Group();
     // Not pickable: a cast or aura on a bone must not shield clicks.
     markNotPickable(container);
+    markTransientEffect(container);
     if (scale !== 1) container.scale.setScalar(scale);
 
     /*
@@ -2931,8 +2955,9 @@ export class Renderer {
     if (cached) return cached;
     const object = view.object;
 
-    // Never shoot a half-textured body: the grey mannequin would be cached all session.
-    if (!this.isTextured(object)) return undefined;
+    // Never shoot a half-textured or half-dressed body: the grey mannequin would be cached all session.
+    // Its own readiness, not the scene's: elsewhere's loading must not keep this portrait re-shot.
+    if (!this.isTextured(object) || (view.equipmentPending ?? 0) > 0) return undefined;
 
     const copy = this.copyBody(view);
     if (!copy) return undefined;
@@ -2942,11 +2967,8 @@ export class Renderer {
     // The copy shares the body's geometry and materials; its skeletons are its own.
     copy.traverse(node => (node as THREE.SkinnedMesh).skeleton?.dispose());
     if (!url) return undefined;
-    // Shot while gear or textures are still arriving, it is shown but kept
-    // only once nothing is pending; the HUD asks again, and gets the whole body.
-    if (lookKey && this.pendingAttachments === 0 && this.pendingTextures === 0) {
-      this.headshotCache.set(lookKey, url);
-    }
+    // Taken once per look and kept: the body in the world moves, the portrait does not.
+    if (lookKey) this.headshotCache.set(lookKey, url);
     return url;
   }
 
@@ -2962,7 +2984,10 @@ export class Renderer {
       overlay.removeFromParent();
     }
     try {
-      return cloneSkinned(source);
+      const copy = cloneSkinned(source);
+      // A copy shows the body as dressed, not as afflicted this second.
+      stripTransientEffects(copy);
+      return copy;
     } catch (error) {
       log.once('warn', 'body:clone', `could not copy a body (${String(error)})`);
       return null;

@@ -36,7 +36,7 @@ import { WorkerAssetProvider } from '../assets/providers/WorkerAssetProvider';
 import { clearAllPacks, storageEstimate, whyNoStorage } from '../assets/vfs/PackStore';
 import { pickIpa, reopenIpa, storedIpa } from '../assets/vfs/ipaHandle';
 import { avatarLookId, splashId } from '../assets/ids';
-import type { TextureData, ZoneInfo } from '../assets/types';
+import type { Appearance, TextureData, ZoneInfo } from '../assets/types';
 import { gameYaw, World } from '../world/World';
 import { MINIMAP_ZOOMS, THUMB_SIZE, minimapTextureSize, minimapWindow } from '../world/minimap';
 import { FrameClock, browserPage, workerTicker } from './frameClock';
@@ -49,6 +49,7 @@ import { GHOST_ALPHA, Renderer } from '../renderer/Renderer';
 import type { Relation } from '../renderer/TargetRing';
 import { effect } from '@preact/signals';
 import { resolveGraphics, tileWindowFor } from '../core/graphics';
+import { HeroShape } from '../gameplay/HeroShape';
 import { Input } from '../gameplay/Input';
 import type { InputState } from '../gameplay/Input';
 import { options as savedOptions, setOption } from '../ui/optionsStore';
@@ -2134,6 +2135,11 @@ export class Game {
       onAuraEnded: (_casterId, unitId, spellId) => {
         // Spell 0 clears every icon.
         clearAura(auraKey(unitId), spellId);
+        const turnedBy = this.turnedBy.get(unitId);
+        if (turnedBy !== undefined && (spellId === 0 || spellId === turnedBy)) {
+          this.turnedBy.delete(unitId);
+          this.turnInto(unitId, 0);
+        }
         /*
          * Resolved from the spell's row like the add. A visual of 0 means
          * "every aura" to `removeAura`, so a named spell with no visual
@@ -2366,6 +2372,7 @@ export class Game {
         hairColor: character.appearance.hairColour,
         equipment,
         animationId: 0,
+        shape: this.heroShape.current,
       })
       .then(look => {
         if (!look.appearance) return;
@@ -3698,11 +3705,54 @@ export class Game {
     for (const aura of held) this.showAura(unitId, aura);
   }
 
-  /** With neither `remaining` nor `maxDuration`, the server ends the effect explicitly. */
+  /** The aura each body is turned by (its shape is another creature's), so ending it can turn it back. */
+  private readonly turnedBy = new Map<number, number>();
+
+  private readonly heroShape = new HeroShape({
+    look: async shape => {
+      const character = this.selectedCharacter;
+      if (!character) return null;
+      try {
+        const look = await this.resources.networkAppearance({
+          entry: 0,
+          displayInfoId: character.displayInfoId,
+          race: character.race,
+          gender: character.gender,
+          skin: character.appearance.skin,
+          face: character.appearance.face,
+          hairStyle: character.appearance.hairStyle,
+          hairColor: character.appearance.hairColour,
+          equipment: [...character.equipment],
+          animationId: 0,
+          shape,
+        });
+        return { model: look.model, scale: look.scale, appearance: look.appearance as Appearance };
+      } catch (err) {
+        log.warn(`could not shape the hero: ${String(err)}`);
+        return null;
+      }
+    },
+    hero: () => this.world.player ?? undefined,
+    setAppearance: (entity, appearance) => this.world.setAppearance(entity, appearance),
+    refresh: entity => void this.renderer.refreshAppearance(entity),
+  });
+
   private showAura(unitId: number, aura: HeldAura, spellVisualId = 0): void {
+    void this.resources.spellAvatar(aura.spellId).then(display => {
+      if (display <= 0) return;
+      this.turnedBy.set(unitId, aura.spellId);
+      this.turnInto(unitId, display);
+    });
+
     void this.spellVisualFor(aura.spellId, spellVisualId).then(visual => {
       void this.combat.addAura(unitId, visual, aura.remaining || aura.maxDuration);
     });
+  }
+
+  /** Turn a body, the hero's own included, into a creature display, or back to itself with 0. */
+  private turnInto(unitId: number, display: number): void {
+    if (this.whoIs.isSelf(unitId)) void this.heroShape.set(display);
+    else this.bodies.transform(unitId, display);
   }
 
   /** Wire value, else the spell's own row; 0 is no visual. */
