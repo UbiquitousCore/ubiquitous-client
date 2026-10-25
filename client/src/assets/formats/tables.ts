@@ -671,6 +671,7 @@ export class WorldTables {
       `tables loaded: ${w.rows.get('zones')!.length} zones, ` +
         `${w.rows.get('staticobject_spawns')!.length} static spawns`,
     );
+    log.debug(`build fingerprint:\n${w.fingerprint().join('\n')}`);
     return w;
   }
 
@@ -782,6 +783,20 @@ export class WorldTables {
     const t = this.tables.get(name);
     if (!t) throw new SchemaError(`table not loaded: ${name}`);
     return t;
+  }
+
+  /**
+   * The build fingerprint: every loaded table's shape (`name: rows cols
+   * format`), in load order. The client logs it at boot and the server
+   * compares it against its golden files; a new build shows up here first,
+   * as shape drift rather than a bare column error further down.
+   */
+  fingerprint(): string[] {
+    const out: string[] = [];
+    for (const [name, table] of this.tables) {
+      out.push(`${name}: ${table.rows} rows, ${table.cols} cols, format ${JSON.stringify(table.format)}`);
+    }
+    return out;
   }
 
   rowsOf(name: string): Row[] {
