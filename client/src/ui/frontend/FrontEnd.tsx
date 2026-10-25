@@ -9,11 +9,16 @@ import { ArtMakeCharacter, STEP_SCREEN } from './ArtMakeCharacter';
 import { ArtSignIn } from './ArtSignIn';
 import { SIGN_IN_SCREEN } from './ArtSignIn';
 import { useWornScreen } from '../art/useWorn';
+import { screenFallback } from '../art/uiSpec';
 import { WornStage } from '../art/WornStage';
 import { WornFrame } from './wornBits';
 import { ArtConnecting } from './ArtConnecting';
 import { ArtNotice } from './ArtNotice';
+import { FallbackCharacters } from '../fallback/FallbackCharacters';
+import { FallbackMakeCharacter } from '../fallback/FallbackMakeCharacter';
+import { FallbackSignIn } from '../fallback/FallbackSignIn';
 import { dialog, frontEndActions, notice, showDialog, stage } from './frontEndStore';
+import { logger } from '../../core/log';
 
 /**
  * How much of the view the screens leave to the place behind them: the
@@ -41,6 +46,21 @@ export function FrontEnd(): JSX.Element | null {
   const wornList = useWornScreen(CHARACTERS_SCREEN) !== null;
   const wornStep = useWornScreen(STEP_SCREEN[at] ?? '') !== null;
   const worn = at === 'signIn' ? wornSignIn : at === 'characters' ? wornList : wornStep;
+  const fallenBack =
+    at === 'signIn'
+      ? SIGN_IN_SCREEN
+      : at === 'characters'
+        ? CHARACTERS_SCREEN
+        : (STEP_SCREEN[at] ?? null);
+
+  // Which steps fell back, and why: the compatibility report for builds
+  // whose movies carry no panels of their own.
+  useEffect(() => {
+    if (worn || !fallenBack) return;
+    const reason = screenFallback(fallenBack)?.reason ?? 'unknown';
+    logger('front-end').info(`fallback screen for ${at}: ${fallenBack} ${reason}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, worn]);
 
   useEffect(() => {
     const element = canvas.current;
@@ -92,8 +112,9 @@ export function FrontEnd(): JSX.Element | null {
 
       <div className="relative flex w-full max-w-200 flex-col items-center gap-3 px-4">
         {/* A screen wearing the build's own art stands on the movie's
-            own screen, scaled to the page. */}
-        {worn && (
+            own screen, scaled to the page. Where the build has no panel,
+            a plain fallback stands in so the game can still be entered. */}
+        {worn ? (
           <WornStage takesPointer={false} inset={STAGE_INSET}>
             {/* The build's own frame, behind every screen but the one
                 for signing in: that one is a panel of its own. */}
@@ -104,6 +125,14 @@ export function FrontEnd(): JSX.Element | null {
               <ArtMakeCharacter />
             )}
           </WornStage>
+        ) : (
+          <>
+            {at === 'signIn' && <FallbackSignIn />}
+            {at === 'characters' && <FallbackCharacters />}
+            {(at === 'race' || at === 'class' || at === 'look' || at === 'name') && (
+              <FallbackMakeCharacter />
+            )}
+          </>
         )}
 
         {/* Answers to something the player just did; unannounced, a screen
