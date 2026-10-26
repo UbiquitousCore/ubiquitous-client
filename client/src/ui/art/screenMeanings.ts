@@ -237,6 +237,17 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     hidden: ['btnRight', 'btnMsgInfo'],
   },
 
+  // The build's own death prompt: the message box telling the dead
+  // player, with the one control that brings them back.
+  death: {
+    dialog: 'dlgMsg',
+    frame: 'background',
+    values: { message: 'textMsg' },
+    panels: { sheet: 'btnempty' },
+    actions: { btnYes: 'revive' },
+    hidden: ['btnNo', 'textNo', 'btnRight', 'btnMsgInfo'],
+  },
+
   race: {
     dialog: 'races_group',
     movie: 'LGM',

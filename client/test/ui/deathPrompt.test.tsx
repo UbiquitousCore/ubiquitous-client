@@ -1,4 +1,9 @@
 /** @vitest-environment happy-dom */
+
+vi.mock('../../src/ui/art/pieceCanvas', () => ({
+  drawPiece: () => ({ url: 'blob:death', width: 200, height: 120 }),
+}));
+
 /**
  * The death dialog, in the form the server can honour.
  *
@@ -19,7 +24,10 @@ import { GameHud } from '../../src/ui/GameHud';
 import { playerDead, setDeathActions, setDeathToll } from '../../src/ui/deathStore';
 import { applyPlayerValues, player, setPlayer, setWorldUnits } from '../../src/ui/hudStore';
 import type { Unit } from '../../src/ui/hudStore';
-import { clearDeathActions } from '../helpers/stores';
+import { setMovie } from '../../src/ui/art/pieceStore';
+import { uiSpec } from '../../src/ui/art/uiSpec';
+import type { UiSkinData } from '../../src/assets/types';
+import { clearDeathActions, clearMovies } from '../helpers/stores';
 
 const HERO: Unit = {
   id: 'hero',
@@ -57,6 +65,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  clearMovies();
+  uiSpec.value = null;
   vi.useRealTimers();
 });
 
@@ -379,5 +389,101 @@ describe('folding a player.updated into the hero', () => {
       resource: 'morale',
     });
     expect(player.value?.dead).toBeUndefined();
+  });
+});
+
+/**
+ * Where the build has its own death box, the prompt wears that instead of
+ * the client-built dialog: the same lines and the same one way back.
+ */
+describe('the death prompt, worn from the build', () => {
+  const place = (characterId: number, x: number, y: number, name: string) => ({
+    depth: 1,
+    characterId,
+    matrix: { a: 1, b: 0, c: 0, d: 1, tx: x, ty: y },
+    name,
+    opacity: 1,
+  });
+
+  function skin(): UiSkinData {
+    const bar = (id: number, w: number, h: number) => ({
+      id,
+      bounds: { x: 0, y: 0, w, h },
+      fills: [{ kind: 'solid' as const, css: 'rgb(1, 2, 3)', opacity: 1 }],
+      paths: [{ fill: 1, d: `M0 0L${w} 0L${w} ${h}L0 ${h}Z` }],
+    });
+    return {
+      movie: 'IGM',
+      width: 400,
+      height: 300,
+      background: null,
+      exports: [],
+      shapes: [bar(11, 200, 120), bar(12, 60, 30)],
+      sprites: [
+        {
+          id: 20,
+          frameCount: 1,
+          frames: [
+            [
+              place(11, 0, 0, 'background'),
+              place(11, 0, 20, 'textMsg'),
+              place(12, 70, 80, 'btnYes'),
+              place(12, 70, 84, 'textYes'),
+              place(11, 0, 0, 'btnempty'),
+            ],
+          ],
+        },
+      ],
+      edits: [],
+      root: [[place(20, 0, 0, 'dlgMsg')]],
+    };
+  }
+
+  function mountWorn() {
+    uiSpec.value = {
+      screens: {
+        death: {
+          dialog: 'dlgMsg',
+          frame: 'background',
+          values: { message: 'textMsg' },
+          panels: { sheet: 'btnempty' },
+          actions: { btnYes: 'revive' },
+          hidden: ['btnNo', 'textNo', 'btnRight', 'btnMsgInfo'],
+        },
+      },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    setPlayer(DEAD_HERO);
+    setDeathToll({ deathCost: 8000, killerName: 'Grimtusk' });
+    return render(<DeathPromptContainer />);
+  }
+
+  const revive = (): HTMLElement | null =>
+    screen.queryByRole('button', { name: LINES.reviveAtGraveyard.fallback });
+
+  it('wears the build box and names the killer on it', () => {
+    mountWorn();
+    settle();
+
+    expect(screen.queryByRole('alertdialog')).not.toBeNull();
+    expect(screen.queryByText(fill(LINES.killedBy.fallback, 'Grimtusk'))).not.toBeNull();
+    expect(screen.queryByText(fill(LINES.deathPenalty.fallback, '80 silver'))).not.toBeNull();
+    expect(revive()).not.toBeNull();
+  });
+
+  it('revives from the worn control and keeps no other button', () => {
+    const reviveAtCemetery = vi.fn();
+    setDeathActions({ reviveAtCemetery });
+    const { rerender } = mountWorn();
+    settle();
+
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(revive()).not.toBeNull();
+    expect(screen.queryByText(LINES.reviveAtGraveyard.fallback)).not.toBeNull();
+    fireEvent.click(revive()!);
+    rerender(<DeathPromptContainer />);
+
+    expect(reviveAtCemetery).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alertdialog')).not.toBeNull();
   });
 });

@@ -7,6 +7,8 @@ import { useEffect, useState } from 'preact/hooks';
 
 import { Button } from './components/Button';
 import { Dialog } from './components/Dialog';
+import { ArtDeathPrompt, DEATH_SCREEN } from './components/ArtDeathPrompt';
+import { useWornScreen } from './art/useWorn';
 import { deathActions, deathToll, playerDead } from './deathStore';
 import { LINES, say } from './gameLines';
 import { formatMoney } from './money';
@@ -32,6 +34,7 @@ export function DeathPromptContainer(): JSX.Element | null {
   const dead = playerDead.value;
   const toll = deathToll.value;
   const [raised, setRaised] = useState(false);
+  const spec = useWornScreen(DEATH_SCREEN);
 
   /* Revival dialog status: delay accumulates only while not yet showing dead
    * (never restarted/re-raised; only a revive puts it back). */
@@ -46,6 +49,18 @@ export function DeathPromptContainer(): JSX.Element | null {
   }, [dead, raised]);
 
   if (!dead || !raised) return null;
+
+  const lines = [deathLine(toll?.killerName)];
+  if (toll) lines.push(deathCostLine(toll.deathCost));
+  lines.push('You will revive at the nearest cemetery.');
+  if (spec)
+    return (
+      <ArtDeathPrompt
+        lines={lines}
+        reviveLabel={say(LINES.reviveAtGraveyard)}
+        onRevive={() => deathActions().reviveAtCemetery()}
+      />
+    );
 
   return (
     <Dialog label={say(LINES.dead)} size="md">
