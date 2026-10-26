@@ -11,7 +11,7 @@ import { itemHandlers, vendorHandlers } from './features/vendor/vendor';
 import { auctionHandlers } from './features/auction/auction';
 import { installMailActions, mailHandlers } from './features/mail/mail';
 import { installSummonActions, summonHandlers } from './features/summon/summon';
-import { setChatCommandSink } from '../ui/chatCommands';
+import { chatCommandHelp, setChatCommandSink } from '../ui/chatCommands';
 import { duelHandlers, installDuelActions } from './features/social/duel';
 import { Friends } from './features/social/friends';
 import { Conversation } from './features/npc/conversation';
@@ -882,6 +882,7 @@ export class Game {
       if (command.kind === 'who') this.connection.sendWho();
       else if (command.kind === 'invite') partyActions().inviteNamed(command.name);
       else if (command.kind === 'stress') this.connection.sendStressTest(command.count);
+      else if (command.kind === 'help') for (const line of chatCommandHelp()) this.sayNotice(line);
       else addFriendNamed(command.name);
     });
     installPartyActions(

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { readChatCommand, setChatCommandSink } from '../src/ui/chatCommands';
+import { chatCommandHelp, readChatCommand, setChatCommandSink } from '../src/ui/chatCommands';
 import { say, setChatSink } from '../src/ui/chatStore';
 
 describe('chat commands', () => {
@@ -20,6 +20,17 @@ describe('chat commands', () => {
     expect(readChatCommand('/invite')).toBeNull();
     expect(readChatCommand('/stress')).toBeNull();
     expect(readChatCommand('/stress many')).toBeNull();
+    expect(readChatCommand('/help')).toEqual({ kind: 'help' });
+  });
+
+  it('lists every command and its usage for /help', () => {
+    const lines = chatCommandHelp();
+
+    expect(lines[0]).toBe('Here are the commands you can use:');
+    expect(lines).toContain('/help — list these commands');
+    expect(lines).toContain('/stress <count> — spawn a stress-test crowd at the nearest dummy (1–200)');
+    expect(lines).toContain('Said to a bot in party chat or a whisper, as the group leader:');
+    expect(lines.some(line => line.includes('follow (follow the leader)'))).toBe(true);
   });
 
   it('carries out a command instead of saying it', () => {
