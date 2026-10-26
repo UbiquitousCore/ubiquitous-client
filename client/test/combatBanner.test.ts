@@ -35,6 +35,15 @@ beforeEach(() => {
   clock += REPEAT_WINDOW * 10;
 });
 
+describe('what colour each line wears', () => {
+  it('refuses by default, so good news names its tone', () => {
+    reportToPlayer('You cannot do that.', clock);
+    expect(banner.value?.tone).toBe('refused');
+    reportToPlayer('You have learned Fireball.', clock + REPEAT_WINDOW * 2, { tone: 'done' });
+    expect(banner.value?.tone).toBe('done');
+  });
+});
+
 describe('the lines either side of a fight', () => {
   it('says so when a fight starts', () => {
     setInCombat(true, clock);

@@ -1955,7 +1955,8 @@ export class Game {
       onSpellLearned: spellIds => {
         for (const spellId of spellIds) {
           void this.resources.spellName(spellId).then(name => {
-            if (name) reportToPlayer(`You have learned ${name}.`);
+            if (name)
+              reportToPlayer(`You have learned ${name}.`, performance.now(), { tone: 'done' });
           });
         }
       },
@@ -2270,7 +2271,7 @@ export class Game {
             dead: false,
           });
         }
-        reportToPlayer('Revived.');
+        reportToPlayer('Revived.', performance.now(), { tone: 'done' });
       },
     };
   }
