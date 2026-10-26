@@ -5,9 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/ui/art/pieceCanvas', () => ({
   drawPiece: () => ({ url: 'blob:talents', width: 240, height: 320 }),
 }));
+vi.mock('../../src/ui/iconUrl', () => ({ iconUrl: () => 'data:icon' }));
 
 import { ArtTalentsWindow } from '../../src/ui/components/ArtTalentsWindow';
-import { setMovie, setUiWords } from '../../src/ui/art/pieceStore';
+import { setEmblems, setMovie, setUiWords } from '../../src/ui/art/pieceStore';
 import { uiSpec } from '../../src/ui/art/uiSpec';
 import { heroClass } from '../../src/ui/hudStore';
 import { setClassTrees } from '../../src/gameplay/SpellBook';
@@ -25,6 +26,7 @@ afterEach(() => {
   setClassTrees(new Map());
   applyTalentState(0, []);
   talentStaged.value = new Map();
+  setEmblems(new Map());
 });
 
 const at = (tx: number, ty: number): UiSkinPlaced['matrix'] => ({ a: 1, b: 0, c: 0, d: 1, tx, ty });
@@ -36,7 +38,7 @@ const place = (characterId: number, x: number, y: number, name: string): UiSkinP
   opacity: 1,
 });
 
-/** A page with one tab on it. */
+/** A page with one tab on it, its picture socket a box inside the tab. */
 function skin(): UiSkinData {
   const bar = (id: number, w: number, h: number) => ({
     id,
@@ -50,15 +52,20 @@ function skin(): UiSkinData {
     height: 320,
     background: null,
     exports: [],
-    shapes: [bar(11, 240, 320), bar(12, 60, 30)],
+    shapes: [bar(11, 240, 320), bar(12, 60, 30), bar(14, 20, 20)],
     sprites: [
+      {
+        id: 30,
+        frameCount: 1,
+        frames: [[place(12, 0, 0, 'btn'), place(14, 5, 5, 'displayCallback')]],
+      },
       {
         id: 24,
         frameCount: 1,
         frames: [
           [
             place(11, 0, 0, 'btnempty'),
-            place(12, 10, 10, 'btnTab01'),
+            place(30, 10, 10, 'btnTab01'),
             place(13, 100, 280, 'textPoint'),
           ],
         ],
@@ -83,6 +90,7 @@ function mount(talents: ScreenSpec) {
   uiSpec.value = { screens: { talents } };
   setMovie({ skin: skin(), art: new Map() });
   setUiWords(['Nought', 'One', 'Two', 'Three']);
+  setEmblems(new Map([['mark0.png', {} as ImageBitmap]]));
   heroClass.value = 1;
   setClassTrees(new Map([[1, [2]]]));
   return render(<ArtTalentsWindow onClose={() => {}} />);
@@ -119,5 +127,14 @@ describe('ArtTalentsWindow', () => {
   it('offers no reset: resetting is done with an item, not on this page', () => {
     const { queryByRole } = mount(page);
     expect(queryByRole('button', { name: 'Reset' })).toBeNull();
+  });
+
+  it('keeps the tree mark inside the ring, above its name', () => {
+    const { container } = mount({ ...page, pictures: { 1: ['mark0.png', 'mark1.png'] } });
+    const picture = container.querySelector<HTMLImageElement>('img[src="data:icon"]');
+    expect(picture?.style.left).toBe(`${(11 / 240) * 100}%`);
+    expect(picture?.style.top).toBe(`${(11 / 320) * 100}%`);
+    expect(picture?.style.width).toBe(`${(28 / 240) * 100}%`);
+    expect(picture?.style.height).toBe(`${(28 / 320) * 100}%`);
   });
 });

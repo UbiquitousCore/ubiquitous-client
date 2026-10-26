@@ -171,16 +171,27 @@ function Worn({ onClose, spec }: ArtTalentsWindowProps & { spec: ScreenSpec }): 
         // The class's own mark for this tree, a picture outside the movie
         // that the spec names by file.
         const mark = spec.pictures?.[String(heroClass.value)]?.[index];
+        const spot = inside?.spot;
+        // The well the movie keeps for the mark; otherwise the socket.
+        // Room high would touch the plaque and cover the ring, so the
+        // mark fills the ring's own hole.
+        const well = spot ?? inside?.box;
+        const edge = Math.max(1, Math.min(part.box.w - inset * 2, room) - 2);
+        const socket = inside
+          ? {
+              ...inside,
+              box: {
+                x: (well?.x ?? inside.box.x) + ((well?.w || 0) - edge) / 2,
+                y: (well?.y ?? inside.box.y) + ((well?.h || 0) - edge) / 2,
+                w: edge,
+                h: edge,
+              },
+            }
+          : null;
         return (
           <div key={tab.control}>
-            {inside && mark ? (
-              <WornEmblem
-                worn={worn}
-                at={inside}
-                icon={mark}
-                size={Math.max(1, Math.min(part.box.w - inset * 2, room))}
-                round
-              />
+            {socket && mark ? (
+              <WornEmblem worn={worn} at={socket} icon={mark} size={edge} round />
             ) : null}
             {named ? <span style={worn.words(named, LIGHT)}>{says}</span> : null}
             <button
