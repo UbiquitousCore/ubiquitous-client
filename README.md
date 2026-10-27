@@ -32,7 +32,7 @@ Then:
 3. Sign in with that name and password. `WASD` moves, drag to look, wheel to
    zoom, space jumps.
 
-Open it as `localhost` (or over https): pack storage needs a secure context, so
+Open it as `localhost` or over https: pack storage needs a secure context, so
 over `http://192.168.x.x` the client says so on the boot screen and caches
 nothing. `await ubiquitous.storage()` in the browser console shows usage and
 `await ubiquitous.clearPacks()` starts over.
@@ -66,10 +66,13 @@ Copy `client/env.example` to `client/.env` (git-ignored). Variables:
 | `UBIQUITOUS_PACK_DIR` | folders of extracted packs or `.ipa` for the `/dev/` pages |
 | `UBIQUITOUS_LAN_PACKS=1` | required to combine the two above, since it serves game files to the network |
 
-Pack storage needs a secure context: `localhost` or `https://`. Over
-`http://192.168.x.x` the client says so on the boot screen and caches nothing.
-Open it as `localhost`, serve it over https, or trust the origin in
-`chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
+Pack storage needs a secure context, so the dev server always serves https.
+Install [mkcert](https://github.com/FiloSottile/mkcert) (`brew install mkcert`)
+and it makes the certificate on first start, and again whenever the laptop's LAN
+address changes (`client/.cert/`, git-ignored). With `UBIQUITOUS_LAN=1`, open
+`https://<laptop-ip>:8780/mkcert-root-ca.pem` on the phone once, accept the
+warning to download it, and install it as a trusted CA; after that no Chrome
+flag is needed. Without mkcert the server falls back to plain http and says so.
 
 Query-string overrides, read at boot (`client/src/core/config.ts`):
 

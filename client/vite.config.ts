@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { hostname, networkInterfaces } from 'node:os';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
@@ -9,6 +10,7 @@ import preact from '@preact/preset-vite';
 import tailwindcss from '@tailwindcss/vite';
 import { fontLicenceText, unexpectedPublicFiles } from './buildChecks';
 import { devServerExposure } from './devServerExposure';
+import { certNames, ensureLocalCert, type LocalCert } from './localCert';
 import { configWithServerPort, serverPortFrom, withPort } from './serverPort';
 import { SERVER_PROXY_PATH } from './src/core/FileConfig';
 
@@ -101,26 +103,28 @@ function buildChecks(): Plugin {
 }
 
 /**
- * Local HTTPS for dev, via mkcert (`client/.cert/`, gitignored — see
- * .gitignore). Several APIs this app depends on — OPFS, the PWA service
- * worker — require a secure context, which a plain http:// LAN address never
- * satisfies; only https:// or localhost do. Falls back to plain HTTP when no
- * cert is present, so this stays optional for anyone who has not run mkcert.
+ * Local HTTPS for dev, always. OPFS (where the packs live) and the PWA service
+ * worker need a secure context, which a plain http:// LAN address never is.
+ * The certificate comes from mkcert and is made on first run, and again when
+ * the laptop's LAN address changes; see `localCert.ts`. The tests resolve this
+ * config too and must not shell out, so they skip it.
  *
- * Regenerate (also whenever the LAN IP changes — DHCP can reassign it):
- *
- *   mkcert -install
- *   mkdir -p client/.cert && cd client/.cert
- *   mkcert -cert-file dev.pem -key-file dev-key.pem \
- *     localhost 127.0.0.1 ::1 <your LAN IP> <your-hostname>.local
+ * One-time setup: install mkcert (`brew install mkcert`). A phone then
+ * fetches `/mkcert-root-ca.pem` from the dev server and trusts it.
  */
-const CERT_DIR = path.join(__dirname, '.cert');
-const CERT_FILE = path.join(CERT_DIR, 'dev.pem');
-const KEY_FILE = path.join(CERT_DIR, 'dev-key.pem');
-const httpsOptions =
-  existsSync(CERT_FILE) && existsSync(KEY_FILE)
-    ? { cert: readFileSync(CERT_FILE), key: readFileSync(KEY_FILE) }
-    : undefined;
+function localHttps(): LocalCert | undefined {
+  if (ENV.VITEST) return undefined;
+  const made = ensureLocalCert(
+    path.join(__dirname, '.cert'),
+    certNames(networkInterfaces(), hostname()),
+  );
+  if ('reason' in made) {
+    console.warn(`\n[https] serving plain http: ${made.reason}\n`);
+    return undefined;
+  }
+  return made.cert;
+}
+const httpsOptions = localHttps();
 
 /**
  * A phone visiting the dev server for the first time does not trust mkcert's

@@ -49,12 +49,9 @@ export async function whyNoStorage(): Promise<string | null> {
       `${origin} is not a secure context, so the browser gives this page ` +
       'no persistent storage. Nothing can be cached and the game will be ' +
       're-extracted on every reload.\n\n' +
-      'Only https:// and localhost count.\n\n' +
-      'Fixes, easiest first:\n' +
-      '  1. Open it on the machine running the server, as http://localhost\n' +
-      '  2. In Chrome: chrome://flags/#unsafely-treat-insecure-origin-as-secure,\n' +
-      `     add ${origin}, set Enabled, relaunch\n` +
-      '  3. Serve the client over https'
+      'Only https:// and localhost count. The dev server serves https ' +
+      'itself when mkcert is installed (brew install mkcert, then restart ' +
+      'it); a phone installs and trusts the CA from /mkcert-root-ca.pem once.'
     );
   }
   return (
