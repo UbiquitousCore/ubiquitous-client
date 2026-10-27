@@ -13,7 +13,14 @@ server is involved. Multiplayer state comes from a game server over a WebSocket.
 
 ## Run
 
-You need three things: this client, [ubiquitous-server](https://github.com/UbiquitousCore/ubiquitous-server)
+To play or host, you do not need this repository:
+[ubiquitous-server](https://github.com/UbiquitousCore/ubiquitous-server)'s
+`docker-compose.yml` runs the server and this client together behind one
+https address, from published images, with nothing but Docker installed. Its
+README walks through it, including playing from a phone.
+
+To work on the client, you need three things: this client,
+[ubiquitous-server](https://github.com/UbiquitousCore/ubiquitous-server)
 (it holds the world; without it the client is single-player) and your own
 legally obtained 1.1.4 `.ipa`.
 
@@ -24,8 +31,9 @@ cd client && npm run dev      # the client, on http://localhost:8780
 
 Then:
 
-1. Start the server (its README: `./run.sh start` for Docker, or `just dev`) and
-   make a login: `./run.sh account create <name>`.
+1. Start the server from its checkout (`dotnet watch --project src/server run`,
+   or `docker compose up dev` with only Docker) and make a login:
+   `dotnet run --project src/server -- account create <name>`.
 2. Open <http://localhost:8780> and choose your `.ipa`. The first run unpacks
    the packs into your browser's storage (about 1.5 GB), once; the `.ipa` is not
    needed again. Nothing is uploaded anywhere.

@@ -12,9 +12,10 @@ debug=false
 #zone=471
 #log=info
 
-# WebSocket server. The ubiquitous-server repo serves this address in both its modes
-# (`just dev` with editable JSON saves, and `just up` with Postgres in Docker),
-# so the line stays the same either way. When the host is 127.0.0.1 or
+# WebSocket server. The ubiquitous-server repo serves this address however it
+# runs (`dotnet run`, `docker compose up dev`, or its full Docker stack), so
+# the line stays the same either way. The client's Docker image replaces it
+# with a path on the page's own origin, which its proxy forwards. When the host is 127.0.0.1 or
 # localhost and the page is opened from another device (a phone on
 # http(s)://192.168.x.x), `npm run dev` forwards the socket to this address
 # from the PC, so the same line works from the phone. The dev server reads

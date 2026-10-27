@@ -32,7 +32,7 @@ echo "==> Packages"
 cat <<'EOF2'
 
 Ready. Next:
-  1. start ubiquitous-server (its README: ./run.sh start, or just dev)
+  1. start ubiquitous-server (its README: dotnet watch --project src/server run)
   2. cd client && npm run dev
   3. open http://localhost:8780 and choose your .ipa
 EOF2

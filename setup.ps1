@@ -39,7 +39,7 @@ Pop-Location
 Write-Host @'
 
 Ready. Next:
-  1. start ubiquitous-server (its README: .\run.ps1 start, or just dev)
+  1. start ubiquitous-server (its README: dotnet watch --project src/server run)
   2. cd client; npm run dev
   3. open http://localhost:8780 and choose your .ipa
 '@
