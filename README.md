@@ -15,8 +15,8 @@ server is involved. Multiplayer state comes from a game server over a WebSocket.
 
 To play or host, you do not need this repository:
 [ubiquitous-server](https://github.com/UbiquitousCore/ubiquitous-server)'s
-`docker-compose.yml` runs the server and this client together behind one
-https address, from published images, with nothing but Docker installed. Its
+`docker-compose.yml` runs the server and this client together on one
+address, from published images, with nothing but Docker installed. Its
 README walks through it, including playing from a phone.
 
 To work on the client, you need three things: this client,
@@ -26,7 +26,7 @@ legally obtained 1.1.4 `.ipa`.
 
 ```bash
 ./setup.sh                    # once: Node 26 if missing (via fnm), then npm ci. Windows: setup.bat
-cd client && npm run dev      # the client, on http://localhost:8780
+cd client && npm run dev      # the client, on port 8780
 ```
 
 Then:
@@ -34,7 +34,9 @@ Then:
 1. Start the server from its checkout (`dotnet watch --project src/server run`,
    or `docker compose up dev` with only Docker) and make a login:
    `dotnet run --project src/server -- account create <name>`.
-2. Open <http://localhost:8780> and choose your `.ipa`. The first run unpacks
+2. Open the address `npm run dev` prints (`https://localhost:8780` with
+   mkcert installed, see below; `http://localhost:8780` without) and choose
+   your `.ipa`. The first run unpacks
    the packs into your browser's storage (about 1.5 GB), once; the `.ipa` is not
    needed again. Nothing is uploaded anywhere.
 3. Sign in with that name and password. `WASD` moves, drag to look, wheel to
@@ -113,6 +115,7 @@ npm run build       # typecheck + production build
 npm run typecheck
 npm test
 python ../tools/check_no_assets.py   # before every commit
+cd .. && docker build -t ubiquitous-client .   # the image the server's compose file runs
 ```
 
 Search a pack by resource name:
