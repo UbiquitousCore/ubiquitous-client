@@ -76,6 +76,10 @@ few tests want real game data:
 UBIQUITOUS_PACK=/path/to/res.bin UBIQUITOUS_IPA=/path/to/game.ipa npm test
 ```
 
+`python tools/find_pack.py 1.1.4` prints the `res.bin` for a build, unpacking it
+from an `.ipa` into the git-ignored `.cache/` (set `UBIQUITOUS_IPA_DIR`) when it
+is not there yet.
+
 Both are read straight from `process.env`, are never committed, and when
 neither is set those tests **skip** rather than error, so a clean checkout
 stays green.
