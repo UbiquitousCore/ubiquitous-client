@@ -9,9 +9,12 @@ import { loadConfig } from './core/config';
 import { adminPanelWanted, loadFileConfig, overrideFileConfig, serverFromQuery } from './core/FileConfig';
 import { Game } from './app/Game';
 import { logger } from './core/log';
+import { installTouchMenuGuard } from './ui/touchMenu';
 
 // Before anything renders, so no surface paints once bare and once dressed.
 mountUiTextures();
+// For the page's whole life, the screens before the world included.
+installTouchMenuGuard();
 
 function element<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
