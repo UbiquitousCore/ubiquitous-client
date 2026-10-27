@@ -619,13 +619,13 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 /** Table strings are fixed-width and null-padded; the padding is not the name. */
 const trim = (v: unknown): string => str(v).replace(/\0+$/, '');
 
-/** Every table the client reads, decoded once per source (6 MB, cheap to hold). */
 /** The three columns of a spell row that hold the ids of its effect rows. */
 const SPELL_EFFECT_SLOTS = [33, 34, 35] as const;
 /** In an effect row: the written name of what it does, and the number it does it with. */
 const SPELL_EFFECT_LABEL = 22;
 const SPELL_EFFECT_ARGUMENT = 11;
 
+/** Every table the client reads, decoded once per source (6 MB, cheap to hold). */
 export class WorldTables {
   private readonly tables = new Map<string, FTable>();
   private readonly rows = new Map<string, Row[]>();

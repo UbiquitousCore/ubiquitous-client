@@ -65,12 +65,12 @@ export type UnownedAppearance = (
   weapons?: EquippedHands,
 ) => void;
 
-/** How often a corpse is posed again before it is left as it is (a clip the model lacks never holds). */
-/** A model that is a body lying down, which no clip lays down. */
 /** The one-frame clip a model drawn standing has for lying down. */
 const LYING_CLIP = 'dead_ground';
+/** A model that is a body lying down, which no clip lays down. */
 const LYING_MODEL = /_dead[^/]*$/i;
 
+/** How often a corpse is posed again before it is left as it is (a clip the model lacks never holds). */
 const MOST_POSE_TRIES = 30;
 
 /** Only a bound on a load that never completes; a crowd needs the headroom. */

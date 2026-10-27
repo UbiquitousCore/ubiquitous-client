@@ -3479,11 +3479,6 @@ export class Game {
     return pickZoneAt(index.zones, mapId, position);
   }
 
-  /**
-   * With a server, the server moves the player, as for any other journey;
-   * a zone loaded here alone would leave it holding the old map. The
-   * arrival comes back as `world.entered`. Offline, the zone just loads.
-   */
   /** Every named item in the build, read once for the admin panel's search. */
   private itemCatalogue: Promise<ItemHit[]> | null = null;
 
@@ -3499,6 +3494,11 @@ export class Game {
     return this.itemCatalogue;
   }
 
+  /**
+   * With a server, the server moves the player, as for any other journey;
+   * a zone loaded here alone would leave it holding the old map. The
+   * arrival comes back as `world.entered`. Offline, the zone just loads.
+   */
   private async adminTeleport(zoneId: number): Promise<void> {
     if (!this.online || !this.connection.connected) return this.teleportToZone(zoneId);
     const zone = await this.resources.zone(zoneId).catch(() => null);
