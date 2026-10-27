@@ -20,7 +20,7 @@ export interface MinimapMark {
   bearing: number;
 }
 
-/** A thing's mark, or null; only a quest location stays off-disc, as a rim arrow. */
+/** A thing's mark, or null; only a quest location or a teammate stays off-disc, as a rim mark. */
 export function minimapMark(
   kind: Exclude<MapMarkerKind, 'player'>,
   position: readonly [number, number, number],
@@ -32,7 +32,7 @@ export function minimapMark(
   const away = Math.hypot(dx, dz) / halfWorld;
   const bearing = Math.atan2(dx, -dz);
   if (away < RIM_RADIUS) return { x: dx / halfWorld, y: dz / halfWorld, pointing: false, bearing };
-  if (kind !== 'quest')
+  if (kind !== 'quest' && kind !== 'member')
     return away < 1 ? { x: dx / halfWorld, y: dz / halfWorld, pointing: false, bearing } : null;
   return {
     x: Math.sin(bearing) * RIM_RADIUS,

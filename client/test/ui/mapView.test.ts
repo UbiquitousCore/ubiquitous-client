@@ -162,6 +162,7 @@ describe('markerShown', () => {
     for (const zoom of [1, 2.5, MAX_ZOOM]) {
       expect(markerShown('quest', zoom)).toBe(true);
       expect(markerShown('player', zoom)).toBe(true);
+      expect(markerShown('member', zoom)).toBe(true);
     }
   });
 

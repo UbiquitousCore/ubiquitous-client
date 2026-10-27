@@ -512,6 +512,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     pieces: {
       quest: { part: 'mapindicator/questarrow01' },
+      team1: { part: 'mapindicator/team01' },
+      teamArrow1: { part: 'mapindicator/teamarrow01' },
+      team2: { part: 'mapindicator/team02' },
+      teamArrow2: { part: 'mapindicator/teamarrow02' },
+      team3: { part: 'mapindicator/team03' },
+      teamArrow3: { part: 'mapindicator/teamarrow03' },
       // The HUD's own control that folds the ring away and back.
       toggle: { dialog: 'hud', part: 'btnminimapcontrol' },
     },
@@ -547,6 +553,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     groups: { player: 'arrow', names: 'zonepage/btnobserver', banner: 'horititle' },
     pieces: {
       quest: { part: 'mapindicator/questreceive01' },
+      team1: { part: 'mapindicator/team01' },
+      teamArrow1: { part: 'mapindicator/teamarrow01' },
+      team2: { part: 'mapindicator/team02' },
+      teamArrow2: { part: 'mapindicator/teamarrow02' },
+      team3: { part: 'mapindicator/team03' },
+      teamArrow3: { part: 'mapindicator/teamarrow03' },
     },
   },
 

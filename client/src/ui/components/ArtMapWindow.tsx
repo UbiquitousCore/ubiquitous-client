@@ -268,9 +268,14 @@ function AreaMap(props: AreaProps): JSX.Element | null {
         {props.markers
           .filter(marker => markerShown(marker.kind, view.zoom))
           .map(marker => {
-            const quest = spec.pieces?.quest;
+            const quest =
+              marker.kind === 'member'
+                ? spec.pieces?.[`team${marker.slot ?? 1}`]
+                : marker.kind === 'quest'
+                  ? spec.pieces?.quest
+                  : undefined;
             const size = markSize(quest?.part ?? '');
-            if (marker.kind === 'quest' && quest) {
+            if (quest) {
               return (
                 <WornPiece
                   key={marker.id}
@@ -296,8 +301,12 @@ function AreaMap(props: AreaProps): JSX.Element | null {
                 className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
                 style={{ ...at(marker.position), width: share(10, frame.w), aspectRatio: '1' }}
               >
-                {marker.iconUrl && (
-                  <img src={marker.iconUrl} alt="" className="size-full object-contain" />
+                {marker.kind === 'member' ? (
+                  <span className="block size-full rounded-full bg-chat-party" />
+                ) : (
+                  marker.iconUrl && (
+                    <img src={marker.iconUrl} alt="" className="size-full object-contain" />
+                  )
                 )}
               </span>
             );

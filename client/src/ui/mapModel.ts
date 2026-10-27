@@ -5,8 +5,8 @@
  * `hudStore`, and the helpers under `app/helpers/map` build them.
  */
 
-/** `service` covers every NPC service, all drawn as the NPC's head icon. */
-export type MapMarkerKind = 'player' | 'service' | 'quest' | 'teleport';
+/** `service` covers every NPC service, all drawn as the NPC's head icon; `member` is a teammate. */
+export type MapMarkerKind = 'player' | 'service' | 'quest' | 'teleport' | 'member';
 
 export interface MapMarker {
   id: string;
@@ -14,6 +14,8 @@ export interface MapMarker {
   position: [number, number, number];
   kind: MapMarkerKind;
   iconUrl?: string | null;
+  /** For a teammate: which of the movie's team colours (1 to 3) they wear. */
+  slot?: number;
 }
 
 /** A named place on the region map; a travel stop carries its id, and tapping it teleports. */

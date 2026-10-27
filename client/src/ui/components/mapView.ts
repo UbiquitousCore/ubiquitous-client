@@ -91,7 +91,7 @@ export const DRAG_THRESHOLD_PX = 5;
  * there is room for them.
  */
 export function markerShown(kind: MapMarkerKind, zoom: number): boolean {
-  return kind === 'quest' || kind === 'player' || zoom >= MAX_ZOOM;
+  return kind === 'quest' || kind === 'player' || kind === 'member' || zoom >= MAX_ZOOM;
 }
 
 export interface MapView {

@@ -90,8 +90,13 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
     if (marker.kind === 'player') return null;
     const mark = minimapMark(marker.kind, marker.position, playerPosition, halfWorld);
     if (!mark) return null;
-    if (marker.kind === 'quest' && spec.pieces?.quest) {
-      const piece = spec.pieces.quest;
+    const piece =
+      marker.kind === 'quest'
+        ? spec.pieces?.quest
+        : marker.kind === 'member'
+          ? spec.pieces?.[`${mark.pointing ? 'teamArrow' : 'team'}${marker.slot ?? 1}`]
+          : undefined;
+    if (piece) {
       return (
         <WornPiece
           key={marker.id}
@@ -114,7 +119,11 @@ function Worn({ spec }: { spec: ScreenSpec }): JSX.Element | null {
         className="pointer-events-none"
         style={around(mark.x, mark.y, ICON_SIZE)}
       >
-        {marker.iconUrl && <img src={marker.iconUrl} alt="" className="size-full object-contain" />}
+        {marker.kind === 'member' ? (
+          <span className="block size-full rounded-full bg-chat-party" />
+        ) : (
+          marker.iconUrl && <img src={marker.iconUrl} alt="" className="size-full object-contain" />
+        )}
       </span>
     );
   };

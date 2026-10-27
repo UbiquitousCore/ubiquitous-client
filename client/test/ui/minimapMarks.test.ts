@@ -76,4 +76,11 @@ describe('arrowTurn', () => {
     expect(arrowTurn(Math.PI / 2)).toBeCloseTo(Math.PI / 2, 6);
     expect(arrowTurn(-Math.PI / 2)).toBeCloseTo(-Math.PI / 2, 6);
   });
+
+  it('keeps a teammate past the edge as a mark on the rim, and drops other things there', () => {
+    const away = minimapMark('member', [PLAYER[0] + 5 * HALF, 0, PLAYER[2]], PLAYER, HALF)!;
+    expect(away.pointing).toBe(true);
+    expect(away.x).toBeCloseTo(RIM_RADIUS, 6);
+    expect(minimapMark('service', [PLAYER[0] + 5 * HALF, 0, PLAYER[2]], PLAYER, HALF)).toBeNull();
+  });
 });

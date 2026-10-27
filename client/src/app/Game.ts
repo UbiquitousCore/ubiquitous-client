@@ -108,7 +108,7 @@ import { offlineServiceView } from './helpers/npc/offlineServiceView';
 import { routeLegsForTopMap } from './helpers/map/routeLegs';
 import { dispatchOnlineService } from './helpers/npc/serviceDispatch';
 import { serviceMarkerKind } from './helpers/map/serviceMarkerKind';
-import { serviceMarkersForMap } from './helpers/map/serviceMarkers';
+import { serviceMarkersForMap, teamMarkersForMap } from './helpers/map/serviceMarkers';
 import { serviceNetworkIdForInteraction } from './helpers/npc/serviceNetworkId';
 import { refusalLines } from './helpers/npc/refusalLines';
 import { vendorShopInteraction } from './features/vendor/shopInteractions';
@@ -2599,6 +2599,10 @@ export class Game {
       this.world.player,
       this.mapIconUrls,
       entity => serviceMarkerKind(entity, showsOnMap),
+    ).concat(
+      teamMarkersForMap(bodies, this.world.player, partyRoster.peek().members, id =>
+        this.bodies.networkIdOf(id),
+      ),
     );
 
     if (!mapOpen.value && this.mapBrowseZoneId !== null) this.mapBrowseZoneId = null;
