@@ -19,7 +19,7 @@ if (Test-Node) {
 } else {
     if (-not (Get-Command fnm -ErrorAction SilentlyContinue)) {
         if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { throw "Install Node $need or newer from https://nodejs.org, then run this again" }
-        winget install --id Schniz.fnm -e --accept-package-agreements --accept-source-agreements
+        winget install --id Schniz.fnm -e --source winget --accept-package-agreements --accept-source-agreements
         Write-Host "`nfnm installed. Open a NEW terminal (so PATH refreshes) and run .\setup.ps1 again."
         exit 0
     }
