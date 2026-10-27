@@ -1,0 +1,8 @@
+# Allowlist: the image is built from the client's source alone.
+*
+!.nvmrc
+!client/
+client/node_modules
+client/dist
+client/.cert
+client/.env
