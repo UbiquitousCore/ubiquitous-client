@@ -455,6 +455,11 @@ const TAP_SLOP = 12;
  * covers more than a pixel. Own choice, by feel on a phone.
  */
 const TOUCH_TAP_SLOP = 20;
+/**
+ * Own choice: a refused step puts the body back a frame's walk behind, about a
+ * tenth of a unit, so the threshold sits far below that.
+ */
+const SNAP_BACK_LOG_DISTANCE = 0.02;
 /** How far from a body, in pixels, a tap still means it. Own choice: 12 for a mouse, 28 for a fingertip. */
 const MOUSE_PICK_SLOP = 12;
 const TOUCH_PICK_SLOP = 28;
@@ -1883,6 +1888,17 @@ export class Game {
         // The server adopts client movement, so this only fires on relocations such as teleports.
         const player = this.world.player;
         if (!player) return; // no zone loaded yet; the spawn position covers it
+        // A server that refuses a step answers with where it left the body, so
+        // a snap-back at a wall nothing here draws is visible in the console.
+        const [px, py, pz] = player.position;
+        const moved = Math.hypot(position[0] - px, position[1] - py, position[2] - pz);
+        if (moved > SNAP_BACK_LOG_DISTANCE) {
+          log.warn(
+            `server moved you ${moved.toFixed(1)} units, from ` +
+              `(${px.toFixed(1)}, ${py.toFixed(1)}, ${pz.toFixed(1)}) to ` +
+              `(${position[0].toFixed(1)}, ${position[1].toFixed(1)}, ${position[2].toFixed(1)})`,
+          );
+        }
         // Clear any jump in flight, or the body arrives mid-hop.
         this.movement.reset();
         this.world.setPosition(player, position[0], position[1], position[2]);
