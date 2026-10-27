@@ -65,17 +65,21 @@ describe('pressFor', () => {
   const down = { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 10, clientY: 20 };
 
   it('tracks a left or right mouse press and any touch', () => {
-    expect(pressFor(null, down)).toEqual({ id: 1, x: 10, y: 20 });
-    expect(pressFor(null, { ...down, button: 2 })).not.toBeNull();
-    expect(pressFor(null, { ...down, pointerType: 'touch', button: -1 })).not.toBeNull();
+    expect(pressFor(down)).toEqual({ id: 1, x: 10, y: 20 });
+    expect(pressFor({ ...down, button: 2 })).not.toBeNull();
+    expect(pressFor({ ...down, pointerType: 'touch', button: -1 })).not.toBeNull();
   });
 
   it('ignores a middle click', () => {
-    expect(pressFor(null, { ...down, button: 1 })).toBeNull();
+    expect(pressFor({ ...down, button: 1 })).toBeNull();
   });
 
-  it('ignores a second pointer while one is already down', () => {
-    expect(pressFor({ id: 1, x: 0, y: 0 }, { ...down, pointerId: 2 })).toBeNull();
+  it('tracks every finger on its own, so a tap works while another finger steers', () => {
+    expect(pressFor({ ...down, pointerType: 'touch', pointerId: 2 })).toEqual({
+      id: 2,
+      x: 10,
+      y: 20,
+    });
   });
 });
 

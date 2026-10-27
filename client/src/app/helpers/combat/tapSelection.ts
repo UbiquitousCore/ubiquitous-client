@@ -52,20 +52,17 @@ export interface PressedPointer {
 /**
  * The press to track for a pointer-down, or null when it is not one.
  *
- * One pointer at a time: a second finger during a look-drag is a pinch or a
- * stray. Left and right mouse buttons both tap; a middle click is neither.
+ * Each pointer is its own press, so a finger can tap a body while another
+ * steers; one that travels past the slop on release is a drag, not a tap.
+ * Left and right mouse buttons both tap; a middle click is neither.
  */
-export function pressFor(
-  current: PressedPointer | null,
-  event: {
-    pointerId: number;
-    pointerType: string;
-    button: number;
-    clientX: number;
-    clientY: number;
-  },
-): PressedPointer | null {
-  if (current !== null) return null;
+export function pressFor(event: {
+  pointerId: number;
+  pointerType: string;
+  button: number;
+  clientX: number;
+  clientY: number;
+}): PressedPointer | null {
   if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return null;
   return { id: event.pointerId, x: event.clientX, y: event.clientY };
 }

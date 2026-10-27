@@ -138,6 +138,8 @@ import {
 } from './entityFade';
 import {
   isPickableEntity,
+  nearestFootprint,
+  type ScreenFootprint,
   markNotPickable,
   ownerOfPick,
   pendingAttachmentCount,
@@ -1274,8 +1276,61 @@ export class Renderer {
     this.guideArrow.updateMatrixWorld();
   }
 
-  pickEntity(clientX: number, clientY: number): EntityId | null {
-    return this.pickEntityObject(clientX, clientY, false);
+  /**
+   * `slopPx` forgives a tap that lands beside a body: when no ray hits one,
+   * the body whose on-screen box is within that many pixels is taken.
+   */
+  pickEntity(clientX: number, clientY: number, slopPx = 0): EntityId | null {
+    const exact = this.pickEntityObject(clientX, clientY, false);
+    if (exact !== null || slopPx <= 0) return exact;
+    return this.pickEntityNear(clientX, clientY, slopPx);
+  }
+
+  private pickEntityNear(clientX: number, clientY: number, slopPx: number): EntityId | null {
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    const selfId = this.world?.player?.id;
+    const footprints: ScreenFootprint[] = [];
+    const corner = new THREE.Vector3();
+    for (const [id, view] of this.views) {
+      if (id === selfId || view.batch || !isPickableEntity(this.world?.entities.get(id))) continue;
+      const box = bodyBox(view.object);
+      if (box.isEmpty()) continue;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      let behind = false;
+      for (let i = 0; i < 8; i++) {
+        corner
+          .set(
+            i & 1 ? box.max.x : box.min.x,
+            i & 2 ? box.max.y : box.min.y,
+            i & 4 ? box.max.z : box.min.z,
+          )
+          .project(this.rig.camera);
+        if (corner.z > 1) {
+          behind = true;
+          break;
+        }
+        const sx = ((corner.x + 1) / 2) * rect.width + rect.left;
+        const sy = ((1 - corner.y) / 2) * rect.height + rect.top;
+        minX = Math.min(minX, sx);
+        maxX = Math.max(maxX, sx);
+        minY = Math.min(minY, sy);
+        maxY = Math.max(maxY, sy);
+      }
+      if (behind) continue;
+      footprints.push({
+        id,
+        minX,
+        minY,
+        maxX,
+        maxY,
+        depth: view.object.position.distanceTo(this.rig.camera.position),
+      });
+    }
+    return nearestFootprint(footprints, clientX, clientY, slopPx);
   }
 
   /**

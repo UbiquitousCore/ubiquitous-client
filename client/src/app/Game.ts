@@ -450,6 +450,14 @@ const POP_MESSAGE_DROP = 10;
 
 /** How far a press may travel and still count as a tap, in CSS pixels. */
 const TAP_SLOP = 12;
+/**
+ * A finger moves more between landing and lifting than a mouse does, and
+ * covers more than a pixel. Own choice, by feel on a phone.
+ */
+const TOUCH_TAP_SLOP = 20;
+/** How far from a body, in pixels, a tap still means it. Own choice: 12 for a mouse, 28 for a fingertip. */
+const MOUSE_PICK_SLOP = 12;
+const TOUCH_PICK_SLOP = 28;
 
 /** Two presses, close together, within this many ms make a double tap. */
 const DOUBLE_TAP_MS = 500;
@@ -517,7 +525,7 @@ export class Game {
   private readonly heroDeath = new HeroDeath();
   private readonly castFacing = new CastFacing();
   private playerFaction: number = STARTING_FACTION;
-  private pointerDown: PressedPointer | null = null;
+  private readonly pointerDowns = new Map<number, PressedPointer>();
   private removeMultiTouchTap: (() => void) | null = null;
   private lastTap: { x: number; y: number; at: number } | null = null;
   private approach: ApproachingBody | null = null;
@@ -2712,14 +2720,16 @@ export class Game {
   /* Selection is a tap, through pointer events only (synthesised clicks are
    * suppressed on touch). A press that travels is a look-drag. */
   private readonly onPointerDown = (event: PointerEvent): void => {
-    this.pointerDown = pressFor(this.pointerDown, event) ?? this.pointerDown;
+    const press = pressFor(event);
+    if (press) this.pointerDowns.set(press.id, press);
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
-    const down = this.pointerDown;
-    if (!down || down.id !== event.pointerId) return;
-    this.pointerDown = null;
-    if (!releaseIsTap(down, event, TAP_SLOP)) return;
+    const down = this.pointerDowns.get(event.pointerId);
+    if (!down) return;
+    this.pointerDowns.delete(event.pointerId);
+    const touch = event.pointerType === 'touch';
+    if (!releaseIsTap(down, event, touch ? TOUCH_TAP_SLOP : TAP_SLOP)) return;
 
     const nextTap = nextTapState({
       previous: this.lastTap,
@@ -2730,7 +2740,7 @@ export class Game {
       tapSlop: TAP_SLOP,
     });
     this.lastTap = nextTap.next;
-    this.tap(event.clientX, event.clientY, nextTap.isSecondTap);
+    this.tap(event.clientX, event.clientY, nextTap.isSecondTap, touch);
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
@@ -2738,14 +2748,14 @@ export class Game {
   };
 
   private readonly onPointerCancel = (event: PointerEvent): void => {
-    if (this.pointerDown?.id === event.pointerId) this.pointerDown = null;
+    this.pointerDowns.delete(event.pointerId);
   };
 
   /** One tap targets; a second tap on the target acts, once in reach (`tapSelection`). */
-  private tap(clientX: number, clientY: number, isSecondTap: boolean): void {
+  private tap(clientX: number, clientY: number, isSecondTap: boolean, touch: boolean): void {
     const iconId = this.renderer.pickInteractionEntity(clientX, clientY);
     const picked = tapSelection({
-      bodyId: this.renderer.pickEntity(clientX, clientY),
+      bodyId: this.renderer.pickEntity(clientX, clientY, touch ? TOUCH_PICK_SLOP : MOUSE_PICK_SLOP),
       iconId,
       lastTapped: this.lastTapped,
       isSecondTap,

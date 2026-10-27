@@ -50,3 +50,39 @@ export function refreshSkinnedBounds(root: THREE.Object3D): void {
     if (mesh.boundingBox !== null) mesh.computeBoundingBox();
   });
 }
+
+/** A body's footprint on the screen, in CSS pixels, and how far from the camera it is. */
+export interface ScreenFootprint {
+  id: EntityId;
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  depth: number;
+}
+
+/**
+ * The body a tap near, but not exactly on, meant. A fingertip covers far more
+ * than the pixel a ray goes through, and a thin or distant body is easily
+ * missed by it: every footprint grown by `pad` pixels that holds the point is
+ * a candidate, and the one the point sits closest to wins, the nearer to the
+ * camera on a tie.
+ */
+export function nearestFootprint(
+  footprints: readonly ScreenFootprint[],
+  x: number,
+  y: number,
+  pad: number,
+): EntityId | null {
+  let best: { id: EntityId; gap: number; depth: number } | null = null;
+  for (const f of footprints) {
+    const gapX = Math.max(f.minX - x, 0, x - f.maxX);
+    const gapY = Math.max(f.minY - y, 0, y - f.maxY);
+    const gap = Math.hypot(gapX, gapY);
+    if (gap > pad) continue;
+    if (best === null || gap < best.gap || (gap === best.gap && f.depth < best.depth)) {
+      best = { id: f.id, gap, depth: f.depth };
+    }
+  }
+  return best?.id ?? null;
+}

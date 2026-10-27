@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import {
   isPickableEntity,
   markNotPickable,
+  nearestFootprint,
   ownerOfPick,
   refreshSkinnedBounds,
 } from '../src/renderer/picking';
@@ -192,5 +193,29 @@ describe('picking a body whose pose has changed', () => {
     refreshSkinnedBounds(root);
 
     expect(downAt(1.5).intersectObject(root, true).length).toBeGreaterThan(0);
+  });
+});
+
+describe('nearestFootprint', () => {
+  const box = (id: number, x: number, depth = 10) => ({
+    id,
+    minX: x,
+    minY: 100,
+    maxX: x + 20,
+    maxY: 160,
+    depth,
+  });
+
+  it('takes a body the tap lands within the slop of, and none beyond it', () => {
+    expect(nearestFootprint([box(1, 100)], 90, 130, 12)).toBe(1);
+    expect(nearestFootprint([box(1, 100)], 80, 130, 12)).toBeNull();
+  });
+
+  it('prefers the body the tap is closest to', () => {
+    expect(nearestFootprint([box(1, 100), box(2, 130)], 127, 130, 20)).toBe(2);
+  });
+
+  it('takes the nearer body to the camera when taps are equally close', () => {
+    expect(nearestFootprint([box(1, 100, 30), box(2, 100, 10)], 110, 130, 12)).toBe(2);
   });
 });
