@@ -7,7 +7,7 @@
 import type { CameraRig } from '../renderer/CameraRig';
 import type { World } from '../world/World';
 import type { CollisionWorld } from '../world/CollisionWorld';
-import { closestPointXZ, STEP_UP } from '../world/CollisionWorld';
+import { closestPointXZ, STEP_UP, type CollisionTri } from '../world/CollisionWorld';
 import type { InputState } from './Input';
 
 export interface MovementSettings {
@@ -512,6 +512,13 @@ export function resolveWalls(
       const near = closestPointXZ(wall, px, pz);
       if (near.d2 >= r2) continue;
 
+      // A steep slope is only in the way where it is at the body's height. The
+      // triangle as a whole can span from far below to far above while the
+      // part under or over the player is nowhere near them, and its range
+      // alone would hold the player back from a wall they are standing on top of.
+      const at = wallHeightAt(wall, near.x, near.z);
+      if (at !== null && (at < feetY + STEP_UP || at > feetY + PLAYER_HEIGHT)) continue;
+
       const origin = wall.v[0];
       const here = (px - origin[0]) * nx + (pz - origin[2]) * nz;
       const came = (fromX - origin[0]) * nx + (fromZ - origin[2]) * nz;
@@ -530,6 +537,18 @@ export function resolveWalls(
   }
 
   return { x: px, z: pz, blocked };
+}
+
+/**
+ * How high a wall triangle stands over (x, z), within its own range, or null
+ * for an upright one, which has no single height there: all of it is in reach.
+ */
+export function wallHeightAt(wall: CollisionTri, x: number, z: number): number | null {
+  const [nx, ny, nz] = wall.n;
+  if (Math.abs(ny) < 0.05) return null;
+  const [ox, oy, oz] = wall.v[0];
+  const y = oy - (nx * (x - ox) + nz * (z - oz)) / ny;
+  return Math.min(wall.maxY, Math.max(wall.minY, y));
 }
 
 /** From the keys, not the velocity: facing follows travel, so travel always reads forward. */

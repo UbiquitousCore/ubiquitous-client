@@ -246,6 +246,36 @@ describe('resolveWalls', () => {
     );
   }
 
+  /** A steep ramp rising 51 units over 20 in z, steep enough to count as a wall. */
+  function ramp(): CollisionWorld {
+    return world(
+      item([
+        mesh(
+          [
+            [-10, -41, -10],
+            [10, -41, -10],
+            [10, 10, 10],
+            [-10, 10, 10],
+          ],
+          [
+            [0, 1, 2, 0],
+            [0, 2, 3, 0],
+          ],
+        ),
+      ]),
+    );
+  }
+
+  it('lets you stand over a steep slope whose range reaches you but whose surface here is far below', () => {
+    const r = resolveWalls(ramp(), 0, -9.9, 0, -9.8, 7);
+    expect(r.blocked).toBe(false);
+  });
+
+  it('still stops you at a slope that is at your height', () => {
+    const r = resolveWalls(ramp(), 0, -9.9, 0, -9.8, -41.5);
+    expect(r.blocked).toBe(true);
+  });
+
   it('stops you at the player radius instead of letting you through', () => {
     const w = wall();
     const r = resolveWalls(w, 0, 0.2, 0, 1, 0);
