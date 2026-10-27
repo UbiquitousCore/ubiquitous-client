@@ -16,6 +16,11 @@
 
   body {
     @apply m-0 font-chrome antialiased;
+    /* A game, not a document: a double tap is two taps rather than a zoom,
+       and a held finger neither selects words nor offers to save the image
+       under it. Typing fields stay selectable on their own. */
+    @apply touch-manipulation select-none;
+    -webkit-touch-callout: none;
     /* The build ships its typefaces in one weight. Asked for bold, a
        browser would smear a thickened copy of it; this draws the one
        weight there is instead. */
