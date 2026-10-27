@@ -34,6 +34,7 @@ import type { FileConfig } from '../core/FileConfig';
 import { ResourceSystem } from '../assets/ResourceSystem';
 import { WorkerAssetProvider } from '../assets/providers/WorkerAssetProvider';
 import { clearAllPacks, storageEstimate, whyNoStorage } from '../assets/vfs/PackStore';
+import { installMultiTouchTap } from '../ui/multiTouchTap';
 import { pickIpa, reopenIpa, storedIpa } from '../assets/vfs/ipaHandle';
 import { avatarLookId, splashId } from '../assets/ids';
 import type { Appearance, TextureData, ZoneInfo } from '../assets/types';
@@ -517,6 +518,7 @@ export class Game {
   private readonly castFacing = new CastFacing();
   private playerFaction: number = STARTING_FACTION;
   private pointerDown: PressedPointer | null = null;
+  private removeMultiTouchTap: (() => void) | null = null;
   private lastTap: { x: number; y: number; at: number } | null = null;
   private approach: ApproachingBody | null = null;
   private follow: { id: EntityId; stopDistance: number } | null = null;
@@ -966,6 +968,7 @@ export class Game {
     // On the window: a drag that ends off the canvas must still release.
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('click', this.onUiClick, true);
+    this.removeMultiTouchTap = installMultiTouchTap();
     window.addEventListener('pointercancel', this.onPointerCancel);
     // The right button attacks, so the browser menu must not open.
     this.canvas.addEventListener('contextmenu', this.onContextMenu);
@@ -4508,6 +4511,7 @@ export class Game {
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('click', this.onUiClick, true);
+    this.removeMultiTouchTap?.();
     window.removeEventListener('pointercancel', this.onPointerCancel);
     this.canvas.removeEventListener('contextmenu', this.onContextMenu);
     clearChat();

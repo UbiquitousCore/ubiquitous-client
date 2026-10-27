@@ -33,6 +33,7 @@ export interface InputState {
   wheel: number;
 }
 
+import { pinchWheel } from './pinch';
 import { findTouch, TouchJoystick } from './TouchJoystick';
 import { isTextEntry } from '../core/textEntry';
 import { CAST_ACTIONS, DEFAULT_KEYBINDS, MOVEMENT_ACTIONS, castSlotOf } from './keybinds';
@@ -83,6 +84,14 @@ export class Input {
   private lookTouchId: number | null = null;
   private lookLastX = 0;
   private lookLastY = 0;
+
+  /**
+   * A second finger on the game while one is looking: the two together are a
+   * pinch, which zooms and, for as long as it lasts, does not turn the camera.
+   */
+  private pinchTouchId: number | null = null;
+  private pinchLastX = 0;
+  private pinchLastY = 0;
 
   /**
    * Built when the browser reports touch support, so a desktop session never
@@ -246,10 +255,9 @@ export class Input {
     on(this.target, 'contextmenu', e => e.preventDefault());
 
     // Every touch that lands on the game is offered to the stick first: a
-    // thumb in the stick's zone moves, anything else looks. A look already
-    // claimed is left alone, so a second finger (pinch, or a stray tap) does
-    // not steal or reset it. Touches on the HUD's own controls land on those
-    // and never reach here.
+    // thumb in the stick's zone moves, anything else looks. A second finger
+    // that is not on the stick pinches with the look finger. Touches on the
+    // HUD's own controls land on those and never reach here.
     on(
       this.target,
       'touchstart',
@@ -258,10 +266,15 @@ export class Input {
         for (let i = 0; i < touches.length; i++) {
           const t = touches[i];
           if (this.joystick?.claim(t)) continue;
-          if (this.lookTouchId !== null) continue;
-          this.lookTouchId = t.identifier;
-          this.lookLastX = t.clientX;
-          this.lookLastY = t.clientY;
+          if (this.lookTouchId === null) {
+            this.lookTouchId = t.identifier;
+            this.lookLastX = t.clientX;
+            this.lookLastY = t.clientY;
+          } else if (this.pinchTouchId === null) {
+            this.pinchTouchId = t.identifier;
+            this.pinchLastX = t.clientX;
+            this.pinchLastY = t.clientY;
+          }
         }
         e.preventDefault();
       },
@@ -272,22 +285,54 @@ export class Input {
       'touchmove',
       e => {
         if (this.lookTouchId === null) return;
-        const t = findTouch((e as TouchEvent).changedTouches, this.lookTouchId);
-        if (!t) return;
-        this.dragX += t.clientX - this.lookLastX;
-        this.dragY += t.clientY - this.lookLastY;
-        this.lookLastX = t.clientX;
-        this.lookLastY = t.clientY;
+        const changed = (e as TouchEvent).changedTouches;
+        const look = findTouch(changed, this.lookTouchId);
+        const pinch = this.pinchTouchId === null ? null : findTouch(changed, this.pinchTouchId);
+        if (!look && !pinch) return;
+
+        if (this.pinchTouchId !== null) {
+          const before = Math.hypot(
+            this.lookLastX - this.pinchLastX,
+            this.lookLastY - this.pinchLastY,
+          );
+          if (look) {
+            this.lookLastX = look.clientX;
+            this.lookLastY = look.clientY;
+          }
+          if (pinch) {
+            this.pinchLastX = pinch.clientX;
+            this.pinchLastY = pinch.clientY;
+          }
+          const after = Math.hypot(
+            this.lookLastX - this.pinchLastX,
+            this.lookLastY - this.pinchLastY,
+          );
+          this.wheel += pinchWheel(before, after);
+        } else if (look) {
+          this.dragX += look.clientX - this.lookLastX;
+          this.dragY += look.clientY - this.lookLastY;
+          this.lookLastX = look.clientX;
+          this.lookLastY = look.clientY;
+        }
         e.preventDefault();
       },
       { passive: false },
     );
-    const releaseLook = (e: Event): void => {
-      if (this.lookTouchId === null) return;
-      if (findTouch((e as TouchEvent).changedTouches, this.lookTouchId)) this.lookTouchId = null;
+    const releaseTouch = (e: Event): void => {
+      const ended = (e as TouchEvent).changedTouches;
+      if (this.pinchTouchId !== null && findTouch(ended, this.pinchTouchId)) {
+        this.pinchTouchId = null;
+      }
+      if (this.lookTouchId !== null && findTouch(ended, this.lookTouchId)) {
+        // The remaining finger carries on looking from where it is.
+        this.lookTouchId = this.pinchTouchId;
+        this.lookLastX = this.pinchLastX;
+        this.lookLastY = this.pinchLastY;
+        this.pinchTouchId = null;
+      }
     };
-    on(window, 'touchend', releaseLook);
-    on(window, 'touchcancel', releaseLook);
+    on(window, 'touchend', releaseTouch);
+    on(window, 'touchcancel', releaseTouch);
   }
 
   dispose(): void {
