@@ -1,5 +1,6 @@
 /** A text overlay reading a snapshot; touches nothing else, so it is disposable. */
 
+import { SUPPORTED_VERSIONS, UNSUPPORTED_VERSIONS_NOTE } from './supportedVersions';
 import { BUTTON_BASE, BUTTON_CENTRED, BUTTON_SIZE, BUTTON_VARIANT } from './components/Button';
 
 export interface HudModel {
@@ -218,7 +219,7 @@ export class BootScreen {
   pickFile(
     prompt: string,
     pick: () => Promise<File[]>,
-    opts: { label?: string; skipLabel?: string } = {},
+    opts: { label?: string; skipLabel?: string; versions?: boolean } = {},
   ): Promise<File[]> {
     this.show(prompt);
     return new Promise(resolve => {
@@ -244,7 +245,60 @@ export class BootScreen {
         skip.addEventListener('click', () => resolve([]));
         this.list.append(skip);
       }
+
+      if (opts.versions) this.list.append(this.versionsLink());
     });
+  }
+
+  /** The "Supported versions" link, opening a dialog over the boot screen. */
+  private versionsLink(): HTMLElement {
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.textContent = 'Supported versions';
+    link.dataset.bootVersions = 'link';
+    link.className = 'self-center text-brass-300 underline hover:text-brass-400';
+    link.addEventListener('click', () => this.openVersions());
+    return link;
+  }
+
+  private openVersions(): void {
+    const backdrop = document.createElement('div');
+    backdrop.dataset.bootVersions = 'dialog';
+    backdrop.className =
+      'absolute inset-0 z-10 flex items-center justify-center bg-chrome-950/85 p-6';
+    backdrop.addEventListener('click', e => {
+      if (e.target === backdrop) backdrop.remove();
+    });
+
+    const card = document.createElement('div');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-label', 'Supported versions');
+    card.className =
+      'flex max-h-full max-w-prose flex-col gap-3 overflow-y-auto rounded-chrome border border-brass-600 bg-chrome-900 p-5 text-left shadow-recess';
+
+    const title = document.createElement('div');
+    title.className = 'font-bold text-parchment-100';
+    title.textContent = 'Supported versions';
+    card.append(title);
+
+    for (const { version, note } of SUPPORTED_VERSIONS) {
+      const row = document.createElement('div');
+      row.className = 'whitespace-pre-line';
+      const name = document.createElement('span');
+      name.className = 'font-bold text-parchment-100';
+      name.textContent = `${version} `;
+      row.append(name, note);
+      card.append(row);
+    }
+
+    const other = document.createElement('div');
+    other.textContent = UNSUPPORTED_VERSIONS_NOTE;
+    const close = this.button('Close');
+    close.addEventListener('click', () => backdrop.remove());
+    card.append(other, close);
+
+    backdrop.append(card);
+    this.panel.append(backdrop);
   }
 
   /**

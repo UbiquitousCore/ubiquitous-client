@@ -153,3 +153,24 @@ describe('BootScreen', () => {
     expect(root.style.display).toBe('none');
   });
 });
+
+describe('BootScreen supported versions', () => {
+  it('offers a link that opens the version notes and closes again', async () => {
+    void boot.pickFile('Choose', async () => [], { versions: true });
+    const link = root.querySelector<HTMLElement>('[data-boot-versions="link"]')!;
+    expect(link.textContent).toBe('Supported versions');
+
+    link.click();
+    const dialog = root.querySelector<HTMLElement>('[data-boot-versions="dialog"]')!;
+    expect(dialog.textContent).toContain('2.2.0');
+    expect(dialog.textContent).toContain('1.1.4');
+
+    dialog.querySelector('button')!.click();
+    expect(root.querySelector('[data-boot-versions="dialog"]')).toBeNull();
+  });
+
+  it('shows no link unless asked', () => {
+    void boot.pickFile('Choose', async () => []);
+    expect(root.querySelector('[data-boot-versions="link"]')).toBeNull();
+  });
+});

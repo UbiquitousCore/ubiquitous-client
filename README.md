@@ -54,6 +54,13 @@ Against a server it appears only after signing in as a GM account
 `npm run dev` and is hidden in a production build, and `admin=false` in
 `config.txt` or `?admin=0` hides it everywhere.
 
+## Supported versions
+
+The client was built using the **1.1.4** `.ipa`, and its character and
+inventory screens are drawn to match it. **2.2.0** reads too. Other versions
+may work but are untested and may show missing or wrong data; supporting every
+version is the aim and will be worked on later.
+
 ## Configuration
 
 Copy `client/env.example` to `client/.env` (git-ignored). Variables:

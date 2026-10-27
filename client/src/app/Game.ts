@@ -1403,7 +1403,7 @@ export class Game {
     const why = await whyNoStorage();
     if (why) {
       log.warn(why.split('\n').filter(Boolean).join(' '));
-      await this.boot.pickFile(why, async () => [], { skipLabel: 'Continue anyway' });
+      await this.boot.choose(why, [{ id: 'continue', label: 'Continue anyway' }]);
     }
 
     const cached = await this.local.cachedBuilds();
@@ -1465,11 +1465,16 @@ export class Game {
       return;
     }
 
-    const files = await this.boot.pickFile(
-      'Choose your Order & Chaos .ipa ' +
-        '(or extracted packs — pick res.bin and tables.bin together):',
-      pickIpa,
-    );
+    const files = await this.boot.pickFile('Choose your Order & Chaos .ipa', pickIpa, {
+      versions: true,
+    });
+
+    // Packs left by an earlier file, or a half-finished extraction, would
+    // otherwise fill the quota the new extraction needs; on a phone that ends
+    // in the tab being killed and reloading. Only the packs go: settings and
+    // the sign-in live outside this directory.
+    this.boot.show('Clearing previous game files...');
+    await clearAllPacks();
     this.boot.show('Mounting...');
     await this.local.useSource((await this.local.offer(files)).id);
   }
