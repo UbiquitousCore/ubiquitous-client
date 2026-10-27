@@ -33,7 +33,7 @@ export function ShopWindowContainer(): JSX.Element | null {
 
   if (worn) {
     return (
-      <WornStage>
+      <WornStage align="left" packed cover>
         {page === 'sell' && selling ? (
           <ArtSellWindow
             vendorName={shop.vendorName}
