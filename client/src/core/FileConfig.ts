@@ -41,9 +41,12 @@ export interface PageLocation {
  * Where to dial a configured loopback server from a page on another device:
  * through the dev server's {@link SERVER_PROXY_PATH} when proxied (the server
  * binds 127.0.0.1, and https pages cannot open `ws://`), else the page's own
- * host. A page on the loopback host keeps the address as written.
+ * host. A page on the loopback host keeps the address as written. A bare path
+ * is on the page's own origin, which is how a reverse proxy in front of both
+ * serves them: one address, one certificate, on every device.
  */
 export function serverUrlFor(url: string, page: PageLocation, proxied: boolean): string {
+  if (url.startsWith('/')) return `${page.protocol === 'https:' ? 'wss:' : 'ws:'}//${page.host}${url}`;
   try {
     const here = page.hostname;
     if (!here || isLoopback(here)) return url;

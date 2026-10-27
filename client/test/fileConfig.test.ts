@@ -87,6 +87,18 @@ describe('where a configured server is dialled from', () => {
     expect(serverUrlFor('ws://127.0.0.1:8781', PHONE, false)).toBe('ws://10.0.0.20:8781/');
   });
 
+  it("dials a bare path on the page's own origin, from any device", () => {
+    expect(serverUrlFor('/ubiquitous-server', PHONE, false)).toBe(
+      'wss://10.0.0.20:8780/ubiquitous-server',
+    );
+    expect(serverUrlFor('/ubiquitous-server', PC, false)).toBe(
+      'wss://localhost:8780/ubiquitous-server',
+    );
+    expect(serverUrlFor('/ubiquitous-server', PHONE_HTTP, true)).toBe(
+      'ws://10.0.0.20:8780/ubiquitous-server',
+    );
+  });
+
   it('leaves a server on another machine alone', () => {
     expect(serverUrlFor('wss://play.example:7020', PHONE, true)).toBe('wss://play.example:7020');
   });
