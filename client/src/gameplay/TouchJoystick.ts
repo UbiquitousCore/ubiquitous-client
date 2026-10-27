@@ -11,15 +11,27 @@ export interface Point {
 }
 
 /**
- * How much of the screen's width, from the left, a thumb may land on to take
- * the stick. A touch further right is left for looking around. Chosen by
- * feel: half the screen is where a left thumb naturally rests.
+ * The lower-left corner of the screen, where a left thumb rests: a touch
+ * must land in the left `STICK_ZONE_WIDTH` of the width and the bottom
+ * `STICK_ZONE_HEIGHT` of the height to take the stick. Anywhere else looks.
+ * Own choice: 40% by 45% keeps the corner generous without covering the
+ * middle of the view that looking and tapping need.
  */
-export const STICK_ZONE_WIDTH = 0.5;
+export const STICK_ZONE_WIDTH = 0.4;
+export const STICK_ZONE_HEIGHT = 0.45;
 
-/** Whether a touch landing at `x` on a screen `width` wide takes the stick. */
-export function inStickZone(x: number, width: number): boolean {
-  return x >= 0 && x < width * STICK_ZONE_WIDTH;
+/**
+ * How far a thumb must travel from where it landed before the stick wakes.
+ * A tap, or a thumb resting on the glass, stays under it and moves nothing.
+ * Own choice: about a fingertip's wobble on a phone.
+ */
+export const STICK_DRAG_SLOP = 10;
+
+/** Whether a touch landing at (`x`, `y`) on a `width` × `height` screen takes the stick. */
+export function inStickZone(x: number, y: number, width: number, height: number): boolean {
+  return (
+    x >= 0 && x < width * STICK_ZONE_WIDTH && y >= height * (1 - STICK_ZONE_HEIGHT) && y <= height
+  );
 }
 
 /** Inside the rim the ring stays; past it the ring is dragged so the thumb sits on the rim at full tilt. */
@@ -52,7 +64,7 @@ export function keepOnScreen(p: Point, radius: number, width: number, height: nu
 /** Styled with app utilities, wearing ring and knob from the player's sheet; takes no touches (`Input` hands them over). */
 const BASE =
   'pointer-events-none fixed bottom-safe-b left-safe-l z-hud-float m-6 size-30 rounded-full ' +
-  'surface-stick-ring bg-white/10 opacity-60 data-held:opacity-100 short-landscape:size-23';
+  'surface-stick-ring bg-white/10 opacity-0 data-held:opacity-100 short-landscape:size-23';
 
 /**
  * No `-translate-x-1/2` here on purpose: the drag writes `transform`, and
@@ -75,6 +87,8 @@ export class TouchJoystick {
   private centre: Point = { x: 0, y: 0 };
   /** The ring's centre at rest, where `base` is drawn without a transform. */
   private rest: Point = { x: 0, y: 0 };
+  /** Where a claimed thumb landed, until it has dragged far enough to wake the stick. */
+  private pending: Point | null = null;
   private vecX = 0;
   private vecY = 0;
   private readonly teardown: Array<() => void> = [];
@@ -98,23 +112,26 @@ export class TouchJoystick {
 
   /**
    * Offer a touch that has just landed on the game. Takes it, and answers
-   * true, when no thumb holds the stick already and the touch is in the zone.
+   * true, when no thumb holds the stick already and the touch is in the
+   * zone. The stick only moves once the thumb drags; a tap leaves it idle.
    */
   claim(touch: Touch): boolean {
     if (this.touchId !== null) return false;
-    if (!inStickZone(touch.clientX, window.innerWidth)) return false;
+    if (!inStickZone(touch.clientX, touch.clientY, window.innerWidth, window.innerHeight)) {
+      return false;
+    }
     this.touchId = touch.identifier;
+    this.pending = { x: touch.clientX, y: touch.clientY };
+    return true;
+  }
+
+  private wake(): void {
+    const start = this.pending!;
+    this.pending = null;
     const rect = this.base.getBoundingClientRect();
     this.rest = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    this.centre = keepOnScreen(
-      { x: touch.clientX, y: touch.clientY },
-      this.radius(),
-      window.innerWidth,
-      window.innerHeight,
-    );
+    this.centre = keepOnScreen(start, this.radius(), window.innerWidth, window.innerHeight);
     this.base.dataset.held = '';
-    this.updateFrom(touch.clientX, touch.clientY);
-    return true;
   }
 
   private radius(): number {
@@ -141,6 +158,14 @@ export class TouchJoystick {
         if (this.touchId === null) return;
         const t = findTouch((e as TouchEvent).changedTouches, this.touchId);
         if (!t) return;
+        if (this.pending) {
+          const moved = Math.hypot(t.clientX - this.pending.x, t.clientY - this.pending.y);
+          if (moved < STICK_DRAG_SLOP) {
+            e.preventDefault();
+            return;
+          }
+          this.wake();
+        }
         this.updateFrom(t.clientX, t.clientY);
         e.preventDefault();
       },
@@ -151,6 +176,7 @@ export class TouchJoystick {
       if (this.touchId === null) return;
       if (!findTouch((e as TouchEvent).changedTouches, this.touchId)) return;
       this.touchId = null;
+      this.pending = null;
       this.vecX = 0;
       this.vecY = 0;
       delete this.base.dataset.held;

@@ -7,11 +7,13 @@ import { Input } from '../src/gameplay/Input';
 import { followThumb, inStickZone, keepOnScreen } from '../src/gameplay/TouchJoystick';
 
 describe('where a thumb takes the stick', () => {
-  it('takes the left half of the screen and leaves the right for looking', () => {
-    expect(inStickZone(10, 800)).toBe(true);
-    expect(inStickZone(399, 800)).toBe(true);
-    expect(inStickZone(400, 800)).toBe(false);
-    expect(inStickZone(790, 800)).toBe(false);
+  it('takes the lower-left corner and leaves the rest for looking', () => {
+    expect(inStickZone(10, 390, 800, 400)).toBe(true);
+    expect(inStickZone(10, 399, 800, 400)).toBe(true);
+    expect(inStickZone(319, 399, 800, 400)).toBe(true);
+    expect(inStickZone(320, 399, 800, 400)).toBe(false);
+    expect(inStickZone(10, 100, 800, 400)).toBe(false);
+    expect(inStickZone(700, 390, 800, 400)).toBe(false);
   });
 });
 
@@ -81,12 +83,34 @@ describe('a touch on the game', () => {
   it('moves when it lands on the left, and does not turn the camera', () => {
     const canvas = setUp();
     const x = window.innerWidth * 0.2;
-    touch(canvas, 'touchstart', 1, x, 300);
-    touch(canvas, 'touchmove', 1, x, 100);
+    const y = window.innerHeight * 0.8;
+    touch(canvas, 'touchstart', 1, x, y);
+    touch(canvas, 'touchmove', 1, x, y - 100);
     const state = input!.sample();
     expect(state.forward).toBe(true);
     expect(state.dragX).toBe(0);
     expect(state.dragY).toBe(0);
+  });
+
+  it('does nothing for a tap or a resting thumb, and does not look either', () => {
+    const canvas = setUp();
+    const x = window.innerWidth * 0.2;
+    const y = window.innerHeight * 0.8;
+    touch(canvas, 'touchstart', 1, x, y);
+    touch(canvas, 'touchmove', 1, x, y - 4);
+    const state = input!.sample();
+    expect(state.forward).toBe(false);
+    expect(state.dragY).toBe(0);
+  });
+
+  it('looks, not moves, in the upper-left', () => {
+    const canvas = setUp();
+    const x = window.innerWidth * 0.2;
+    touch(canvas, 'touchstart', 3, x, 100);
+    touch(canvas, 'touchmove', 3, x + 30, 100);
+    const state = input!.sample();
+    expect(state.forward).toBe(false);
+    expect(state.dragX).toBe(30);
   });
 
   it('looks when it lands on the right, and does not move', () => {
