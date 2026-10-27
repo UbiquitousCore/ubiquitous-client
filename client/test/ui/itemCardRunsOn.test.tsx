@@ -13,7 +13,7 @@ vi.mock('../../src/ui/art/pieceCanvas', () => ({
   },
 }));
 
-import { ArtItemCard, HELD_CARD } from '../../src/ui/components/ArtItemCard';
+import { ArtItemCard, HELD_CARD, hiddenMarks } from '../../src/ui/components/ArtItemCard';
 import { setMovie } from '../../src/ui/art/pieceStore';
 import { uiSpec } from '../../src/ui/art/uiSpec';
 import type { ScreenSpec } from '../../src/ui/art/uiSpec';
@@ -117,6 +117,7 @@ describe('an item card whose words fit', () => {
       div => div.style.overflowY === 'auto',
     );
     expect(scrolled).toEqual([]);
+    expect(getByRole('dialog').querySelector('[data-scroll-thumb]')).toBeNull();
   });
 });
 
@@ -130,5 +131,21 @@ describe('an item card whose words run on', () => {
       div => div.style.overflowY === 'auto',
     );
     expect(scrolled).toHaveLength(1);
+    expect(getByRole('dialog').querySelector('[data-scroll-thumb]')).not.toBeNull();
+  });
+});
+
+describe('which marks a card leaves out', () => {
+  const spec = {
+    marks: { above: 'up', below: 'down' },
+    panels: { bar: 'bar' },
+  } as unknown as ScreenSpec;
+
+  it('keeps only the mark for the way there is more, ', () => {
+    const at = (up: boolean, down: boolean) => hiddenMarks(spec, { up, down, along: 0 });
+    expect(at(false, true)).toEqual(['up']);
+    expect(at(true, false)).toEqual(['down']);
+    expect(at(true, true)).toEqual([]);
+    expect(at(false, false)).toEqual(['up', 'down']);
   });
 });

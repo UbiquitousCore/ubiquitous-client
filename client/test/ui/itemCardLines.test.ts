@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { cardLines, holding } from '../../src/ui/itemCard';
+import { cardLines } from '../../src/ui/itemCard';
 import type { ScreenSpec } from '../../src/ui/art/uiSpec';
 import type { ItemFacts } from '../../src/assets/types';
 
@@ -245,19 +245,5 @@ describe('a card with no spec behind it yet', () => {
     expect(cardLines({ facts: item({ armour: 288 }), level: 60, playerClass: 1 }, null)).toEqual(
       [],
     );
-  });
-});
-
-describe('what a press means', () => {
-  it('is held when it is a finger or a pen', () => {
-    expect(holding({ pointerType: 'touch' })).toBe(true);
-    expect(holding({ pointerType: 'pen' })).toBe(true);
-  });
-
-  it('switches for a mouse, and for a press the browser cannot place', () => {
-    // Holding a mouse button down to keep a card open is the worse of the
-    // two mistakes, so anything unplaceable is treated as a pointer.
-    expect(holding({ pointerType: 'mouse' })).toBe(false);
-    expect(holding({})).toBe(false);
   });
 });

@@ -363,9 +363,7 @@ function HeldCard({ compare }: { compare: boolean }): JSX.Element | null {
     const timer = setInterval(() => {
       const control = box.current?.querySelector('[aria-label="Compare with what is worn"]');
       if (!control) return;
-      control.dispatchEvent(
-        new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }),
-      );
+      (control as HTMLElement).click();
       clearInterval(timer);
     }, 100);
     return () => clearInterval(timer);

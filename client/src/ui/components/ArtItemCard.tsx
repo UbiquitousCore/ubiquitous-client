@@ -1,7 +1,7 @@
 /**
  * The shipped item card, for the market, shops and the bag: a titled body
  * with strips of controls stacked under it, depending on where it opened.
- * Holding the compare control shows a second card for what is worn there,
+ * Pressing the compare control shows a second card for what is worn there,
  * with differences. Without the art the caller falls back.
  */
 
@@ -15,7 +15,7 @@ import { screenSpec } from '../art/uiSpec';
 import type { ScreenSpec } from '../art/uiSpec';
 import { meaningOf } from '../art/screenMeanings';
 import { equipmentHomesFor, qualityTextClass } from '../items';
-import { cardLines, holding, placeAlongside, placeBeside } from '../itemCard';
+import { cardLines, placeAlongside, placeBeside } from '../itemCard';
 import type { CardLine, Tone } from '../itemCard';
 import { INK, LIGHT, useWorn } from '../art/useWorn';
 import { namedCoins } from '../money';
@@ -127,6 +127,16 @@ function rowsOf(lines: CardLine[]): CardLine[][] {
   return rows;
 }
 
+/** Which ways a card's words run on past its box: there is more above, more below. */
+interface Runs {
+  up: boolean;
+  down: boolean;
+  /** How far down the words it is scrolled, from 0 at the top to 1 at the foot. */
+  along: number;
+}
+
+const STAYS: Runs = { up: false, down: false, along: 0 };
+
 /** The card's lines in the movie's box, scrolled (with marks) rather than spilled. */
 function Lines({
   lines,
@@ -139,18 +149,35 @@ function Lines({
   style: JSX.CSSProperties;
   sizePx: number;
   align: string;
-  /** Told whether the words run past the box, whenever that may change. */
-  onOverflow(over: boolean): void;
+  /** Told which ways the words run past the box, whenever that may change. */
+  onOverflow(runs: Runs): void;
 }): JSX.Element {
   const box = useRef<HTMLDivElement>(null);
   const [over, setOver] = useState(false);
-  useLayoutEffect(() => {
+  const measure = useRef(() => {});
+  measure.current = () => {
     const on = box.current;
     // A pixel of rounding is not more to read.
     const runs = Boolean(on && on.scrollHeight > on.clientHeight + 1);
     setOver(runs);
-    onOverflow(runs);
-  });
+    const room = on ? on.scrollHeight - on.clientHeight : 0;
+    onOverflow({
+      up: runs && Boolean(on) && on!.scrollTop > 1,
+      down: runs && Boolean(on) && on!.scrollTop + on!.clientHeight < on!.scrollHeight - 1,
+      along: runs && room > 0 ? Math.min(1, Math.max(0, on!.scrollTop / room)) : 0,
+    });
+  };
+  useLayoutEffect(() => measure.current());
+  // The box is first measured before its picture has loaded, when it has no
+  // height and everything seems to overflow; nothing else re-renders it when
+  // the picture arrives.
+  useEffect(() => {
+    const on = box.current;
+    if (!on || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(() => measure.current());
+    watch.observe(on);
+    return () => watch.disconnect();
+  }, []);
   return (
     <div
       ref={box}
@@ -165,10 +192,15 @@ function Lines({
         // into whatever is behind it — a card is read where it stands,
         // not while the screen under it slides away.
         overscrollBehavior: 'contain',
+        touchAction: 'pan-y',
         scrollBehavior: 'smooth',
+        // The movie draws the card's own bar; a second, native one shown
+        // while scrolling would stand beside it.
+        scrollbarWidth: 'none',
         paddingLeft: INSET,
       }}
-      className="flex flex-col gap-[2%]"
+      onScroll={() => measure.current()}
+      className="flex flex-col gap-[2%] [&::-webkit-scrollbar]:hidden"
     >
       {rowsOf(lines).map((row, at) => (
         <span
@@ -221,12 +253,15 @@ function ArtWornCard({
   useEffect(() => {
     if (spec) wantDialog(spec.dialog);
   }, [spec]);
-  const [over, setOver] = useState(false);
+  const [runs, setRuns] = useState(STAYS);
   const worn = useWorn(
     spec?.dialog,
     spec?.frame,
-    { hidden: [...(spec?.hidden ?? []), ...(over ? [] : runsOn(spec))] },
-    CARD,
+    {
+      hidden: [...(spec?.hidden ?? []), ...hiddenMarks(spec, runs)],
+      withoutArt: barOf(spec),
+    },
+    { ...CARD, framedShowing: hiddenMarks(spec, STAYS) },
   );
   const width = worn.frame ? worn.frame.w * unit : 0;
   useEffect(() => {
@@ -307,18 +342,70 @@ function ArtWornCard({
           style={squeezed(worn.box(text), text.box)}
           sizePx={(text.text?.sizePx ?? 12) * unit}
           align={text.text?.align ?? 'left'}
-          onOverflow={setOver}
+          onOverflow={next =>
+            setRuns(now =>
+              now.up === next.up && now.down === next.down && now.along === next.along ? now : next,
+            )
+          }
+        />
+      )}
+      {text && (
+        <Thumb
+          worn={worn}
+          spec={spec}
+          runs={runs}
+          track={{ y: text.box.y + drop, h: Math.max(0, text.box.h - drop) }}
         />
       )}
     </div>
   );
 }
 
-/** The parts of a card that say its words run on, drawn only while they do. */
-function runsOn(spec: ScreenSpec | null | undefined): string[] {
-  return [spec?.marks?.above, spec?.marks?.below, spec?.panels?.bar].filter(
-    (name): name is string => Boolean(name),
+/** Where the words are scrolled to, on the screen's own bar part; it stands only while they run on. */
+function Thumb({
+  worn,
+  spec,
+  runs,
+  track,
+}: {
+  worn: Worn;
+  spec: ScreenSpec;
+  runs: Runs;
+  /** The stretch of the picture, in movie units, the words are scrolled in. */
+  track: { y: number; h: number };
+}): JSX.Element | null {
+  const bar = worn.find(spec.panels?.bar);
+  if (!bar || !worn.frame || !(runs.up || runs.down)) return null;
+  const top = track.y + runs.along * Math.max(0, track.h - bar.box.h);
+  return (
+    <div
+      aria-hidden="true"
+      data-scroll-thumb=""
+      style={{
+        ...worn.box(bar),
+        top: `${(top / worn.frame.h) * 100}%`,
+        background: 'var(--color-brass-500)',
+        borderRadius: '9999px',
+        pointerEvents: 'none',
+      }}
+    />
   );
+}
+
+/** The bar's own art is left off the picture: it is drawn where the words are scrolled to. */
+function barOf(spec: ScreenSpec | null | undefined): string[] {
+  return spec?.panels?.bar ? [spec.panels.bar] : [];
+}
+
+/**
+ * The parts of a card that say its words run on, left out of the picture
+ * wherever they do not: each mark points the way there is more to read.
+ */
+export function hiddenMarks(spec: ScreenSpec | null | undefined, runs: Runs): string[] {
+  return [
+    ...(runs.up ? [] : [spec?.marks?.above]),
+    ...(runs.down ? [] : [spec?.marks?.below]),
+  ].filter((name): name is string => Boolean(name));
 }
 
 /** What the spells a thing carries do, in whatever words have arrived. */
@@ -389,8 +476,8 @@ export function ArtItemCard({
   /** Whether the control that holds one thing against another is down. */
   const [comparing, setComparing] = useState(false);
   const [wornWidth, setWornWidth] = useState(0);
-  /** Whether what the card says runs past its foot, which is when it says so. */
-  const [over, setOver] = useState(false);
+  /** Which ways what the card says runs on past its box, which is when it says so. */
+  const [runs, setRuns] = useState(STAYS);
 
   const card = spec?.card;
   /** What the card offers and on which piece; an action with no strip belongs to the body. */
@@ -420,7 +507,7 @@ export function ArtItemCard({
   ];
   const off = [
     ...(spec?.hidden ?? []),
-    ...(over ? [] : runsOn(spec)),
+    ...hiddenMarks(spec, runs),
     ...everyStrip,
     ...(canCompare || !card?.compare ? [] : [card.compare]),
     // Hide controls for actions not offered. By control, not by action: one
@@ -432,7 +519,12 @@ export function ArtItemCard({
 
   // The body, framed on its own backdrop so nothing beyond it is drawn and
   // everything in it is placed against the card's own edges.
-  const body = useWorn(spec?.dialog, card?.body ? spec?.frame : undefined, { hidden: off }, CARD);
+  const body = useWorn(
+    spec?.dialog,
+    card?.body ? spec?.frame : undefined,
+    { hidden: off, withoutArt: barOf(spec) },
+    { ...CARD, framedShowing: hiddenMarks(spec, STAYS) },
+  );
   // The close is drawn in the body, where the movie puts it; it is only
   // asked for here so the same number of hooks runs whatever the card
   // is showing.
@@ -612,9 +704,16 @@ export function ArtItemCard({
                     style={body.box(text)}
                     sizePx={(text.text?.sizePx ?? 12) * shown}
                     align={text.text?.align ?? 'left'}
-                    onOverflow={setOver}
+                    onOverflow={next =>
+                      setRuns(now =>
+                        now.up === next.up && now.down === next.down && now.along === next.along
+                          ? now
+                          : next,
+                      )
+                    }
                   />
                 )}
+                {text && <Thumb worn={body} spec={spec} runs={runs} track={text.box} />}
               </>
             )}
 
@@ -628,12 +727,6 @@ export function ArtItemCard({
               />
             )}
 
-            {/* Held under a finger, switched under a pointer. The screen
-                was drawn for a touch, where holding is the only way to
-                read one card against another and keep both hands on the
-                glass; with a mouse there is nothing to keep hold of, and
-                holding a button down to read is a poor way to spend a
-                hand. See `holding`. */}
             {canCompare &&
               card.compare &&
               (() => {
@@ -643,19 +736,7 @@ export function ArtItemCard({
                     type="button"
                     aria-label="Compare with what is worn"
                     aria-pressed={comparing}
-                    onPointerDown={event =>
-                      setComparing(holding(event) ? true : showing => !showing)
-                    }
-                    onPointerUp={event => holding(event) && setComparing(false)}
-                    onPointerLeave={event => holding(event) && setComparing(false)}
-                    onPointerCancel={event => holding(event) && setComparing(false)}
-                    // A button reached by the keyboard is pressed, never
-                    // held, so it switches whatever the pointer would do.
-                    onKeyDown={event => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      event.preventDefault();
-                      setComparing(showing => !showing);
-                    }}
+                    onClick={() => setComparing(showing => !showing)}
                     style={piece.worn.box(control)}
                     className="absolute cursor-pointer border-0 bg-transparent p-0 active:brightness-90"
                   />

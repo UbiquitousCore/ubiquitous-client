@@ -337,8 +337,3 @@ export function placeAlongside(
   }
   return lefts.map(left => ({ left: inside(left, width, room.w), top: card.top }));
 }
-
-/** A finger or pen holds; a mouse or unknown pointer switches (holding a mouse down is the worse mistake). */
-export function holding(event: { pointerType?: string }): boolean {
-  return event.pointerType === 'touch' || event.pointerType === 'pen';
-}

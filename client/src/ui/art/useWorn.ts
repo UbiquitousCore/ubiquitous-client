@@ -120,10 +120,18 @@ export interface WornOptions {
   floats?: boolean;
   /** Grow the frame to take in art spilling over its parts (a message box's ring); not for staged screens. */
   spills?: boolean;
+  /** Parts that may be hidden at times but still count when the frame grows to take in spilled art, so it holds still as they come and go. */
+  framedShowing?: readonly string[];
   /** Parts never drawn, left out of the frame, or a corner-flush frame stands in from its corner. */
   measuredWithout?: readonly string[];
   /** The movie this screen is in; the in-game one unless said (the front end has its own). */
   movie?: UiMovie;
+}
+
+/** The states with these parts shown, whatever they asked. */
+function withShown(states: PlanStates, shown: readonly string[] | undefined): PlanStates {
+  if (!shown?.length || !states.hidden) return states;
+  return { ...states, hidden: states.hidden.filter(name => !shown.includes(name)) };
 }
 
 export function useWorn(
@@ -192,7 +200,10 @@ export function useWorn(
     };
     // What is drawn in the states asked for, not with every state on:
     // a control that is left out spills nothing.
-    const drawn = options.spills && loaded && dialog ? planPiece(loaded.skin, dialog, asked) : null;
+    const drawn =
+      options.spills && loaded && dialog
+        ? planPiece(loaded.skin, dialog, withShown(asked, options.framedShowing))
+        : null;
     if (!drawn) return framed;
     return frameAround(
       framed,
@@ -200,7 +211,7 @@ export function useWorn(
       { w: loaded!.skin.width, h: loaded!.skin.height },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [whole, measured, framedOn, key, options.spills]);
+  }, [whole, measured, framedOn, key, options.spills, options.framedShowing?.join('\u0000')]);
 
   // Redrawn when the setting moves: rasterised finer than shown, to stay sharp.
   const drawnPerUnit = rasterScale();
