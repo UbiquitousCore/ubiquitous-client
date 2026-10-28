@@ -9,6 +9,8 @@ export interface PieceImage {
   /** Pixel size at the scale it was drawn. */
   width: number;
   height: number;
+  /** Encoded size, for what a cache of drawn pieces holds; absent where nobody counted. */
+  bytes?: number;
 }
 
 /** Bitmap fills map into twips; lengths arrive in pixels, so scales divide by 20. */
@@ -179,5 +181,6 @@ export function drawPiece(
     ctx.restore();
   }
   if (!drew) return null;
-  return { url: canvas.toDataURL('image/png'), width, height };
+  const url = canvas.toDataURL('image/png');
+  return { url, width, height, bytes: url.length };
 }

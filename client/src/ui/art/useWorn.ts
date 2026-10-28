@@ -1,16 +1,25 @@
 /** Wearing a shipped screen: drawing, measuring, finding parts and placing words. */
 
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import type { RefObject } from 'preact';
 
 import { drawPiece } from './pieceCanvas';
+import { pieceImages, skinId } from './pieceImages';
 import { movieArt, wantDialog } from './pieceStore';
 import { screenSpec } from './uiSpec';
 import { meaningOf } from './screenMeanings';
 import type { ScreenSpec } from './uiSpec';
 import type { PieceImage } from './pieceCanvas';
-import { findPlacements, frameAround, isNamed, mapBox, planPiece, transformTo } from './piecePlan';
+import {
+  findPlacements,
+  frameAround,
+  isNamed,
+  mapBox,
+  planArt,
+  planPiece,
+  transformTo,
+} from './piecePlan';
 import type { PieceBox, PiecePart, PlanStates } from './piecePlan';
 import { MAX_UI_SCALE } from '../../core/graphics';
 import type { UiMovie } from '../../assets/ids';
@@ -215,15 +224,45 @@ export function useWorn(
 
   // Redrawn when the setting moves: rasterised finer than shown, to stay sharp.
   const drawnPerUnit = rasterScale();
-  const drawn = useMemo(() => {
-    if (!loaded || !dialog || !frame) return null;
-    const plan = planPiece(loaded.skin, dialog, { ...asked, frame });
-    if (!plan) return null;
-    return { image: drawPiece(plan, loaded.art, drawnPerUnit), parts: plan.parts };
+  const plan = useMemo(
+    () => (loaded && dialog && frame ? planPiece(loaded.skin, dialog, { ...asked, frame }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, dialog, frame, key, drawnPerUnit]);
+    [loaded, dialog, frame, key],
+  );
+  // The art present is part of the key: a movie republished with more sheets draws more.
+  const imageKey = useMemo(
+    () =>
+      plan && loaded && frame
+        ? [
+            skinId(loaded.skin),
+            dialog,
+            key,
+            `${frame.x},${frame.y},${frame.w},${frame.h}`,
+            drawnPerUnit,
+            planArt(plan)
+              .filter(art => loaded.art.has(art))
+              .join('\u0000'),
+          ].join('|')
+        : null,
+    [plan, loaded, dialog, key, frame, drawnPerUnit],
+  );
+  const image = useMemo(
+    () =>
+      imageKey && plan && loaded
+        ? pieceImages.draw(imageKey, () => drawPiece(plan, loaded.art, drawnPerUnit))
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [imageKey],
+  );
+  // Held from render, not after paint: another screen drawn in between could
+  // otherwise let this one's picture go while it is still shown.
+  useLayoutEffect(() => {
+    if (!imageKey) return;
+    pieceImages.hold(imageKey);
+    return () => pieceImages.release(imageKey);
+  }, [imageKey]);
 
-  const parts = drawn?.parts ?? [];
+  const parts = plan?.parts ?? [];
 
   /** How tall the picture came out, for sizing words in movie units. */
   const pictureRef = useRef<HTMLImageElement>(null);
@@ -267,7 +306,7 @@ export function useWorn(
     };
     // Also the element: a picture mounted later (a tab's page) is measured once there.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawn, pictureRef.current]);
+  }, [image, pictureRef.current]);
 
   /** A part by whole path, else by path tail: several fields can share a tail like `text`. */
   const find = (suffix: string | undefined): PiecePart | undefined =>
@@ -363,7 +402,7 @@ export function useWorn(
     placed,
     onStage: onScreen,
     whole: whole?.parts ?? [],
-    image: drawn?.image ?? null,
+    image,
     parts,
     scale,
     pictureRef,

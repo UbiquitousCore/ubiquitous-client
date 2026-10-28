@@ -93,7 +93,9 @@ const pct = (value: string | undefined): number => Number.parseFloat(value ?? 'N
 function standing(build: string, resource: ResourceType) {
   const one = read.get(build)!;
   setUiWords(one.words);
-  setMovie({ skin: one.skin, art: new Map() });
+  // A copy, so the frame is drawn for this test rather than answered from
+  // the last test's drawing of the same movie.
+  setMovie({ skin: { ...one.skin }, art: new Map() });
   const { container } = render(<ArtPlayerFrame unit={hero(resource)} portraitUrl="blob:face" />);
   const plan = drawn.at(-1)!;
   const socket = container.querySelector<HTMLElement>('[data-socket]')!;

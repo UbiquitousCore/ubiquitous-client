@@ -6,12 +6,21 @@ import type { PiecePlan } from '../../src/ui/art/piecePlan';
 
 /** Every plan drawn, newest last. */
 const drawn: PiecePlan[] = [];
+/** Each drawing's plan by its URL: a look drawn before is shown again, not drawn again. */
+const planOf = new Map<string, PiecePlan>();
 vi.mock('../../src/ui/art/pieceCanvas', () => ({
   drawPiece: (plan: PiecePlan) => {
     drawn.push(plan);
-    return { url: `blob:${drawn.length}`, width: plan.box.w, height: plan.box.h };
+    const url = `blob:${drawn.length}`;
+    planOf.set(url, plan);
+    return { url, width: plan.box.w, height: plan.box.h };
   },
 }));
+
+/** The plan behind the card's picture as it stands now. */
+function shown(): PiecePlan | undefined {
+  return planOf.get(document.querySelector('img')?.getAttribute('src') ?? '');
+}
 
 import { ArtTalentCard } from '../../src/ui/components/ArtTalentCard';
 import { setMovie } from '../../src/ui/art/pieceStore';
@@ -207,26 +216,26 @@ describe('ArtTalentCard', () => {
     const { getByRole, queryByRole, queryByText } = mount(2);
     expect(queryByRole('button', { name: 'Confirm' })).toBeNull();
     expect(queryByText('Confirm')).toBeNull();
-    expect(paints(drawn.at(-1), CONFIRM)).toBe(false);
+    expect(paints(shown(), CONFIRM)).toBe(false);
     fireEvent.click(getByRole('button', { name: 'Add a point' }));
     expect(getByRole('button', { name: 'Confirm' })).toBeTruthy();
-    expect(paints(drawn.at(-1), CONFIRM)).toBe(true);
+    expect(paints(shown(), CONFIRM)).toBe(true);
     fireEvent.click(getByRole('button', { name: 'Take a point back' }));
     expect(queryByRole('button', { name: 'Confirm' })).toBeNull();
-    expect(paints(drawn.at(-1), CONFIRM)).toBe(false);
+    expect(paints(shown(), CONFIRM)).toBe(false);
   });
 
   it('puts the whole confirm away, its plate included, until a point is staged', () => {
     const { getByRole, container } = mount(2);
     const tall = container.querySelector('img')!.style.height;
-    expect(paints(drawn.at(-1), PLATE)).toBe(false);
+    expect(paints(shown(), PLATE)).toBe(false);
     fireEvent.click(getByRole('button', { name: 'Add a point' }));
-    expect(paints(drawn.at(-1), PLATE)).toBe(true);
+    expect(paints(shown(), PLATE)).toBe(true);
     // The card holds its size either way: nothing under the pointer moves.
     expect(container.querySelector('img')!.style.height).toBe(tall);
-    expect(paints(drawn.at(-1), CONFIRM)).toBe(true);
+    expect(paints(shown(), CONFIRM)).toBe(true);
     fireEvent.click(getByRole('button', { name: 'Take a point back' }));
-    expect(paints(drawn.at(-1), PLATE)).toBe(false);
+    expect(paints(shown(), PLATE)).toBe(false);
   });
 
   it('stands beside the place it was opened on, so a staged point shows on the tree', () => {
@@ -255,7 +264,7 @@ describe('ArtTalentCard', () => {
   it('wears each control’s own face for when it can do nothing', () => {
     const { getByRole } = mount(0);
     expect((getByRole('button', { name: 'Add a point' }) as HTMLButtonElement).disabled).toBe(true);
-    const last = drawn.at(-1);
+    const last = shown();
     expect(paints(last, ADD_DIM)).toBe(true);
     expect(paints(last, ADD_LIT)).toBe(false);
   });
@@ -278,12 +287,12 @@ describe('ArtTalentCard', () => {
 
   it('shows the marks and the bar that say the words run on only when they do', () => {
     mount(2);
-    expect(paints(drawn.at(-1), MARK)).toBe(false);
+    expect(paints(shown(), MARK)).toBe(false);
     cleanup();
     drawn.length = 0;
     vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(500);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100);
     mount(2);
-    expect(paints(drawn.at(-1), MARK)).toBe(true);
+    expect(paints(shown(), MARK)).toBe(true);
   });
 });
