@@ -14,6 +14,9 @@ import { ResourceUnsupportedError } from './PackAssetProvider';
 
 const log = logger('worker-provider');
 
+/** Own choice: as many as `MaterialCache` keeps in flight, so none of its fetches waits here. */
+export const TEXTURE_SLOTS = 6;
+
 export interface WorkerAssetProviderOptions {
   onProgress?: ProgressFn;
 }
@@ -51,6 +54,12 @@ export class WorkerAssetProvider implements AssetProvider {
   private readonly onProgress?: ProgressFn;
   /** Concurrent worker loads, so callers' nearest-first order is the worker's order. Eight is a guess. */
   private readonly loads = new Limiter(8);
+  /**
+   * Textures' own slots. In the eight above, each would wait behind whatever
+   * tiles and models are queued and a zone stands grey, while decoding one is
+   * a few milliseconds of the worker's time (1.1.4's PVRTC, measured).
+   */
+  private readonly textureLoads = new Limiter(TEXTURE_SLOTS);
 
   constructor(opts: WorkerAssetProviderOptions = {}) {
     this.onProgress = opts.onProgress;
@@ -114,9 +123,8 @@ export class WorkerAssetProvider implements AssetProvider {
   }
 
   load<K extends ResourceKind>(id: IdOf<K>): Promise<ResourceTypes[K]> {
-    return this.loads.run(() =>
-      this.send<ResourceTypes[K]>({ op: 'load', resource: id as ResourceId }),
-    );
+    const lane = id.kind === 'texture' ? this.textureLoads : this.loads;
+    return lane.run(() => this.send<ResourceTypes[K]>({ op: 'load', resource: id as ResourceId }));
   }
 
   /** Loads waiting for one of the worker's slots. */

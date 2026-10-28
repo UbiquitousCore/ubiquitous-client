@@ -20,8 +20,12 @@ import type { BlendMode } from '../assets/types';
 
 const log = logger('materials');
 
-/** Fetch-and-upload concurrency: ~300 textures at once would stutter the frame loop. */
-const MAX_CONCURRENT_UPLOADS = 2;
+/**
+ * Textures fetched at once. Own choice: enough to keep the asset worker's
+ * texture lane full; a zone's ~300 all at once would land in one frame and
+ * stutter it.
+ */
+export const MAX_CONCURRENT_UPLOADS = 6;
 
 /** A world position, for prioritising the texture queue by distance. */
 type Vec3 = readonly [number, number, number];

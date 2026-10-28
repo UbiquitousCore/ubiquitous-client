@@ -15,7 +15,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 
-import { MaterialCache } from '../src/renderer/MaterialCache';
+import { MAX_CONCURRENT_UPLOADS, MaterialCache } from '../src/renderer/MaterialCache';
 import type { MaterialSpec } from '../src/renderer/MaterialCache';
 import type { TextureData } from '../src/assets/types';
 
@@ -46,7 +46,7 @@ function textures() {
 }
 
 /** How many fetches `MaterialCache` runs at once; the tests fill exactly this many slots. */
-const SLOTS = 2;
+const SLOTS = MAX_CONCURRENT_UPLOADS;
 
 /** Let the queue pump run. */
 const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0));
