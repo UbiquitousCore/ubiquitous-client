@@ -21,7 +21,7 @@ import {
   transformTo,
 } from './piecePlan';
 import type { PieceBox, PiecePart, PlanStates } from './piecePlan';
-import { MAX_UI_SCALE } from '../../core/graphics';
+import { uiPictureScale } from '../../core/graphics';
 import type { UiMovie } from '../../assets/ids';
 import { useStageRoom } from './WornStage';
 import { uiScale } from '../optionsStore';
@@ -29,9 +29,6 @@ import { wornLettering } from './wornFont';
 import { logger } from '../../core/log';
 
 const drawScale = uiScale;
-
-/** Drawn this much finer than shown, so lettering and thin lines stay sharp (art ships up to 4x). */
-const SHARPER = 2;
 
 const log = logger('worn');
 
@@ -47,7 +44,7 @@ const APART = 250;
 
 /** Pixels per movie unit the pictures are rasterised at. */
 function rasterScale(): number {
-  return Math.min(MAX_UI_SCALE, drawScale() * SHARPER);
+  return uiPictureScale(drawScale(), typeof window === 'undefined' ? 1 : window.devicePixelRatio);
 }
 
 export interface Worn {

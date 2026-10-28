@@ -264,6 +264,21 @@ export function fitUiScale(setting: number, viewportWidth: number, viewportHeigh
   return Math.max(FIT_STEP, Math.min(wanted, fitted));
 }
 
+/** Own choice: pictures are drawn for at most a 2x screen, as the 3D view is. */
+const MAX_PICTURE_DPR = 2;
+/** Own choice: half steps, so a resize redraws a picture only when the need moves a real amount. */
+const PICTURE_STEP = 0.5;
+
+/**
+ * Picture pixels per movie unit for a screen shown at `fitted` CSS pixels per
+ * unit: what the display shows, so no finer than it can, rounded up to a step.
+ */
+export function uiPictureScale(fitted: number, devicePixelRatio: number): number {
+  const dpr = Math.min(MAX_PICTURE_DPR, Math.max(1, devicePixelRatio || 1));
+  const needed = Math.ceil((fitted * dpr) / PICTURE_STEP) * PICTURE_STEP;
+  return Math.min(MAX_UI_SCALE, Math.max(PICTURE_STEP, needed));
+}
+
 export function clampUiScale(scale: number): number {
   if (!Number.isFinite(scale)) return DEFAULT_UI_SCALE;
   return Math.min(MAX_UI_SCALE, Math.max(MIN_UI_SCALE, Math.round(scale)));

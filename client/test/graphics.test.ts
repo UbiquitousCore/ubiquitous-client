@@ -24,6 +24,7 @@ import {
   clampViewDistance,
   describeProfile,
   fitUiScale,
+  uiPictureScale,
   graphicsProfile,
   oddTileWindow,
   qualityName,
@@ -252,6 +253,27 @@ describe('resolveGraphics', () => {
       MAX_VIEW_DISTANCE,
     );
     expect(clampViewDistance(Number.NaN)).toBeGreaterThanOrEqual(MIN_VIEW_DISTANCE);
+  });
+});
+
+describe('uiPictureScale', () => {
+  it('draws as fine as the display shows, on a 1x and a 2x screen', () => {
+    expect(uiPictureScale(2, 1)).toBe(2);
+    expect(uiPictureScale(2, 2)).toBe(4);
+  });
+
+  it('draws for at most a 2x screen, so a 3x phone is not drawn finer than the 3D view', () => {
+    expect(uiPictureScale(1.2, 3)).toBe(uiPictureScale(1.2, 2));
+  });
+
+  it('rounds up to half steps, and never past the finest scale', () => {
+    expect(uiPictureScale(1.2, 2)).toBe(2.5);
+    expect(uiPictureScale(1.05, 1)).toBe(1.5);
+    expect(uiPictureScale(4, 2)).toBe(4);
+  });
+
+  it('takes a missing pixel ratio as 1', () => {
+    expect(uiPictureScale(2, 0)).toBe(2);
   });
 });
 

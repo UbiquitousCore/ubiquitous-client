@@ -8,10 +8,14 @@ import { CARD_MARGIN } from '../../src/ui/itemCard';
 // There is no canvas here to draw on, and what is drawn is not what this
 // is about: where the card puts things is.
 vi.mock('../../src/ui/art/pieceCanvas', () => ({
-  // Four pixels a unit, as the production canvas draws: the pictures are drawn
-  // finer than they are shown, and the card lays itself out in what it
-  // is shown at.
-  drawPiece: () => ({ url: 'blob:card', width: 400, height: 400 }),
+  // A hundred units square at the scale asked, as the production canvas
+  // draws: the pictures are drawn finer than they are shown, and the card
+  // lays itself out in what it is shown at.
+  drawPiece: (_plan: unknown, _art: unknown, asked = 1) => ({
+    url: 'blob:card',
+    width: 100 * asked,
+    height: 100 * asked,
+  }),
 }));
 
 import { setMovie, wantedDialogs } from '../../src/ui/art/pieceStore';
