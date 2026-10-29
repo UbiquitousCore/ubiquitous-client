@@ -204,9 +204,9 @@ export class PackStore {
     if (!dir) return;
     try {
       const handle = await dir.getFileHandle(MANIFEST, { create: true });
-      const writable = await handle.createWritable();
-      await writable.write(JSON.stringify({ version: 1, packs: [...names] }));
-      await writable.close();
+      const sink = await packSink(handle);
+      await sink.write(new TextEncoder().encode(JSON.stringify({ version: 1, packs: [...names] })));
+      await sink.close();
     } catch (err) {
       // Not fatal: the build still works, it just cannot prove it is complete.
       log.warn(`could not write the extraction manifest: ${String(err)}`);
@@ -232,9 +232,9 @@ export class PackStore {
     if (!dir) return;
     try {
       const handle = await dir.getFileHandle(splashName(topZoneId), { create: true });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
+      const sink = await packSink(handle);
+      await sink.write(new Uint8Array(await blob.arrayBuffer()));
+      await sink.close();
     } catch (err) {
       log.warn(`could not store loading art for zone ${topZoneId}: ${String(err)}`);
     }
@@ -271,9 +271,9 @@ export class PackStore {
     if (!dir) return;
     try {
       const handle = await dir.getFileHandle(TYPEFACE_PREFIX + name, { create: true });
-      const writable = await handle.createWritable();
-      await writable.write(bytes as unknown as BufferSource);
-      await writable.close();
+      const sink = await packSink(handle);
+      await sink.write(bytes);
+      await sink.close();
     } catch (err) {
       log.warn(`could not store typeface ${name}: ${String(err)}`);
     }
@@ -412,27 +412,27 @@ export class PackStore {
   ): Promise<File | null> {
     // `createWritable()` buffers into a swap file and only replaces the real
     // one on `close()`, so an interrupted extraction leaves nothing behind
-    // that could be mistaken for a finished pack. The size check on the way
-    // back in catches anything that slips through anyway.
+    // that could be mistaken for a finished pack. A sync access handle writes
+    // in place; the size check on the way back in catches what either leaves.
     const started = performance.now();
     try {
       const handle = await dir.getFileHandle(name, { create: true });
-      const writable = await handle.createWritable();
+      const sink = await packSink(handle);
       const reader = (await ipa.stream(entry)).getReader();
       let done = 0;
       try {
         for (;;) {
           const chunk = await reader.read();
           if (chunk.done) break;
-          await writable.write(chunk.value as BufferSource);
+          await sink.write(chunk.value);
           done += chunk.value.length;
           onProgress?.({ pack: name, done, total: entry.size });
         }
       } catch (err) {
-        await writable.abort();
+        await sink.abort();
         throw err;
       }
-      await writable.close();
+      await sink.close();
 
       const file = await (await dir.getFileHandle(name)).getFile();
       const secs = (performance.now() - started) / 1000;
@@ -451,6 +451,61 @@ export class PackStore {
       return null;
     }
   }
+}
+
+/** Where a stored file's bytes go. */
+export interface PackSink {
+  write(chunk: Uint8Array): Promise<void>;
+  close(): Promise<void>;
+  abort(): Promise<void>;
+}
+
+/** A sync access handle, as far as `packSink` uses one; only a worker can open it. */
+interface SyncAccess {
+  write(data: Uint8Array, options: { at: number }): number;
+  truncate(size: number): void;
+  flush(): void;
+  close(): void;
+}
+
+/**
+ * A writer for one stored file. Some Safari versions have no `createWritable`;
+ * there a worker can still write through a sync access handle, where without
+ * one a pack would be inflated into memory, which a phone cannot hold.
+ */
+export async function packSink(handle: FileSystemFileHandle): Promise<PackSink> {
+  if (typeof handle.createWritable === 'function') {
+    const writable = await handle.createWritable();
+    return {
+      write: chunk => writable.write(chunk as BufferSource),
+      close: () => writable.close(),
+      abort: () => writable.abort(),
+    };
+  }
+  const opener = (handle as { createSyncAccessHandle?: () => Promise<SyncAccess> })
+    .createSyncAccessHandle;
+  if (typeof opener !== 'function') throw new Error('this browser cannot write to storage');
+  const access = await opener.call(handle);
+  access.truncate(0);
+  let at = 0;
+  return {
+    async write(chunk) {
+      for (let sent = 0; sent < chunk.length; ) {
+        const wrote = access.write(chunk.subarray(sent), { at: at + sent });
+        if (wrote <= 0) throw new Error('storage refused the write');
+        sent += wrote;
+      }
+      at += chunk.length;
+    },
+    async close() {
+      access.flush();
+      access.close();
+    },
+    // A partial file is removed by the caller, and a wrong size is refused on the way back in.
+    async abort() {
+      access.close();
+    },
+  };
 }
 
 async function rootDir(): Promise<FileSystemDirectoryHandle | null> {
