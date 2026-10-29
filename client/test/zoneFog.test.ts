@@ -53,8 +53,8 @@ describe('how far a zone fog reaches', () => {
     expect(reachFor(4, HAZE_MIN_FAR - 1, DRAW_DISTANCE)).toBe(HAZE_MIN_FAR - 1);
   });
 
-  it('keeps a fog that already reaches past the draw distance', () => {
-    expect(reachFor(50, DRAW_DISTANCE + 50, DRAW_DISTANCE)).toBe(DRAW_DISTANCE + 50);
+  it('ends a fog that reaches past the draw distance before the cutoff', () => {
+    expect(reachFor(50, DRAW_DISTANCE + 50, DRAW_DISTANCE)).toBeLessThan(DRAW_DISTANCE);
   });
 });
 

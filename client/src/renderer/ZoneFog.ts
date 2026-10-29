@@ -54,7 +54,10 @@ export function reachFor(
   drawDistance: number,
   fog = DEFAULT_FOG,
 ): number {
-  if (zoneFar < HAZE_MIN_FAR || zoneFar >= drawDistance) return zoneFar;
+  if (zoneFar < HAZE_MIN_FAR) return zoneFar;
+  // Fog ending past the draw distance would leave the last models cut off
+  // while still visible, so it is pulled in to end short of the cutoff.
+  if (zoneFar >= drawDistance) return Math.max(zoneNear + 1, drawDistance * LIGHTEST_REACH);
   return Math.max(zoneNear, zoneFar + (drawDistance - zoneFar) * hazeReach(fog));
 }
 
