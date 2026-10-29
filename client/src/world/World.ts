@@ -4,6 +4,7 @@
  * nothing.
  */
 
+import { coverHeight } from './groundCover';
 import { logger } from '../core/log';
 import type { ResourceSystem } from '../assets/ResourceSystem';
 import type { Appearance, Placement, TileData, ZoneAtmosphere, ZoneInfo } from '../assets/types';
@@ -630,6 +631,13 @@ export class World implements TileSink {
       // collision may not have arrived).
       if (p.kind === 'creature') {
         position[1] = this.restingFrom(position[0], position[1], position[2]).y;
+      }
+      if (p.kind === 'scenery') {
+        position[1] = coverHeight(
+          p.model,
+          position[1],
+          this.terrain.heightAt(position[0], position[2]),
+        );
       }
       ids.push(
         this.add({
