@@ -108,7 +108,25 @@ export class AudioEngine {
     this.music.connect(this.ctx.destination);
     this.effects.connect(this.ctx.destination);
     this.waitForGesture();
+    this.silenceWhileHidden();
     if (typeof window !== 'undefined') this.clock = window.setInterval(() => this.tick(), TICK_MS);
+  }
+
+  /** A hidden page (another app, a locked phone) would otherwise keep playing; the context is paused and resumed only if this paused it. */
+  private silenceWhileHidden(): void {
+    const ctx = this.ctx;
+    if (!ctx || typeof document === 'undefined') return;
+    let pausedByHide = false;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (ctx.state !== 'running') return;
+        pausedByHide = true;
+        void ctx.suspend();
+      } else if (pausedByHide) {
+        pausedByHide = false;
+        void ctx.resume();
+      }
+    });
   }
 
   // — switches and the listener ---------------------------------------------
