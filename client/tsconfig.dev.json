@@ -13,7 +13,6 @@
     "dev/front.tsx",
     "dev/hud-lab.tsx",
     "dev/screen-gallery.tsx",
-    "dev/sound.tsx",
-    "dev/terrain-editor.ts"
+    "dev/sound.tsx"
   ]
 }

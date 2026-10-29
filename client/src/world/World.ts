@@ -8,7 +8,6 @@ import { coverHeight } from './groundCover';
 import { logger } from '../core/log';
 import type { ResourceSystem } from '../assets/ResourceSystem';
 import type { Appearance, Placement, TileData, ZoneAtmosphere, ZoneInfo } from '../assets/types';
-import { applyStoredTerrainPatch } from '../assets/terrainPatch';
 import { neutraliseTint } from './groundTint';
 import { Terrain } from './Terrain';
 import type { WaterAt } from './Terrain';
@@ -606,7 +605,6 @@ export class World implements TileSink {
 
   addTile(data: TileData): void {
     this._groundRevision++;
-    applyStoredTerrainPatch(data);
     const [tx, tz] = data.tile;
     const key = tileKey(tx, tz);
     // A tile arriving twice must replace, not double.
