@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { CameraRig } from '../src/renderer/CameraRig';
+import { CameraRig, MAX_DISTANCE } from '../src/renderer/CameraRig';
 
 /** Distance from the target to the camera, which is what the probe limits. */
 const boom = (rig: CameraRig): number => rig.camera.position.distanceTo(rig.target);
@@ -117,5 +117,38 @@ describe('CameraRig view centre', () => {
     rig.setView(2000, 600, { left: 0, top: 0, right: 800, bottom: 600 });
     expect(targetNdcX(rig)).toBeCloseTo(0.4, 3);
     expect(new THREE.Vector3().project(rig.camera)).toBeDefined();
+  });
+});
+
+describe('CameraRig zoom', () => {
+  it('stops zooming out at the maximum distance', () => {
+    const rig = new CameraRig();
+    rig.zoom(10_000);
+    for (let i = 0; i < 200; i++) rig.update();
+    expect(boom(rig)).toBeCloseTo(MAX_DISTANCE, 3);
+  });
+
+  it('goes first person when zoomed in to the eyes, and not for a wall in the way', () => {
+    const rig = new CameraRig();
+    rig.zoom(-10_000);
+    rig.update();
+    expect(rig.firstPerson).toBe(true);
+    expect(boom(rig)).toBeCloseTo(0, 3);
+
+    const walled = new CameraRig();
+    walled.setObstructionProbe(() => 0.1);
+    walled.update();
+    expect(walled.firstPerson).toBe(false);
+  });
+
+  it('reverses only the vertical drag in first person', () => {
+    const third = new CameraRig();
+    third.orbit(0.3, 0.1);
+    const eyes = new CameraRig();
+    eyes.zoom(-10_000);
+    eyes.update();
+    eyes.orbit(0.3, 0.1);
+    expect(eyes.viewYaw).toBeCloseTo(third.viewYaw, 6);
+    expect(eyes.elevation() - 0.4).toBeCloseTo(-(third.elevation() - 0.4), 6);
   });
 });

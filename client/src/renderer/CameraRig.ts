@@ -6,8 +6,18 @@ import type { ViewCover } from './viewCentre';
 
 const MIN_PITCH = 0.05;
 const MAX_PITCH = 1.25;
-const MIN_DISTANCE = 3;
-const MAX_DISTANCE = 150;
+const MIN_DISTANCE = 0;
+
+/** Own choice: nearer than this the camera is inside the hero's head, which is first person. */
+const FIRST_PERSON_BELOW = 0.5;
+
+/**
+ * Own choice: in first person the orbit pitch is measured from here, so the
+ * view can look below the horizon as well as above it.
+ */
+const FIRST_PERSON_PITCH_ORIGIN = 0.6;
+/** Own choice: far enough to see the surroundings, close enough to stay inside the fog and the drawn world. */
+export const MAX_DISTANCE = 40;
 
 /** Gap kept from obstructions: it must clear the 0.5 near plane, or walls clip. */
 const OBSTRUCTION_GAP = 0.6;
@@ -113,8 +123,11 @@ export class CameraRig {
   }
 
   orbit(dYaw: number, dPitch: number): void {
+    // Up and down are inverted in first person: dragging up looks up, where
+    // the boom behind the hero swings down. Sideways, dragging left looks left
+    // under either camera.
     this.yaw += dYaw;
-    this.pitch = clamp(this.pitch + dPitch, MIN_PITCH, MAX_PITCH);
+    this.pitch = clamp(this.pitch + dPitch * (this.firstPerson ? -1 : 1), MIN_PITCH, MAX_PITCH);
   }
 
   /** Radians above the target; swimming pitches by it to dive. */
@@ -124,6 +137,11 @@ export class CameraRig {
 
   zoom(delta: number): void {
     this.distance = clamp(this.distance + delta, MIN_DISTANCE, MAX_DISTANCE);
+  }
+
+  /** Whether the camera has come in to the hero's eyes. */
+  get firstPerson(): boolean {
+    return this.allowedDistance < FIRST_PERSON_BELOW;
   }
 
   /** Yaw the camera is looking along, for aligning movement to the view. */
@@ -163,7 +181,7 @@ export class CameraRig {
       ];
       const hit = this.probe([this.target.x, this.target.y, this.target.z], to);
       if (hit !== null) {
-        allowed = Math.max(MIN_OBSTRUCTED, hit - OBSTRUCTION_GAP);
+        allowed = Math.min(this.distance, Math.max(MIN_OBSTRUCTED, hit - OBSTRUCTION_GAP));
       }
     }
 
@@ -180,7 +198,16 @@ export class CameraRig {
       this.target.y + dirY * this.allowedDistance,
       this.target.z + dirZ * this.allowedDistance,
     );
-    this.camera.lookAt(this.target);
+    if (this.firstPerson) {
+      const look = this.pitch - FIRST_PERSON_PITCH_ORIGIN;
+      this.camera.lookAt(
+        this.target.x - Math.sin(this.yaw) * Math.cos(look),
+        this.target.y + Math.sin(look),
+        this.target.z - Math.cos(this.yaw) * Math.cos(look),
+      );
+    } else {
+      this.camera.lookAt(this.target);
+    }
   }
 }
 

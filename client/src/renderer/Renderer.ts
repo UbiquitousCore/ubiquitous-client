@@ -3502,6 +3502,12 @@ export class Renderer {
     const background = this.scene.background;
     this.skyScene.background = background;
     this.scene.background = null;
+    // In first person the camera is inside the hero's head, so the body is left out.
+    const heroView = this.rig.firstPerson
+      ? this.views.get(this.world?.player?.id ?? -1)
+      : undefined;
+    const heroWasVisible = heroView?.object.visible ?? false;
+    if (heroView) heroView.object.visible = false;
     try {
       if (this.post && needsPostEffects(this.postSettings)) {
         const size = gl.getSize(scratchSize);
@@ -3516,6 +3522,7 @@ export class Renderer {
         try {
           gl.render(this.scene, this.rig.camera);
         } finally {
+          if (heroView) heroView.object.visible = heroWasVisible;
           gl.autoClearColor = true;
         }
       }
