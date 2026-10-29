@@ -149,7 +149,8 @@ export async function pickIpa(): Promise<File[]> {
   return new Promise<File[]>(resolve => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.ipa,.bin';
+    // No `accept`: an iPhone greys an `.ipa` out of the picker when one is
+    // set, and what was picked is checked by its contents anyway.
     input.multiple = true;
     input.addEventListener('change', () => resolve([...(input.files ?? [])]));
     input.click();
