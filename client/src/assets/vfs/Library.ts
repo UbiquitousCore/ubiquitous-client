@@ -83,6 +83,19 @@ export class Library {
     return lib;
   }
 
+  /**
+   * Whether a file is the game's bundle by what it holds, whatever it is
+   * called: an iPhone greys an `.ipa` out of the picker, so players rename it.
+   */
+  static async isBundle(file: File): Promise<boolean> {
+    try {
+      const reader = await PackReader.open(blobSource(file), file.name);
+      return reader.entries.some(entry => isGamePack(entry.name));
+    } catch {
+      return false;
+    }
+  }
+
   /** Mount extracted packs directly, each under its own basename (registering all as `res.bin` would keep only the last). */
   static async mountPacks(files: File[]): Promise<Library> {
     if (files.length === 0) throw new Error('no packs given');

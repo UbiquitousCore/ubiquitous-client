@@ -368,11 +368,13 @@ export class PackAssetProvider implements AssetProvider {
     } else {
       const files = this.pending.get(id);
       if (!files) throw new ResourceError('mount', `no offered file with id ${id}`);
-      const packs = files.filter(f => /\.bin$/i.test(f.name));
-      // The interface typefaces sit beside the packs as loose files.
-      this.loose = files.filter(f => !/\.bin$/i.test(f.name) && !/\.ipa$/i.test(f.name));
       // By what was offered, not how many: extracted packs may have loose files beside them.
-      const bundle = files.find(file => /\.ipa$/i.test(file.name));
+      const bundle = await findBundle(files);
+      const packs = files.filter(f => f !== bundle && /\.bin$/i.test(f.name));
+      // The interface typefaces sit beside the packs as loose files.
+      this.loose = files.filter(
+        f => f !== bundle && !/\.bin$/i.test(f.name) && !/\.ipa$/i.test(f.name),
+      );
       this.library = bundle
         ? await Library.mount(bundle, this.onProgress)
         : packs.length
@@ -1859,6 +1861,16 @@ export class PackAssetProvider implements AssetProvider {
       }),
     );
   }
+}
+
+/** The game's bundle among picked files: one named `.ipa`, else a `.bin` holding the packs (a renamed `.ipa`). */
+async function findBundle(files: readonly File[]): Promise<File | undefined> {
+  const named = files.find(file => /\.ipa$/i.test(file.name));
+  if (named) return named;
+  for (const file of files) {
+    if (/\.bin$/i.test(file.name) && (await Library.isBundle(file))) return file;
+  }
+  return undefined;
 }
 
 function describe(id: string, files: File[]): AssetSource {

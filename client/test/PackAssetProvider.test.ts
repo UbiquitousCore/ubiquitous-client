@@ -516,6 +516,16 @@ describe('PackAssetProvider', () => {
     expect(lib.hasPack('com.apple.FixedZipMetadata.bin')).toBe(false);
   });
 
+  it('takes a renamed .ipa as the game file, by what it holds', async () => {
+    // An iPhone greys an .ipa out of the picker, so players rename it to .bin;
+    // taken by its name as one extracted pack, no table was ever found.
+    const ipa = ipaFile({ 'tables.bin': buildTablesPack() });
+    const renamed = new File([ipa], 'game.bin');
+    const provider = new PackAssetProvider();
+    await provider.useSource(provider.offer(renamed).id);
+    expect((await provider.load({ kind: 'zoneIndex' })).zones).toHaveLength(1);
+  });
+
   it('rejects a file with no packs in it', async () => {
     const provider = new PackAssetProvider();
     const notAnIpa = new File(
