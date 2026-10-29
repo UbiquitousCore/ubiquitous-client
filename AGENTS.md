@@ -483,7 +483,7 @@ will silently revert whatever landed since.
   persist between sessions.
 - **Networking.** The client connects, signs in, makes or picks a character
   and sees other players and creatures move. Not built: reconnect (a dropped
-  socket stops, it does not come back) and deleting a character. The
+  socket stops, it does not come back). The
   networking issue in the [tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues) has the rest.
 - **Zone switching.** `Renderer.loadZone` drops entity views as well as
   terrain, so the previous zone does not stay visible in the distance. Local
