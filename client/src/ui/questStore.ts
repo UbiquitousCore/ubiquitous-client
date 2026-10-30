@@ -133,10 +133,47 @@ export const QUEST_LOG_CAPACITY = 12;
 /** Quest text by string id, filled as lookups land, so the log redraws with titles. */
 export const questText = signal<ReadonlyMap<number, string>>(new Map());
 
+/** Who the text is addressed to: the shipped strings name the hero by these. */
+export interface QuestReader {
+  name: string;
+  className: string;
+  raceName: string;
+  sex: string;
+}
+
+/** The hero quest text is read by, or null before a character is chosen. */
+let reader: QuestReader | null = null;
+
+/** Each id's text as shipped, so a change of reader can address it again. */
+const shippedText = new Map<number, string>();
+
+/** The words a placeholder tag stands for, or null for a tag that is not one. */
+function placeholder(tag: string, who: QuestReader | null): string | null {
+  switch (tag.trim().toLowerCase()) {
+    case 'name':
+      return who?.name ?? '';
+    case 'class':
+      return who?.className ?? '';
+    case 'race':
+      return who?.raceName ?? '';
+    case 'sex':
+      return who?.sex ?? '';
+    default:
+      return null;
+  }
+}
+
 /** Shipped quest markup folded on the way in (br/control-byte tags;
- * wrappers off, words kept). */
-export function decodeQuestText(text: string): string {
+ * wrappers off, words kept), with the hero's name, class, race and sex in
+ * place of their tags. */
+export function decodeQuestText(text: string, who: QuestReader | null = reader): string {
   return text
+    .replace(/\x12([^\x12\x13]*)\x13/g, (_whole, tag: string) => {
+      const words = placeholder(tag, who);
+      if (words !== null) return words;
+      // A whole tag is markup: only a break breaks the line.
+      return /^\s*br\b/i.test(tag) ? '\n' : '';
+    })
     .replace(/<\s*br\s*\/?\s*>/gi, '\n')
     .replace(/(<\s*)?br\s*\/(\s*>)?/gi, '\n')
     .replace(/\x13/g, '\n')
@@ -148,9 +185,19 @@ export function decodeQuestText(text: string): string {
 }
 
 export function setQuestText(id: number, text: string): void {
+  shippedText.set(id, text);
   const decoded = decodeQuestText(text);
   if (questText.value.get(id) === decoded) return;
   questText.value = new Map(questText.value).set(id, decoded);
+}
+
+/** Address quest text to this hero, including text that has already arrived. */
+export function setQuestReader(who: QuestReader | null): void {
+  reader = who;
+  if (shippedText.size === 0) return;
+  const next = new Map(questText.value);
+  for (const [id, text] of shippedText) next.set(id, decodeQuestText(text, who));
+  questText.value = next;
 }
 
 /** The words behind a string id, or nothing while the lookup is in flight. */

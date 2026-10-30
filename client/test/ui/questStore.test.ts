@@ -19,6 +19,7 @@ import {
   setGiverQuests,
   setQuestGiverStatuses,
   setQuestLog,
+  setQuestReader,
   setQuestText,
   setTracked,
   trackedQuest,
@@ -258,5 +259,29 @@ describe('quest text, which the wire never carries', () => {
 
     setQuestText(6201, 'Fetch \u0012link_menu=9>three pebbles\u0012/link_menu for the tester.');
     expect(questString(6201)).toBe('Fetch three pebbles for the tester.');
+  });
+
+  it('names the hero where the shipped text says name, class, race or sex', () => {
+    // Shipped as 0x12 name 0x13: dropped, the sentence read "Ah, ..." and
+    // broke onto a new line after the gap.
+    setQuestReader({ name: 'Aldric', className: 'Mage', raceName: 'Elf', sex: 'Male' });
+    setQuestText(7262, 'Ah, \x12name\x13... Your name precedes you.\x12br /\x13\x12br /\x13Find her in the temple.');
+    expect(questString(7262)).toBe('Ah, Aldric... Your name precedes you.\n\nFind her in the temple.');
+
+    setQuestText(7263, 'Thank you, \x12class\x13, and you, \x12race\x13 (\x12sex\x13).');
+    expect(questString(7263)).toBe('Thank you, Mage, and you, Elf (Male).');
+  });
+
+  it('readdresses text that arrived before the character was chosen', () => {
+    setQuestReader(null);
+    setQuestText(7264, 'Hello, \x12name\x13.');
+    expect(questString(7264)).toBe('Hello, .');
+    setQuestReader({ name: 'Brin', className: 'Warrior', raceName: 'Orc', sex: 'Female' });
+    expect(questString(7264)).toBe('Hello, Brin.');
+  });
+
+  it('drops other whole tags without breaking the line', () => {
+    setQuestText(7265, 'One \x12div style="x"\x13two\x12/div\x13 three.');
+    expect(questString(7265)).toBe('One two three.');
   });
 });

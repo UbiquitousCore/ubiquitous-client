@@ -267,9 +267,11 @@ import {
   clearQuestMessages,
   expireQuestMessages,
   setGuideTargetKnown,
+  setQuestReader,
   trackedQuest,
   questConversation,
 } from '../ui/questStore';
+import { classWord } from '../ui/npcGossip';
 import { isGhosted, isStunned, speedShare, stealthSight } from '../gameplay/auraState';
 import { FIELD_IDS } from '../net/unitFields';
 import { spellErrorMessage } from '../net/spellErrors';
@@ -1608,6 +1610,8 @@ export class Game {
       },
       chose: character => {
         this.selectedCharacter = character;
+        if (character) void this.addressQuestTextTo(character);
+        else setQuestReader(null);
       },
       kinds: () => this.resources.playableKinds(),
     });
@@ -1617,6 +1621,18 @@ export class Game {
     this.playTitleMusic();
     await chosen;
     frontEnd.close();
+  }
+
+  /** Quest text names the hero by name, class, race and sex; give it this one's. */
+  private async addressQuestTextTo(character: CharacterSummary): Promise<void> {
+    const kinds = await this.resources.playableKinds().catch(() => ({ races: [], classes: [] }));
+    if (this.selectedCharacter !== character) return;
+    setQuestReader({
+      name: character.name,
+      className: classWord(character.class),
+      raceName: kinds.races.find(one => one.race === character.race)?.name ?? '',
+      sex: character.gender === 1 ? 'Female' : 'Male',
+    });
   }
 
   /** The map changes, and what a refusal from the server means to the player. */
