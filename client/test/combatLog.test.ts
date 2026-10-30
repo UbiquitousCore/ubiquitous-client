@@ -41,6 +41,7 @@ describe('every outcome the server names', () => {
     evade: 'Sample Brute was evaded by you.',
     heal: 'Sample Brute heals you for 40.',
     periodicHeal: 'Sample Brute heals you for 40 (over time).',
+    fall: 'You land hard for 40.',
   };
 
   it.each(OUTCOMES.map(name => [name]))('reads "%s" off the wire and says it', name => {

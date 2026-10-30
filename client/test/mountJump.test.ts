@@ -43,7 +43,7 @@ function harness(): { movement: PlayerMovement; y: () => number } {
     player,
     collision: { isLoaded: () => false, segmentHit: () => null },
     groundHeight: () => GROUND,
-    restingHeight: () => ({ y: GROUND, swimming: false }),
+    restingHeight: () => ({ y: GROUND, swimming: false, normal: [0, 1, 0] }),
     waterAt: () => ({ state: 'dry', surface: null, swimLine: null }),
     setPosition: (_p: unknown, x: number, y: number, z: number) => {
       player.position = [x, y, z];

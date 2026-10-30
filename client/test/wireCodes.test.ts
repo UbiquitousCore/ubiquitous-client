@@ -14,6 +14,7 @@ describe('readOutcome', () => {
       'critical',
       'dodge',
       'evade',
+      'fall',
       'heal',
       'hit',
       'miss',

@@ -114,6 +114,8 @@ export interface NetworkMotion {
 export interface Resting {
   y: number;
   swimming: boolean;
+  /** The surface normal underfoot; flat on the water. */
+  normal: [number, number, number];
 }
 
 /** A point on the ground: its height and the surface normal underfoot. */
@@ -832,12 +834,12 @@ export class World implements TileSink {
   restingHeight(x: number, z: number, fromY: number, stepUp = STEP_UP): Resting {
     // Ground first, collision included, then water: the other order swims
     // you through bridges over deep water.
-    const groundY = this.groundHeight(x, z, fromY, stepUp);
-    const water = this.terrain.waterStateAt(x, z, groundY);
+    const ground = this.groundPoint(x, z, fromY, stepUp);
+    const water = this.terrain.waterStateAt(x, z, ground.y);
     if (water.state === 'swimming' && water.swimLine !== null) {
-      return { y: water.swimLine, swimming: true };
+      return { y: water.swimLine, swimming: true, normal: FLAT_NORMAL };
     }
-    return { y: groundY, swimming: false };
+    return { y: ground.y, swimming: false, normal: ground.normal };
   }
 
   tileReport(): { centre: [number, number] | null; resident: number; pending: number } {

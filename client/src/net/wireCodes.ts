@@ -16,6 +16,7 @@ export const OUTCOMES = [
   'evade',
   'heal',
   'periodicHeal',
+  'fall',
 ] as const;
 
 export type Outcome = (typeof OUTCOMES)[number];

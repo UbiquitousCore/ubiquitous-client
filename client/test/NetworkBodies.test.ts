@@ -1178,7 +1178,11 @@ describe('putting bodies down on the ground', () => {
       moving: false,
     };
     entity.networkMoving = false;
-    vi.spyOn(w, 'restingHeight').mockReturnValue({ y: groundY, swimming: false });
+    vi.spyOn(w, 'restingHeight').mockReturnValue({
+      y: groundY,
+      swimming: false,
+      normal: [0, 1, 0],
+    });
     vi.spyOn(w.terrain, 'heightAt').mockReturnValue(groundY);
     return { w, bodies, entity };
   }
@@ -1242,7 +1246,7 @@ describe('putting bodies down on the ground', () => {
     const { w, bodies, entity } = await standingAt(10, 0.03);
     bodies.settle();
 
-    vi.spyOn(w, 'restingHeight').mockReturnValue({ y: 14, swimming: false });
+    vi.spyOn(w, 'restingHeight').mockReturnValue({ y: 14, swimming: false, normal: [0, 1, 0] });
     vi.spyOn(w.terrain, 'heightAt').mockReturnValue(14);
     bodies.take({
       kind: 'moved',

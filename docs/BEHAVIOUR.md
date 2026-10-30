@@ -22,9 +22,17 @@ Treat these as requirements.
   whatever the body is playing.
 - **Animation.** The chart cells marked "seen in play" in
   `gameplay/ClipMachine.ts`.
-- **Jumping.** Nothing refuses a jump. A jump during a cast gives the cast up
-  (`spell.abort`). A jump in water leaps out; a standing mount plays its
-  flourish.
+- **Jumping.** Nothing refuses a jump except a slide (below). A jump during a
+  cast gives the cast up (`spell.abort`). A jump in water leaps out; a
+  standing mount plays its flourish.
+- **Steep slopes.** Ground whose normal is under 0.574 up (about 55°), terrain
+  or model, starts a slide downhill at running pace; the keys and jump do
+  nothing until ground at 0.67 up or more (about 48°), water or air ends it.
+  A step onto such ground goes no further that frame, so no slope that steep
+  can be climbed (`gameplay/PlayerMovement.ts`).
+- **Falls.** The server decides fall damage; the client shows its
+  `spell.outcome` `fall` as a number on the hero and "You land hard for …" in
+  the damage log.
 - **Approach.** Melee stops 2 units from the target's centre (server reach
   3). Creatures report no size; treat them as 1 unit in radius.
 - **Retaliation.** A harmful blow on the living hero from a living hostile

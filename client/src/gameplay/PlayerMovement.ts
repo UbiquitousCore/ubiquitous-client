@@ -61,6 +61,17 @@ export const JUMP_AIRTIME = 0.6;
 export const JUMP_START_VELOCITY = (4 * JUMP_APEX) / JUMP_AIRTIME;
 export const GRAVITY = -(8 * JUMP_APEX) / JUMP_AIRTIME ** 2;
 
+/**
+ * Observed in play: ground steeper than about 55° (a normal under 0.574 up)
+ * slides the player down it, out of their control, until ground of about 48°
+ * or gentler (0.67 up) stops them. It is what keeps mountains unclimbable.
+ */
+export const SLIDE_START_NORMAL_Y = 0.574;
+export const SLIDE_STOP_NORMAL_Y = 0.67;
+
+/** Own choice: a slide runs downhill at running pace. */
+const SLIDE_SPEED = RUN_FORWARD_SPEED;
+
 /** Mount flourish hold time (~clip length; a timer stands in for a clip-end
  * signal). */
 const MOUNT_FLOURISH_SECONDS = 1.85;
@@ -127,6 +138,8 @@ export class PlayerMovement {
   private mounted = false;
   /** Depth below the swim line, held as the surface height varies across chunks. */
   private diveDepth = 0;
+  /** Downhill, flat and of unit length, while sliding down a steep slope; null otherwise. */
+  private slideDir: [number, number] | null = null;
 
   constructor(
     private readonly world: World,
@@ -143,6 +156,7 @@ export class PlayerMovement {
     this.airborneFrom = null;
     this.landedThisFrame = false;
     this.diveDepth = 0;
+    this.slideDir = null;
     this.locomotion = 'ground';
     this.direction = 'idle';
     this.moving = false;
@@ -246,6 +260,11 @@ export class PlayerMovement {
     return this.landedThisFrame;
   }
 
+  /** Sliding down a slope too steep to stand on, out of the player's control. */
+  isSliding(): boolean {
+    return this.slideDir !== null;
+  }
+
   update(input: InputState, dt: number): void {
     this.rig.orbit(
       -input.dragX * this.settings.lookSensitivity,
@@ -302,10 +321,19 @@ export class PlayerMovement {
 
     // Observed in play by the owner: nothing refuses a jump. It needs ground,
     // and a body held still by the server cannot.
-    if (input.jump && this.verticalSpeed === null && this.speedShare > 0) this.jump(input);
+    // A slide takes the jump away too: you cannot hop your way up a slope.
+    if (
+      input.jump &&
+      this.verticalSpeed === null &&
+      this.speedShare > 0 &&
+      this.slideDir === null
+    ) {
+      this.jump(input);
+    }
 
     // Fly overrides everything below: no ground, no water, no walls.
     if (this.flying) {
+      this.slideDir = null;
       this.locomotion = 'fly';
       const flySpeed = this.speedFor('forward', 'fly');
       const liftSpeed = this.flyLift(input) * flySpeed;
@@ -323,6 +351,17 @@ export class PlayerMovement {
         player.position[2] + dz * step,
       );
       if (flat > 0) this.setYaw(player, Math.atan2(dx, dz));
+      this.aimCamera(player);
+      return;
+    }
+
+    // A slide ignores the keys: the slope decides where the body goes.
+    if (this.slideDir !== null) {
+      const [downX, downZ] = this.slideDir;
+      this.moving = true;
+      this.direction = 'forward';
+      this.velocity = [downX * SLIDE_SPEED, 0, downZ * SLIDE_SPEED];
+      this.walk(downX, downZ, SLIDE_SPEED * dt, dt);
       this.aimCamera(player);
       return;
     }
@@ -397,6 +436,7 @@ export class PlayerMovement {
     const steps = Math.max(1, Math.ceil(distance / MAX_SWEEP));
     const stride = distance / steps;
     let [x, y, z] = player.position;
+    const wasSliding = this.slideDir !== null;
 
     for (let i = 0; i < steps; i++) {
       // A swimmer slides only on steep terrain, so it swims over sunken
@@ -421,6 +461,8 @@ export class PlayerMovement {
       }
 
       y = this.settle(x, z, y, dt / steps);
+      // A step onto ground too steep to stand on is as far up as anyone gets.
+      if (!wasSliding && this.slideDir !== null) break;
     }
 
     this.world.setPosition(player, x, y, z);
@@ -453,11 +495,13 @@ export class PlayerMovement {
         this.airborneFrom = null;
       } else {
         this.locomotion = 'air';
+        this.slideDir = null;
         return y;
       }
     }
 
     if (swimmable) {
+      this.slideDir = null;
       // Hold the dive depth, never below the bed (`rest.y` here, since water won by depth).
       const bed = this.world.groundHeight(x, z, fromY, STEP_UP);
       const target = Math.max(bed, water.swimLine! - this.diveDepth);
@@ -469,6 +513,7 @@ export class PlayerMovement {
     this.diveDepth = 0;
     this.locomotion = rest.swimming ? 'swim' : 'ground';
     this.airborneFrom = null;
+    this.slideDir = rest.swimming ? null : nextSlide(this.slideDir, rest.normal);
     return rest.y;
   }
 }
@@ -549,6 +594,23 @@ export function wallHeightAt(wall: CollisionTri, x: number, z: number): number |
   const [ox, oy, oz] = wall.v[0];
   const y = oy - (nx * (x - ox) + nz * (z - oz)) / ny;
   return Math.min(wall.maxY, Math.max(wall.minY, y));
+}
+
+/**
+ * Whether the ground underfoot starts, keeps or ends a slide, and which way is
+ * downhill. Between the two limits a slide already going carries on, so the
+ * body does not stop and start on ground near the edge.
+ */
+export function nextSlide(
+  sliding: [number, number] | null,
+  normal: readonly [number, number, number],
+): [number, number] | null {
+  const [nx, ny, nz] = normal;
+  const steep = sliding === null ? ny < SLIDE_START_NORMAL_Y : ny < SLIDE_STOP_NORMAL_Y;
+  if (!steep) return null;
+  const flat = Math.hypot(nx, nz);
+  // A face this steep always leans one way; keep the last way down if not.
+  return flat > 1e-6 ? [nx / flat, nz / flat] : sliding;
 }
 
 /** From the keys, not the velocity: facing follows travel, so travel always reads forward. */

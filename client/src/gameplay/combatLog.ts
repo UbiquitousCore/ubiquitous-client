@@ -46,6 +46,12 @@ export interface CombatNames {
 export function describeCombatEvent(event: CombatEvent, names?: Partial<CombatNames>): string {
   const attacker = who(event.attacker, event.self, names, true);
   const target = who(event.target, event.self, names, false);
+  // Health lost to a fall has no one behind it, so no one to name as the striker.
+  if (event.outcome === 'fall') {
+    const faller = who(event.target, event.self, names, true);
+    const lands = event.target === event.self ? 'land' : 'lands';
+    return `${faller} ${lands} hard for ${Math.abs(event.damage)}${health(event, target)}.`;
+  }
   const by =
     event.spellId === undefined
       ? ''

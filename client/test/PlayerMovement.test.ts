@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { PlayerMovement } from '../src/gameplay/PlayerMovement';
+import {
+  PlayerMovement,
+  SLIDE_START_NORMAL_Y,
+  SLIDE_STOP_NORMAL_Y,
+  nextSlide,
+} from '../src/gameplay/PlayerMovement';
 import { SWIM_DEPTH } from '../src/world/Terrain';
 import type { InputState } from '../src/gameplay/Input';
 import type { World } from '../src/world/World';
@@ -41,7 +46,11 @@ function flatWorld(start: [number, number, number]): {
       player.position = [x, y, z];
     },
     waterAt: () => ({ state: 'dry', surface: null, swimLine: null }),
-    restingHeight: (_x: number, _z: number, fromY: number) => ({ y: fromY }),
+    restingHeight: (_x: number, _z: number, fromY: number) => ({
+      y: fromY,
+      swimming: false,
+      normal: [0, 1, 0],
+    }),
   } as unknown as World;
   return { world, player };
 }
@@ -267,7 +276,7 @@ describe('jumping while swimming', () => {
         player.position = [x, y, z];
       },
       waterAt: () => ({ state: 'swimming', surface: SURFACE, swimLine: SWIM_LINE }),
-      restingHeight: () => ({ y: SWIM_LINE, swimming: true }),
+      restingHeight: () => ({ y: SWIM_LINE, swimming: true, normal: [0, 1, 0] }),
       groundHeight: () => 0,
     } as unknown as World;
     const rig = {
@@ -340,5 +349,92 @@ describe('the frame a jump is pressed', () => {
     movement.update(idleInput({ jump: true }), 1 / 60);
     movement.update(idleInput({ jump: true }), 1 / 60);
     expect(movement.justJumped()).toBe(false);
+  });
+});
+
+/**
+ * Flat ground for x < 0 and a plane rising toward +x at `degrees` beyond it,
+ * the way a mountainside meets a meadow. Terrain answers wherever you stand,
+ * however steep, which is the case the slide is for.
+ */
+function slopeWorld(
+  degrees: number,
+  start: [number, number, number],
+): { world: World; player: { position: [number, number, number] } } {
+  const { world, player } = flatWorld(start);
+  const angle = (degrees * Math.PI) / 180;
+  const steepNormal: [number, number, number] = [-Math.sin(angle), Math.cos(angle), 0];
+  (world as unknown as { restingHeight: World['restingHeight'] }).restingHeight = (x: number) =>
+    x <= 0
+      ? { y: 0, swimming: false, normal: [0, 1, 0] }
+      : { y: x * Math.tan(angle), swimming: false, normal: steepNormal };
+  return { world, player };
+}
+
+/** Run `frames` frames of a sixtieth of a second with the same input held. */
+function run(movement: PlayerMovement, input: InputState, frames: number): void {
+  for (let i = 0; i < frames; i++) movement.update(input, 1 / 60);
+}
+
+describe('slopes too steep to stand on', () => {
+  it('cannot be walked up: the climb slides back to the foot', () => {
+    const { world, player } = slopeWorld(60, [-1, 0, 0]);
+    const movement = new PlayerMovement(world, RIG);
+
+    run(movement, idleInput({ right: true }), 180);
+
+    // Three seconds at a run would be 18 units up a slope that let you.
+    expect(player.position[1]).toBeLessThan(0.5);
+    expect(player.position[0]).toBeLessThan(0.5);
+  });
+
+  it('slides a body standing on one down to gentler ground and lets go', () => {
+    const { world, player } = slopeWorld(60, [3, 3 * Math.tan(Math.PI / 3), 0]);
+    const movement = new PlayerMovement(world, RIG);
+
+    movement.update(idleInput(), 1 / 60);
+    expect(movement.isSliding()).toBe(true);
+    run(movement, idleInput(), 120);
+
+    expect(player.position[0]).toBeLessThanOrEqual(0);
+    expect(player.position[1]).toBe(0);
+    expect(movement.isSliding()).toBe(false);
+  });
+
+  it('takes the controls away while sliding: no steering and no jump', () => {
+    const { world, player } = slopeWorld(60, [3, 3 * Math.tan(Math.PI / 3), 0]);
+    const movement = new PlayerMovement(world, RIG);
+    movement.update(idleInput(), 1 / 60);
+
+    movement.update(idleInput({ right: true, forward: true, jump: true }), 1 / 60);
+
+    expect(player.position[0]).toBeLessThan(3);
+    expect(player.position[2]).toBe(0);
+    expect(movement.justJumped()).toBe(false);
+    expect(movement.airborneReason()).toBeNull();
+  });
+
+  it('leaves a slope between the two limits walkable', () => {
+    // About 48° up: under the start of a slide, so it is climbed as any hill.
+    const { world, player } = slopeWorld(48, [-1, 0, 0]);
+    const movement = new PlayerMovement(world, RIG);
+
+    run(movement, idleInput({ right: true }), 60);
+
+    expect(movement.isSliding()).toBe(false);
+    expect(player.position[1]).toBeGreaterThan(3);
+  });
+
+  it('starts below one limit and stops only at the other', () => {
+    const between: [number, number, number] = [
+      -0.75,
+      (SLIDE_START_NORMAL_Y + SLIDE_STOP_NORMAL_Y) / 2,
+      0,
+    ];
+
+    expect(nextSlide(null, between)).toBeNull();
+    expect(nextSlide([-1, 0], between)).toEqual([-1, 0]);
+    expect(nextSlide(null, [-0.8, SLIDE_START_NORMAL_Y - 0.01, 0])).toEqual([-1, 0]);
+    expect(nextSlide([-1, 0], [0, SLIDE_STOP_NORMAL_Y, 0])).toBeNull();
   });
 });
