@@ -1,0 +1,15 @@
+#!/bin/sh
+# Runs the checks CI runs that are quick enough for every commit: Prettier and
+# the no-game-data rule. Turned on by setup.sh / setup.ps1
+# (git config core.hooksPath .githooks).
+set -e
+root=$(git rev-parse --show-toplevel)
+
+python3 "$root/tools/check_no_assets.py"
+
+if git diff --cached --name-only | grep -q '^client/'; then
+  (cd "$root/client" && npm run -s format:check) || {
+    echo "pre-commit: run 'cd client && npm run format', then stage the result." >&2
+    exit 1
+  }
+fi

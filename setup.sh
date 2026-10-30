@@ -29,6 +29,9 @@ fi
 echo "==> Packages"
 (cd client && npm ci)
 
+echo "==> Git hooks"
+git config core.hooksPath .githooks
+
 cat <<'EOF2'
 
 Ready. Next:

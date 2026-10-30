@@ -265,8 +265,13 @@ describe('quest text, which the wire never carries', () => {
     // Shipped as 0x12 name 0x13: dropped, the sentence read "Ah, ..." and
     // broke onto a new line after the gap.
     setQuestReader({ name: 'Aldric', className: 'Mage', raceName: 'Elf', sex: 'Male' });
-    setQuestText(7262, 'Ah, \x12name\x13... Your name precedes you.\x12br /\x13\x12br /\x13Find her in the temple.');
-    expect(questString(7262)).toBe('Ah, Aldric... Your name precedes you.\n\nFind her in the temple.');
+    setQuestText(
+      7262,
+      'Ah, \x12name\x13... Your name precedes you.\x12br /\x13\x12br /\x13Find her in the temple.',
+    );
+    expect(questString(7262)).toBe(
+      'Ah, Aldric... Your name precedes you.\n\nFind her in the temple.',
+    );
 
     setQuestText(7263, 'Thank you, \x12class\x13, and you, \x12race\x13 (\x12sex\x13).');
     expect(questString(7263)).toBe('Thank you, Mage, and you, Elf (Male).');

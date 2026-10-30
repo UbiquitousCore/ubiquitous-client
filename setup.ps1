@@ -36,6 +36,9 @@ npm ci
 if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
 Pop-Location
 
+Write-Host '==> Git hooks'
+git config core.hooksPath .githooks
+
 Write-Host @'
 
 Ready. Next:

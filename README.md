@@ -114,6 +114,7 @@ npm run dev         # dev server
 npm run build       # typecheck + production build
 npm run typecheck
 npm test
+npm run format:check                 # CI fails on unformatted files
 python ../tools/check_no_assets.py   # before every commit
 cd .. && docker build -t ubiquitous-client .   # the image the server's compose file runs
 ```

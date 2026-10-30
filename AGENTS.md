@@ -423,7 +423,11 @@ cd client && npm test                 # client subsystems
 cd client && npm run typecheck        # src and tests
 cd client && npm run build            # client builds
 cd client && npm run format           # Prettier, incl. Tailwind class order
+cd client && npm run format:check     # what CI checks
 ```
+
+`setup.sh` turns on `.githooks/pre-commit`, which runs `check_no_assets.py` and
+`format:check` before each commit. Without setup: `git config core.hooksPath .githooks`.
 
 `/dev/hud-lab.html` needs no game data; see
 [client/docs/ui/COMPONENTS.md](client/docs/ui/COMPONENTS.md).
