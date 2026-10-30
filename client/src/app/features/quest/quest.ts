@@ -177,7 +177,11 @@ export class Quests {
       // Neither removes the row: the server may refuse to drop a quest.
       drop: quest => {
         this.gestures.dropping(quest.id);
-        if (quest.slot !== undefined) this.connection.sendQuestDestroy(quest.slot, quest.id);
+        if (quest.slot !== undefined) {
+          this.connection.sendQuestDestroy(quest.slot, quest.id);
+          // Its giver offers it again, and nothing on the wire says so.
+          this.connection.sendQuestRefreshStatuses();
+        }
         this.audio.play(QUEST_CANCEL_SOUND);
       },
       share: quest => this.connection.sendQuestShare(quest.id),

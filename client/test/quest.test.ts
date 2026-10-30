@@ -221,6 +221,17 @@ describe('the buttons', () => {
     expect(played).toEqual(['sfx_ui_quest_cancel', 'sfx_ui_quest_cancel']);
   });
 
+  it('asks for the givers’ marks again after a drop, so its giver offers it', () => {
+    const { connection } = setup();
+    questActions().drop(offer(1, 'one', { slot: 4 }));
+    expect(connection.sendQuestRefreshStatuses).toHaveBeenCalledTimes(1);
+    expect(connection.sendQuestDestroy.mock.invocationCallOrder[0]).toBeLessThan(
+      connection.sendQuestRefreshStatuses.mock.invocationCallOrder[0]!,
+    );
+    questActions().drop(offer(2, 'two'));
+    expect(connection.sendQuestRefreshStatuses).toHaveBeenCalledTimes(1);
+  });
+
   it('shares and asks about quests by id', () => {
     const { connection, h } = setup();
     questActions().share(offer(1, 'one'));
