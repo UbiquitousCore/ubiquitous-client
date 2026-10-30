@@ -4,13 +4,27 @@ import { signal } from '@preact/signals';
 
 import { runChatCommand } from './chatCommands';
 
-/** The channels the server knows, and what each one is called on screen. */
+/**
+ * The channels the server knows, and what each one is called on screen: the
+ * game's own (see the gameplay field guide's Chat section). Say reaches 20 m,
+ * Yell 100 m, Party and Guild their members anywhere, Local the region and
+ * Global everyone online. 1.1.4 offers no Trade channel to pick.
+ */
 export const CHANNELS = [
-  { id: 'say', name: 'Say' },
-  { id: 'general', name: 'General' },
-  { id: 'trade', name: 'Trade' },
-  { id: 'party', name: 'Party' },
+  { id: 'say', name: 'Speak' },
+  { id: 'yell', name: 'Yell' },
+  { id: 'party', name: 'Team' },
+  { id: 'guild', name: 'Guild' },
+  { id: 'local', name: 'Local' },
+  { id: 'global', name: 'Global' },
 ] as const;
+
+/** The tag the game writes before a line on the wide channels, or nothing. */
+export function channelTag(channel: string): string {
+  if (channel === 'local') return '[Local] ';
+  if (channel === 'global') return '[Global] ';
+  return '';
+}
 
 export type ChannelId = (typeof CHANNELS)[number]['id'];
 

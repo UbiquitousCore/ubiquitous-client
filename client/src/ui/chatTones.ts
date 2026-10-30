@@ -5,7 +5,11 @@ import { WHISPER_CHANNEL } from './chatStore';
 /** The utility class each channel's lines are written in. */
 export const CHANNEL_TEXT: Readonly<Record<string, string>> = {
   say: 'text-quality-common',
-  general: 'text-chat-general',
+  // The game writes Speak, Local and Global all in white; this client keeps
+  // every channel apart, so the wide channels take near-white tints.
+  local: 'text-chat-general',
+  global: 'text-parchment-50',
+  guild: 'text-quality-fine',
   trade: 'text-brass-300',
   party: 'text-chat-party',
   notice: 'text-notice',

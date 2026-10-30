@@ -6,7 +6,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { ScreenSpec } from '../art/uiSpec';
 import { LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { channelColour } from '../chatTones';
-import { chatLines, chatOpen, chatPeekUntil } from '../chatStore';
+import { channelTag, chatLines, chatOpen, chatPeekUntil } from '../chatStore';
 import { cx } from './cx';
 
 /** Our name for this piece. The spec says which part of the movie it is. */
@@ -101,6 +101,7 @@ function Worn({
               className="m-0"
               style={{ color: tones?.[line.channel] ?? channelColour(line.channel) }}
             >
+              {channelTag(line.channel)}
               {line.sender ? `[${line.sender}]: ` : ''}
               {line.text}
             </p>

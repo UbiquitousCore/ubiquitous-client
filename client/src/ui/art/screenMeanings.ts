@@ -40,7 +40,7 @@ const ZONE_SLOTS = Array.from(
 /** What each chat channel is called, by our own name for it. */
 const CHANNEL_CALLS = {
   say: '@417?~a2780a89b34c4cad~5',
-  general: '@421?~9c436708c02d909c~5',
+  local: '@421?~9c436708c02d909c~5',
   trade: '@423?~51366e59e8ff3e55~5',
   party: '@419?~a2fd7d0ca7c0aab8~4',
   whisper: '@424?~ee925beddf4aeb01~7',

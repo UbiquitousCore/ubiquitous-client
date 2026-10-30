@@ -10,6 +10,7 @@ import { CHANNEL_TEXT, channelColour } from '../chatTones';
 import { wornLettering } from '../art/wornFont';
 import {
   CHANNELS,
+  channelTag,
   EMOTES,
   WHISPER_CHANNEL,
   chatAsking,
@@ -288,6 +289,7 @@ function OpenBar({ spec }: { spec: ScreenSpec }): JSX.Element | null {
             >
               {lines.map(line => (
                 <p key={line.key} className="m-0" style={{ color: tone(line.channel) }}>
+                  {channelTag(line.channel)}
                   {line.sender ? `[${line.sender}]: ` : ''}
                   {line.text}
                 </p>

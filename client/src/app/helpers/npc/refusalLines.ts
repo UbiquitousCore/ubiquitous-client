@@ -13,5 +13,7 @@ export function refusalLines(args: { code: string; reason: string; askedRecently
   if (code === 'invalid_inventory') report.push(reason);
   if (code === 'dungeon_reset_refused') report.push(sayLine(LINES.dungeonResetRefused));
   if (code === 'dungeon_mode_refused') report.push(reason);
+  // A chat line the server would not send: too many too fast, or a channel not open to you.
+  if (code === 'chat_too_frequent' || code === 'invalid_chat') report.push(reason);
   return { report, notice: askedRecently ? reason : null };
 }
