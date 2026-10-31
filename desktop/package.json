@@ -1,0 +1,34 @@
+{
+  "name": "ubiquitous-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "The client in its own window, for the Steam Deck and other desktops",
+  "author": "Ubiquitous Core",
+  "type": "module",
+  "main": "main.mjs",
+  "scripts": {
+    "start": "node node_modules/electron/install.js && electron .",
+    "test": "node --test",
+    "dist": "electron-builder --linux AppImage --x64"
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "org.ubiquitous.client",
+    "productName": "Ubiquitous",
+    "files": ["main.mjs", "serverLine.mjs", "gameFile.mjs", "package.json"],
+    "extraResources": [
+      { "from": "client-dist", "to": "client" },
+      { "from": "game", "to": "game" }
+    ],
+    "directories": { "output": "dist" },
+    "linux": {
+      "target": "AppImage",
+      "category": "Game",
+      "artifactName": "Ubiquitous-${arch}.AppImage"
+    }
+  }
+}

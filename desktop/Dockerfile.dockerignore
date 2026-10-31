@@ -1,0 +1,12 @@
+# Allowlist: the AppImage is built from the client's and the window's source alone.
+*
+!.nvmrc
+!client/
+client/node_modules
+client/dist
+client/.cert
+client/.env
+!desktop/
+desktop/node_modules
+desktop/dist
+desktop/client-dist

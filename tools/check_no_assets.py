@@ -99,6 +99,8 @@ SVG_RASTER = re.compile(br"<image\b|data:", re.IGNORECASE)
 ALLOWED = {
     # npm dependency lockfile; its size is package metadata, not game data.
     "client/package-lock.json",
+    # The desktop window's own lockfile, for the same reason.
+    "desktop/package-lock.json",
     # PWA app icons.
     "client/public/icons/icon-192.png",
     "client/public/icons/icon-512.png",

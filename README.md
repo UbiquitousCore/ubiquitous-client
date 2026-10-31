@@ -64,6 +64,70 @@ Against a server it appears only after signing in as a GM account
 `npm run dev` and is hidden in a production build, and `admin=false` in
 `config.txt` or `?admin=0` hides it everywhere.
 
+## Desktop app and Steam Deck
+
+`desktop/` wraps the built client in its own window (Electron), so it can run
+as a game rather than a browser tab. It holds no game data: choose your `.ipa`
+in the window as usual.
+
+Try it on this machine, with Node 26 or newer:
+
+```bash
+cd client && npm ci && npm run build
+cd ../desktop && npm install && npm start
+```
+
+Build the Linux AppImage the Deck runs, with only Docker; it lands in
+`desktop/dist/`:
+
+```bash
+docker build -f desktop/Dockerfile --output desktop/dist .
+```
+
+To have the window open your game file by itself, bundle it. Name the folder
+that holds your `.ipa`:
+
+```bash
+docker build -f desktop/Dockerfile --build-context game=<folder> --output desktop/dist .
+```
+
+That AppImage carries your copy of the game, about 1.6 GB larger: keep it to
+your own devices. Without bundling, `--ipa=<path>` in the launch options does
+the same from a file on the Deck, and so does an `.ipa` in `desktop/game/` when
+running with `npm start`. Either way the file is chosen for you every launch,
+because the client reads the packs from it where they lie.
+
+Copy it over (turn on SSH on the Deck first: `passwd`, then
+`sudo systemctl enable --now sshd`), and run it:
+
+```bash
+scp desktop/dist/Ubiquitous-x86_64.AppImage deck@steamdeck.local:~/
+ssh deck@steamdeck.local chmod +x Ubiquitous-x86_64.AppImage
+```
+
+In Desktop Mode, add the AppImage to Steam with Add a Non-Steam Game; it then
+launches from Game Mode like any other game. Point it at a server with
+`--server=ws://<host>:8781` in the game's launch options, or write that address
+into `server.txt` in the app's data folder. `--fullscreen` starts full screen
+(also when Steam sets `SteamDeck=1`) and `F11` toggles it. If the AppImage
+exits at once on the Deck, add `--no-sandbox` to the launch options.
+
+A controller is read wherever the game runs, so it works in a browser too:
+
+| Input | Does |
+|---|---|
+| Left stick | Walk and turn |
+| Right stick | Look |
+| `A` / `B` / `X` | Jump / let go of target / act on target |
+| `LB` / `RB` | Previous / next nearby target |
+| `LT` + `A B X Y` | Bar sockets 1–4 |
+| `RT` + `A B X Y` | Bar sockets 5–8 |
+| `LT` + `RT` + `A B` | Bar sockets 9 and 10 |
+| D-pad up / down | Zoom in / out |
+
+Windows and menus are still driven by the pointer: on the Deck, the trackpads
+and touchscreen do that.
+
 ## Supported versions
 
 The client was built using the **1.1.4** `.ipa`, and its character and

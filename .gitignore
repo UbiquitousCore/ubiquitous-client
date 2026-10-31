@@ -170,3 +170,6 @@ client/dev/zz_*
 # Local-only working notes and scanners.
 local/
 SWEEP-CLEANUP.md
+
+# The built client staged for the desktop app's AppImage.
+desktop/client-dist/
