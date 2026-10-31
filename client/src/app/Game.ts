@@ -53,6 +53,8 @@ import { resolveGraphics, tileWindowFor } from '../core/graphics';
 import { HeroShape } from '../gameplay/HeroShape';
 import { Input } from '../gameplay/Input';
 import type { InputState } from '../gameplay/Input';
+import { nextTarget } from '../gameplay/targetCycle';
+import type { TargetCandidate } from '../gameplay/targetCycle';
 import { options as savedOptions, setOption } from '../ui/optionsStore';
 import type { OptionsState } from '../ui/optionsStore';
 import { DEFAULT_MOVEMENT, PlayerMovement } from '../gameplay/PlayerMovement';
@@ -465,6 +467,9 @@ const SNAP_BACK_LOG_DISTANCE = 0.02;
 /** How far from a body, in pixels, a tap still means it. Own choice: 12 for a mouse, 28 for a fingertip. */
 const MOUSE_PICK_SLOP = 12;
 const TOUCH_PICK_SLOP = 28;
+
+/** How far from the hero the controller's target buttons look, in world units. Own choice. */
+const TARGET_STEP_RANGE = 40;
 
 /** Two presses, close together, within this many ms make a double tap. */
 const DOUBLE_TAP_MS = 500;
@@ -2367,6 +2372,7 @@ export class Game {
       if (this.movement.justJumped()) this.callOffCast();
       this.castFromKeys(input.castSlots);
       if (input.deselect) this.clearTarget();
+      this.steerTargets(input);
       this.easeCombatFacing(dt);
       // Mounts do not swim: deep water dismounts.
       if (this.movement.isMounted() && this.movement.locomotion === 'swim') this.dismount();
@@ -2980,6 +2986,38 @@ export class Game {
     this.connection.sendAttackStart(networkId);
   }
 
+  /** The controller's target buttons: step through who is near, or act on the target. */
+  private steerTargets(input: InputState): void {
+    const hero = this.world.player;
+    if (!hero) return;
+    if (input.targetStep !== 0) {
+      const near: TargetCandidate[] = [];
+      for (const entity of this.world.entities.values()) {
+        if (entity.kind !== 'creature' && entity.kind !== 'player') continue;
+        if (this.whoIs.isOwnBody(entity.id)) continue;
+        const distance = Math.hypot(
+          entity.position[0] - hero.position[0],
+          entity.position[2] - hero.position[2],
+        );
+        if (distance > TARGET_STEP_RANGE) continue;
+        const selectable = pickTargetSelection({
+          localId: String(entity.id),
+          entity,
+          isOwnBody: false,
+          onOwnSide: this.onOwnSide(entity.id),
+          followId: null,
+        });
+        if (selectable) near.push({ id: entity.id, distance });
+      }
+      const next = nextTarget(near, this.targetId, input.targetStep);
+      if (next !== null) {
+        this.lastTapped = next;
+        this.selectTarget(String(next));
+      }
+    }
+    if (input.interact && this.targetId !== null) this.approachTarget(this.targetId);
+  }
+
   /** Let go of the target; the next tap on it only selects. */
   private clearTarget(): void {
     if (this.targetId === null) return;
@@ -3207,6 +3245,7 @@ export class Game {
     if (!this.heroDeath.isDown) this.movement.update(input, dt);
     this.castFromKeys(input.castSlots);
     if (input.deselect) this.clearTarget();
+    this.steerTargets(input);
     if (this.movement.isMounted() && this.movement.locomotion === 'swim') this.dismount();
     this.world.update();
     this.world.updateNetwork(dt);

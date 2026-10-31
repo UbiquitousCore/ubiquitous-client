@@ -16,6 +16,10 @@ export interface InputState {
   jump: boolean;
   /** True on the frame Escape went down: let go of whatever is targeted. */
   deselect: boolean;
+  /** True on the frame the controller's interact button went down: act on the target. */
+  interact: boolean;
+  /** Controller step through nearby bodies: -1 previous, 1 next, 0 neither. */
+  targetStep: -1 | 0 | 1;
   /**
    * True while the jump key is held.
    *
@@ -37,6 +41,8 @@ import { pinchWheel } from './pinch';
 import { findTouch, TouchJoystick } from './TouchJoystick';
 import { isTextEntry } from '../core/textEntry';
 import { CAST_ACTIONS, DEFAULT_KEYBINDS, MOVEMENT_ACTIONS, castSlotOf } from './keybinds';
+import { NO_PAD_FRAME, buttonsDown, firstStandardPad, readPad } from './gamepad';
+import type { PadFrame } from './gamepad';
 import type { Keybinds } from './keybinds';
 
 /**
@@ -100,7 +106,16 @@ export class Input {
    */
   private joystick: TouchJoystick | null;
 
-  constructor(private readonly target: HTMLElement) {
+  /** Buttons down at the last sample, so a press is told from a hold. */
+  private padBefore: boolean[] = [];
+  private lastSampleAt: number | null = null;
+
+  constructor(
+    private readonly target: HTMLElement,
+    private readonly pads: () => ArrayLike<Gamepad | null> | null = () =>
+      navigator.getGamepads?.() ?? null,
+    private readonly clock: () => number = () => performance.now(),
+  ) {
     this.setBindings(DEFAULT_KEYBINDS);
     this.joystick = hasTouch() ? new TouchJoystick(document.body) : null;
     this.bind();
@@ -153,22 +168,28 @@ export class Input {
     // true if either says so, so a touch-capable laptop with a keyboard
     // attached still works exactly as it did before touch existed.
     const stick = this.joystick?.read() ?? { x: 0, y: 0 };
+    const pad = this.samplePad();
     const state: InputState = {
-      castSlots: this.castPressed,
+      castSlots: [...this.castPressed, ...pad.castSlots],
       // Both mouse buttons together walk you the way you are looking, so the
       // mouse alone can carry you.
       forward:
-        this.isDown('forward') || stick.y < -JOYSTICK_DEADZONE || bothButtons(this.mouseButtons),
-      back: this.isDown('back') || stick.y > JOYSTICK_DEADZONE,
-      left: this.isDown('left') || stick.x < -JOYSTICK_DEADZONE,
-      right: this.isDown('right') || stick.x > JOYSTICK_DEADZONE,
-      jump: this.jumpPressed,
-      deselect: this.deselectPressed,
+        this.isDown('forward') ||
+        stick.y < -JOYSTICK_DEADZONE ||
+        pad.moveY < -JOYSTICK_DEADZONE ||
+        bothButtons(this.mouseButtons),
+      back: this.isDown('back') || stick.y > JOYSTICK_DEADZONE || pad.moveY > JOYSTICK_DEADZONE,
+      left: this.isDown('left') || stick.x < -JOYSTICK_DEADZONE || pad.moveX < -JOYSTICK_DEADZONE,
+      right: this.isDown('right') || stick.x > JOYSTICK_DEADZONE || pad.moveX > JOYSTICK_DEADZONE,
+      jump: this.jumpPressed || pad.jump,
+      deselect: this.deselectPressed || pad.deselect,
+      interact: pad.interact,
+      targetStep: pad.targetStep,
       ascend: this.isDown('ascend'),
       descend: this.isDown('descend'),
-      dragX: this.dragX,
-      dragY: this.dragY,
-      wheel: this.wheel,
+      dragX: this.dragX + pad.lookX,
+      dragY: this.dragY + pad.lookY,
+      wheel: this.wheel + pad.zoom,
     };
     this.dragX = 0;
     this.dragY = 0;
@@ -177,6 +198,25 @@ export class Input {
     this.deselectPressed = false;
     this.castPressed = [];
     return state;
+  }
+
+  /**
+   * What the controller did since the last sample. Time between samples is
+   * clamped like the frame loop's, so a stalled tab does not spin the camera
+   * on return.
+   */
+  private samplePad(): PadFrame {
+    const now = this.clock();
+    const dt = this.lastSampleAt === null ? 0 : Math.min((now - this.lastSampleAt) / 1000, 0.1);
+    this.lastSampleAt = now;
+    const pad = firstStandardPad(this.pads());
+    if (!pad) {
+      this.padBefore = [];
+      return NO_PAD_FRAME;
+    }
+    const frame = readPad(pad, this.padBefore, dt);
+    this.padBefore = buttonsDown(pad);
+    return frame;
   }
 
   private isDown(action: HeldAction): boolean {

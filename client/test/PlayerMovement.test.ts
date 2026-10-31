@@ -20,6 +20,8 @@ function idleInput(over: Partial<InputState> = {}): InputState {
     right: false,
     jump: false,
     deselect: false,
+    interact: false,
+    targetStep: 0,
     ascend: false,
     descend: false,
     dragX: 0,
