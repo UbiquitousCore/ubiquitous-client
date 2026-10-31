@@ -119,14 +119,24 @@ A controller is read wherever the game runs, so it works in a browser too:
 | Left stick | Walk and turn |
 | Right stick | Look |
 | `A` / `B` / `X` | Jump / let go of target / act on target |
-| `LB` / `RB` | Previous / next nearby target |
+| `LB` / `RB` | The highlighted body, then previous / next nearby target |
 | `LT` + `A B X Y` | Bar sockets 1–4 |
 | `RT` + `A B X Y` | Bar sockets 5–8 |
 | `LT` + `RT` + `A B` | Bar sockets 9 and 10 |
 | D-pad up / down | Zoom in / out |
 
+With a controller in use and nothing targeted, the body nearest the middle of
+the screen is ringed softly. `X`, `LB`, `RB` and any cast take it as the target,
+so nothing has to be selected first, and `X` also works on objects such as a
+mailbox.
+
 Windows and menus are still driven by the pointer: on the Deck, the trackpads
 and touchscreen do that.
+
+If a button does nothing, see what the window receives. Add
+`--remote-debugging-port=9333` to the launch, forward the port with
+`ssh -N -L 9333:localhost:9333 <user>@<deck>`, and run `node desktop/padwatch.mjs`
+while pressing buttons.
 
 ## Supported versions
 
