@@ -133,6 +133,7 @@ export class PlayerMovement {
   private landedThisFrame = false;
   /** True for the one frame a jump press takes effect. */
   private jumpedThisFrame = false;
+  private surfacing = false;
   private flying = false;
   /** Riding a mount. Set by `setMounted`; read by `speedFor`. */
   private mounted = false;
@@ -319,6 +320,11 @@ export class PlayerMovement {
     // Run down the flourish before this frame's input can start another.
     if (this.flourish > 0) this.flourish = Math.max(0, this.flourish - dt);
 
+    if (this.surfacing) {
+      this.diveDepth = Math.max(0, this.diveDepth - this.speedFor('forward', 'swim') * dt);
+      if (this.diveDepth === 0 || this.locomotion !== 'swim') this.surfacing = false;
+    }
+
     // Observed in play by the owner: nothing refuses a jump. It needs ground,
     // and a body held still by the server cannot.
     // A slide takes the jump away too: you cannot hop your way up a slope.
@@ -402,12 +408,9 @@ export class PlayerMovement {
       this.jumpedThisFrame = true;
       return;
     }
-    const player = this.world.player;
-    if (player && this.locomotion === 'swim') {
-      const [x, , z] = player.position;
-      const swimLine = this.world.waterAt(x, z).swimLine;
-      if (swimLine !== null) this.world.setPosition(player, x, swimLine, z);
-      this.diveDepth = 0;
+    if (this.locomotion === 'swim' && this.diveDepth > 0) {
+      this.surfacing = true;
+      return;
     }
     this.verticalSpeed = JUMP_START_VELOCITY;
     this.airborneFrom = 'jump';

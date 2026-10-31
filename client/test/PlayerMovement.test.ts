@@ -250,13 +250,6 @@ describe('how fast the player moves while slowed or stunned', () => {
   });
 });
 
-/*
- * JUMPING IN WATER.
- *
- * A jump from the water is a leap out of it, from wherever the swimmer is:
- * one under the surface comes up to it and leaps from there, the same as a
- * swimmer already floating on it.
- */
 describe('jumping while swimming', () => {
   const SURFACE = 10;
   const SWIM_LINE = SURFACE - SWIM_DEPTH;
@@ -310,7 +303,7 @@ describe('jumping while swimming', () => {
     expect(leap(movement, player)).toBeGreaterThan(SURFACE);
   });
 
-  it('brings a diver up to the surface and leaps it clear of the water', () => {
+  it('swims a diver straight up rather than leaping, then leaps from the surface', () => {
     const { movement, player, pitch } = lake();
     // Swim forward looking steeply down until well under.
     pitch.value = 1;
@@ -318,7 +311,26 @@ describe('jumping while swimming', () => {
     expect(player.position[1]).toBeLessThan(SWIM_LINE - 0.5);
 
     pitch.value = 0.3;
+    movement.update(idleInput({ jump: true }), 1 / 60);
+    for (let i = 0; i < 240; i++) movement.update(idleInput(), 1 / 60);
+    expect(player.position[1]).toBeCloseTo(SWIM_LINE, 5);
+    expect(movement.justJumped()).toBe(false);
+
     expect(leap(movement, player)).toBeGreaterThan(SURFACE);
+  });
+
+  it('does not leave the water while swimming up', () => {
+    const { movement, player, pitch } = lake();
+    pitch.value = 1;
+    for (let i = 0; i < 120; i++) movement.update(idleInput({ forward: true }), 1 / 60);
+    pitch.value = 0.3;
+    movement.update(idleInput({ jump: true }), 1 / 60);
+    let high = player.position[1];
+    for (let i = 0; i < 240; i++) {
+      movement.update(idleInput(), 1 / 60);
+      high = Math.max(high, player.position[1]);
+    }
+    expect(high).toBeLessThanOrEqual(SWIM_LINE + 1e-6);
   });
 
   it('lands back in the water afterwards, swimming', () => {
