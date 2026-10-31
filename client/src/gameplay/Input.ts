@@ -21,6 +21,11 @@ export interface InputState {
   /** Controller step through nearby bodies: -1 previous, 1 next, 0 neither. */
   targetStep: -1 | 0 | 1;
   /**
+   * True while a controller has been touched lately. A handheld's pad is
+   * always connected, so being connected says nothing about how it is played.
+   */
+  padInUse: boolean;
+  /**
    * True while the jump key is held.
    *
    * Jumping wants the edge — holding space must not re-launch you on landing —
@@ -41,7 +46,7 @@ import { pinchWheel } from './pinch';
 import { findTouch, TouchJoystick } from './TouchJoystick';
 import { isTextEntry } from '../core/textEntry';
 import { CAST_ACTIONS, DEFAULT_KEYBINDS, MOVEMENT_ACTIONS, castSlotOf } from './keybinds';
-import { NO_PAD_FRAME, buttonsDown, firstStandardPad, readPad } from './gamepad';
+import { NO_PAD_FRAME, buttonsDown, firstStandardPad, readPad, stickVector } from './gamepad';
 import type { PadFrame } from './gamepad';
 import type { Keybinds } from './keybinds';
 
@@ -51,6 +56,9 @@ import type { Keybinds } from './keybinds';
  * as a held key and the player would drift.
  */
 const JOYSTICK_DEADZONE = 0.3;
+
+/** How long after the last touch of a controller it still counts as the way the game is played. Own choice. */
+const PAD_IDLE_MS = 8000;
 
 /** `MouseEvent.buttons` bits for the left and right buttons. */
 const LEFT_BUTTON = 1;
@@ -109,6 +117,7 @@ export class Input {
   /** Buttons down at the last sample, so a press is told from a hold. */
   private padBefore: boolean[] = [];
   private lastSampleAt: number | null = null;
+  private padActiveAt: number | null = null;
 
   constructor(
     private readonly target: HTMLElement,
@@ -185,6 +194,7 @@ export class Input {
       deselect: this.deselectPressed || pad.deselect,
       interact: pad.interact,
       targetStep: pad.targetStep,
+      padInUse: this.padInUse(),
       ascend: this.isDown('ascend'),
       descend: this.isDown('descend'),
       dragX: this.dragX + pad.lookX,
@@ -216,7 +226,19 @@ export class Input {
     }
     const frame = readPad(pad, this.padBefore, dt);
     this.padBefore = buttonsDown(pad);
+    // From the stick itself: the look distance in the frame is zero on a
+    // first sample, when there is no elapsed time to scale it by.
+    const sticks = [
+      stickVector(pad.axes[0] ?? 0, pad.axes[1] ?? 0),
+      stickVector(pad.axes[2] ?? 0, pad.axes[3] ?? 0),
+    ];
+    const touched = this.padBefore.some(Boolean) || sticks.some(([x, y]) => x !== 0 || y !== 0);
+    if (touched) this.padActiveAt = now;
     return frame;
+  }
+
+  private padInUse(): boolean {
+    return this.padActiveAt !== null && this.clock() - this.padActiveAt < PAD_IDLE_MS;
   }
 
   private isDown(action: HeldAction): boolean {

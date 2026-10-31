@@ -22,6 +22,7 @@ function idleInput(over: Partial<InputState> = {}): InputState {
     deselect: false,
     interact: false,
     targetStep: 0,
+    padInUse: false,
     ascend: false,
     descend: false,
     dragX: 0,

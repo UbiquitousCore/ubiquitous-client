@@ -105,4 +105,27 @@ describe('Input and a controller', () => {
     expect(state.targetStep).toBe(0);
     expect(state.interact).toBe(false);
   });
+
+  it('is in use after a touch and not once it has been left alone a while', () => {
+    const rig = withPad();
+    const sampled = rig.read();
+    rig.set(standardPad());
+    expect(sampled.sample().padInUse).toBe(false);
+    rig.set(standardPad([5]));
+    expect(sampled.sample().padInUse).toBe(true);
+    rig.set(standardPad());
+    rig.tick(5000);
+    expect(sampled.sample().padInUse).toBe(true);
+    rig.tick(4000);
+    expect(sampled.sample().padInUse).toBe(false);
+  });
+
+  it('counts a stick pushed past its deadzone, and not one at rest', () => {
+    const rig = withPad();
+    const sampled = rig.read();
+    rig.set(standardPad([], [0.05, 0, 0, 0]));
+    expect(sampled.sample().padInUse).toBe(false);
+    rig.set(standardPad([], [0, 0, 0.9, 0]));
+    expect(sampled.sample().padInUse).toBe(true);
+  });
 });

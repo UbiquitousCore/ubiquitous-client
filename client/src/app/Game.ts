@@ -55,6 +55,8 @@ import { Input } from '../gameplay/Input';
 import type { InputState } from '../gameplay/Input';
 import { nextTarget } from '../gameplay/targetCycle';
 import type { TargetCandidate } from '../gameplay/targetCycle';
+import { SOFT_RANGE, pickSoftTarget } from '../gameplay/softTarget';
+import type { SoftCandidate } from '../gameplay/softTarget';
 import { options as savedOptions, setOption } from '../ui/optionsStore';
 import type { OptionsState } from '../ui/optionsStore';
 import { DEFAULT_MOVEMENT, PlayerMovement } from '../gameplay/PlayerMovement';
@@ -549,6 +551,8 @@ export class Game {
    * never a target, yet a second tap on it must open it.
    */
   private lastTapped: EntityId | null = null;
+  /** What a controller would act on with no target held; see `steerTargets`. */
+  private softTargetId: EntityId | null = null;
   /** One pending flinch per defender: a flurry restarts the timer. */
   private readonly defendTimers = new Map<number, number>();
   /** What the server last said the player holds; richer than the character list. */
@@ -2370,9 +2374,9 @@ export class Game {
       this.steerFollow(input);
       if (!this.heroDeath.isDown) this.movement.update(input, dt);
       if (this.movement.justJumped()) this.callOffCast();
-      this.castFromKeys(input.castSlots);
       if (input.deselect) this.clearTarget();
       this.steerTargets(input);
+      this.castFromKeys(input.castSlots);
       this.easeCombatFacing(dt);
       // Mounts do not swim: deep water dismounts.
       if (this.movement.isMounted() && this.movement.locomotion === 'swim') this.dismount();
@@ -2553,14 +2557,15 @@ export class Game {
 
   /** Selection can change outside `selectTarget`; recolouring alone replays no pop. */
   private syncTargetRing(): void {
-    const id = this.targetId;
+    const held = this.targetId;
+    const id = held ?? this.softTargetId;
     if (id === null) {
       this.renderer.setTargetEntity(null);
       return;
     }
     const entity = this.world.entities.get(id);
     if (!entity) {
-      setTarget(null);
+      if (held !== null) setTarget(null);
       this.renderer.setTargetEntity(null);
       return;
     }
@@ -2986,36 +2991,88 @@ export class Game {
     this.connection.sendAttackStart(networkId);
   }
 
-  /** The controller's target buttons: step through who is near, or act on the target. */
+  /**
+   * The controller's targeting. Without a target, the body best placed in
+   * front of the camera is picked out softly; acting or casting makes it the
+   * target first, so neither needs a target chosen beforehand.
+   */
   private steerTargets(input: InputState): void {
     const hero = this.world.player;
     if (!hero) return;
-    if (input.targetStep !== 0) {
-      const near: TargetCandidate[] = [];
-      for (const entity of this.world.entities.values()) {
-        if (entity.kind !== 'creature' && entity.kind !== 'player') continue;
-        if (this.whoIs.isOwnBody(entity.id)) continue;
-        const distance = Math.hypot(
-          entity.position[0] - hero.position[0],
-          entity.position[2] - hero.position[2],
-        );
-        if (distance > TARGET_STEP_RANGE) continue;
-        const selectable = pickTargetSelection({
-          localId: String(entity.id),
-          entity,
-          isOwnBody: false,
-          onOwnSide: this.onOwnSide(entity.id),
-          followId: null,
-        });
-        if (selectable) near.push({ id: entity.id, distance });
-      }
-      const next = nextTarget(near, this.targetId, input.targetStep);
-      if (next !== null) {
-        this.lastTapped = next;
-        this.selectTarget(String(next));
+    this.softTargetId = this.findSoftTarget(input, hero);
+    if (input.targetStep !== 0) this.stepTarget(input.targetStep, hero);
+
+    if (this.targetId === null && this.softTargetId !== null) {
+      if (input.interact || input.castSlots.length > 0) {
+        this.lastTapped = this.softTargetId;
+        this.selectTarget(String(this.softTargetId));
       }
     }
-    if (input.interact && this.targetId !== null) this.approachTarget(this.targetId);
+    if (input.interact) {
+      const id = this.targetId ?? this.softTargetId;
+      if (id !== null) this.approachTarget(id);
+    }
+  }
+
+  /** Whether a body can be selected, as a tap on it would. */
+  private targetable(entity: Entity): boolean {
+    return (
+      pickTargetSelection({
+        localId: String(entity.id),
+        entity,
+        isOwnBody: false,
+        onOwnSide: this.onOwnSide(entity.id),
+        followId: null,
+      }) !== null
+    );
+  }
+
+  /** Null while a target is held or a controller is not the way the game is being played. */
+  private findSoftTarget(input: InputState, hero: Entity): number | null {
+    if (!input.padInUse || this.targetId !== null) return null;
+    const [headingX, , headingZ] = this.renderer.cameraForward();
+    const candidates: SoftCandidate[] = [];
+    for (const entity of this.world.entities.values()) {
+      const x = entity.position[0];
+      const z = entity.position[2];
+      if (Math.hypot(x - hero.position[0], z - hero.position[2]) > SOFT_RANGE) continue;
+      if (this.whoIs.isOwnBody(entity.id)) continue;
+      const selectable = entity.kind === 'creature' || entity.kind === 'player';
+      if (selectable ? !this.targetable(entity) : !isInteractable(entity)) continue;
+      candidates.push({ id: entity.id, x, z });
+    }
+    return pickSoftTarget({
+      from: [hero.position[0], hero.position[2]],
+      heading: [headingX, headingZ],
+      candidates,
+      current: this.softTargetId,
+    });
+  }
+
+  /** The first press takes what is picked out softly; later ones walk outward from the target. */
+  private stepTarget(step: 1 | -1, hero: Entity): void {
+    const soft = this.softTargetId === null ? undefined : this.world.entities.get(this.softTargetId);
+    if (this.targetId === null && soft && this.targetable(soft)) {
+      this.lastTapped = soft.id;
+      this.selectTarget(String(soft.id));
+      return;
+    }
+    const near: TargetCandidate[] = [];
+    for (const entity of this.world.entities.values()) {
+      if (entity.kind !== 'creature' && entity.kind !== 'player') continue;
+      if (this.whoIs.isOwnBody(entity.id)) continue;
+      const distance = Math.hypot(
+        entity.position[0] - hero.position[0],
+        entity.position[2] - hero.position[2],
+      );
+      if (distance > TARGET_STEP_RANGE) continue;
+      if (this.targetable(entity)) near.push({ id: entity.id, distance });
+    }
+    const next = nextTarget(near, this.targetId, step);
+    if (next !== null) {
+      this.lastTapped = next;
+      this.selectTarget(String(next));
+    }
   }
 
   /** Let go of the target; the next tap on it only selects. */
@@ -3243,9 +3300,9 @@ export class Game {
     this.steerApproach(input);
     this.steerFollow(input);
     if (!this.heroDeath.isDown) this.movement.update(input, dt);
-    this.castFromKeys(input.castSlots);
     if (input.deselect) this.clearTarget();
     this.steerTargets(input);
+    this.castFromKeys(input.castSlots);
     if (this.movement.isMounted() && this.movement.locomotion === 'swim') this.dismount();
     this.world.update();
     this.world.updateNetwork(dt);
