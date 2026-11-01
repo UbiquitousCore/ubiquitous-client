@@ -153,7 +153,9 @@ function Worn({
     spec.frame,
     (whole): PlanStates => {
       const { base } = statesFor(whole);
-      return { hidden: [...(spec.hidden ?? []), ...base.hidden], frames: base.frames };
+      // The mount's slot is there only while riding.
+      const onFoot = mountSpell === null && names.mount ? [names.mount] : [];
+      return { hidden: [...(spec.hidden ?? []), ...base.hidden, ...onFoot], frames: base.frames };
     },
     EDGE,
   );

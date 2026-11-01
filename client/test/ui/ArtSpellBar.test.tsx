@@ -84,6 +84,13 @@ describe('ArtSpellBar', () => {
     ]);
   });
 
+  it('has no mount slot on foot', () => {
+    wear();
+    const { container } = render(<ArtSpellBar {...props({ mountSpell: null })} />);
+    const slots = [...container.querySelectorAll<HTMLElement>('[data-spell-slot]')];
+    expect(slots.map(slot => slot.dataset.spellSlot)).toEqual(['0', '1']);
+  });
+
   it('casts what is in a slot when it is pressed, the mount’s included', () => {
     wear();
     const onCast = vi.fn();
