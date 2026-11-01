@@ -415,7 +415,7 @@ before trusting it: an older pack numbers its words differently again.
 cd client && npm install && npm run dev          # the client, on :8780
 ```
 
-Open it and choose your `.ipa`. See [README.md](README.md).
+Open it and choose your `.ipa`. See [README.md](README.md); to work on it, [docs/DEVELOPING.md](docs/DEVELOPING.md).
 
 ```bash
 python tools/check_no_assets.py       # hygiene — run before committing
