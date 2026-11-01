@@ -1,7 +1,8 @@
 /**
  * The people screen: guild, friends and ignored tabs as last sent. A
- * friend's row offers a whisper, a team invitation and removal; another
- * row's menu removes the person. The bottom control adds or invites.
+ * friend's row offers a whisper, a team invitation, ignoring and deletion;
+ * an ignored player's offers friendship, relief and a report; a guild
+ * member's removes them. The bottom control adds or invites.
  */
 
 import type { JSX } from 'preact';
@@ -30,12 +31,21 @@ import {
 } from '../socialListStore';
 import { ArtPlayerLinkMenu } from './ArtPlayerLinkMenu';
 import type { PlayerLinkAction } from './ArtPlayerLinkMenu';
+import { ArtAskBox } from './ArtAskBox';
 import { ArtRowMenu } from './ArtRowMenu';
+import { beginReport } from '../reportStore';
 import { beginWhisper, whisperTargetOfNetworkId } from '../chatStore';
 import { partyActions } from '../partyStore';
 
 /** Our name for this screen. The spec says which dialog wears it. */
 export const SOCIAL_SCREEN = 'social';
+
+/** The questions asked before a friend is deleted, and before someone ignored is befriended. */
+export const FRIEND_DELETE_ASK_SCREEN = 'friendDeleteAsk';
+export const IGNORED_BEFRIEND_ASK_SCREEN = 'ignoredBefriendAsk';
+
+/** Ask `screen`'s question about `name`, and carry on only on yes. */
+export type AskFirst = (screen: string, name: string, then: () => void) => void;
 
 /** The list stands in a row beside the bar, not at a place on a stage. */
 const ROW = { unplaced: true } as const;
@@ -70,6 +80,10 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
   const tabs = spec.tabs ?? [];
   const [open, setOpen] = useState(tabs[0]?.panel ?? '');
   const [chosen, setChosen] = useState<number | null>(null);
+  const [asked, setAsked] = useState<{ screen: string; name: string; then: () => void } | null>(
+    null,
+  );
+  const askFirst: AskFirst = (screen, name, then) => setAsked({ screen, name, then });
   const [beside, setBeside] = useState<{ x: number; y: number } | null>(null);
   /** The name being typed into the box along the bottom. */
   const [typed, setTyped] = useState('');
@@ -329,28 +343,42 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
 
       {/* What can be asked about the person picked out. The server is the
           one that decides whether it is allowed, and says so. */}
-      {picked && open === 'friends' ? (
+      {picked && (open === 'friends' || open === 'ignored') ? (
         <ArtPlayerLinkMenu
           beside={beside}
-          actions={friendActions(picked, spec, () => setChosen(null))}
+          actions={(open === 'friends' ? friendActions : ignoredActions)(
+            picked,
+            spec,
+            () => setChosen(null),
+            askFirst,
+          )}
           onClose={() => setChosen(null)}
         />
       ) : null}
 
-      {picked &&
-      open !== 'friends' &&
-      (open === 'ignored' ? spec.words?.remove : spec.words?.kick) ? (
+      {picked && open !== 'friends' && open !== 'ignored' && spec.words?.kick ? (
         <ArtRowMenu
           beside={beside}
-          says={
-            (open === 'friends' || open === 'ignored' ? spec.words?.remove : spec.words?.kick) ?? ''
-          }
+          says={spec.words.kick}
           onPick={() => {
-            if (open === 'ignored') removeIgnore(picked.id);
-            else actions.kick(picked.id);
+            actions.kick(picked.id);
             setChosen(null);
           }}
           onClose={() => setChosen(null)}
+        />
+      ) : null}
+
+      {asked ? (
+        <ArtAskBox
+          screen={asked.screen}
+          name={asked.name}
+          label={asked.screen === FRIEND_DELETE_ASK_SCREEN ? 'Delete a friend' : 'Add as friend'}
+          acceptLabel="Yes"
+          onAccept={() => {
+            asked.then();
+            setAsked(null);
+          }}
+          onDecline={() => setAsked(null)}
         />
       ) : null}
 
@@ -370,21 +398,33 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
   );
 }
 
-/** What a friend's row offers: a word and an invitation while they are in the world, and always their removal. */
+/**
+ * What a friend's row offers: a word and an invitation while they are in the
+ * world, and always ignoring them or deleting them, which is asked first.
+ */
 export function friendActions(
   friend: Pick<Person, 'id' | 'name' | 'away'>,
   spec: Pick<ScreenSpec, 'words'>,
   done: () => void,
+  askFirst: AskFirst,
 ): PlayerLinkAction[] {
   const then = (act: () => void) => () => {
     act();
     done();
   };
-  const remove = {
-    label: spec.words?.remove ?? 'Remove',
-    onPick: then(() => removeFriend(friend.id)),
-  };
-  if (friend.away) return [remove];
+  const always = [
+    {
+      label: spec.words?.ignore ?? 'Ignore',
+      onPick: then(() => addIgnore(whisperTargetOfNetworkId(friend.id))),
+    },
+    {
+      label: spec.words?.delete ?? spec.words?.remove ?? 'Delete',
+      onPick: then(() =>
+        askFirst(FRIEND_DELETE_ASK_SCREEN, friend.name, () => removeFriend(friend.id)),
+      ),
+    },
+  ];
+  if (friend.away) return always;
   return [
     {
       label: spec.words?.whisper ?? 'Whisper',
@@ -394,6 +434,38 @@ export function friendActions(
       label: spec.words?.teamInvite ?? 'Invite',
       onPick: then(() => partyActions().invite(friend.id)),
     },
-    remove,
+    ...always,
+  ];
+}
+
+/** What an ignored player's row offers: friendship, which is asked first, relief, and a report to a GM. */
+export function ignoredActions(
+  person: Pick<Person, 'id' | 'name'>,
+  spec: Pick<ScreenSpec, 'words'>,
+  done: () => void,
+  askFirst: AskFirst,
+): PlayerLinkAction[] {
+  const then = (act: () => void) => () => {
+    act();
+    done();
+  };
+  return [
+    {
+      label: spec.words?.befriend ?? 'Add as friend',
+      onPick: then(() =>
+        askFirst(IGNORED_BEFRIEND_ASK_SCREEN, person.name, () => {
+          removeIgnore(person.id);
+          addFriendNamed(person.name);
+        }),
+      ),
+    },
+    {
+      label: spec.words?.relieve ?? spec.words?.remove ?? 'Relieve',
+      onPick: then(() => removeIgnore(person.id)),
+    },
+    {
+      label: spec.words?.report ?? 'Report to GM',
+      onPick: then(() => beginReport(whisperTargetOfNetworkId(person.id), person.name)),
+    },
   ];
 }

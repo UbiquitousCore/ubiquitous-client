@@ -806,7 +806,8 @@ export class Game {
     );
     this.friends = new Friends(
       this.connection,
-      unitId => this.bodies.networkIdOf(Number(unitId)),
+      // A list row names someone by network id, the way a whisper does; a body in sight by unit id.
+      unitId => networkIdOfWhisperTarget(unitId) ?? this.bodies.networkIdOf(Number(unitId)),
       {
         playableKinds: () => this.resources.playableKinds(),
         zoneAt: (mapId, position) => this.zoneAt(mapId, position),
@@ -904,9 +905,10 @@ export class Game {
         this.connection.sendWhisper(networkId, text);
       }
     });
-    // `targetId` is a local unit id, as for the whisper sink.
+    // `targetId` is read as for the whisper sink.
     setReportSink((targetId, reason) => {
-      const networkId = this.bodies.networkIdOf(Number(targetId));
+      const networkId =
+        networkIdOfWhisperTarget(targetId) ?? this.bodies.networkIdOf(Number(targetId));
       if (networkId !== undefined) this.connection.sendReportPlayer(networkId, reason);
     });
     setEmoteSink(name => this.connection.sendEmote(name, this.whoIs.targetNetworkId()));
