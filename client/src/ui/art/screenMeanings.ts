@@ -1054,6 +1054,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
   // put out is the one the rest of the team is asked.
   voteKickAsk: askBox('@1328?~be7fba62bf4d1f9e~23'),
   tradeAsk: askBox('@764?~1dc94bc5bd3e1bc9~17'),
+  friendDeleteAsk: askBox('@720?~71e57152a0a874e6~33'),
+  ignoredBefriendAsk: askBox('@721?~8ecb8d7d01a0fa19~86'),
   duelAsk: askBox('@983?~639dcb5740fb1dcb~16'),
   // The fare quoted for a journey: the place, then the sum, in the two holes.
   travelAsk: askBox('@1346?~ff24bb1403a28a90~30', 'warnning'),
@@ -1199,6 +1201,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       offline: '@723?~ec8b992829b51394~7',
       whisper: '@408?~ee925beddf4aeb01~7',
       teamInvite: '@413?~1386011048f5e5d4~6',
+      ignore: '@623?~7e3f1843e33974cf~6',
+      delete: '@624?~67c2444a19126af6~6',
+      befriend: '@622?~879cc16c21ea8b48~13',
+      relieve: '@625?~5a7385cf3fb5a22b~7',
+      report: '@1498?~feab1448e614f6bc~12',
     },
     // What a class is called, twice over for its two bodies, by the
     // server's class numbers: warrior, mage, ranger, monk.

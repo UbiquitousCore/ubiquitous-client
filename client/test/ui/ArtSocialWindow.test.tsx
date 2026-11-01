@@ -78,6 +78,7 @@ function skin(): UiSkinData {
             place(11, 0, 0, 'btnGuild'),
             place(11, 40, 0, 'btnFriend'),
             place(11, 80, 0, 'btnIgnored'),
+            place(11, 120, 0, 'btnFourth'),
           ],
         ],
       },
@@ -108,10 +109,15 @@ const spec = {
       },
       words: {
         kick: 'Send away',
-        remove: 'Delete',
+        remove: 'Remove',
         offline: 'Offline',
         whisper: 'Whisper',
         teamInvite: 'Invite',
+        ignore: 'Ignore',
+        delete: 'Delete',
+        befriend: 'Add as friend',
+        relieve: 'Relieve',
+        report: 'Report to GM',
       },
       names: { classes: ['Warrior', 'Warrioress'] },
     },
@@ -119,7 +125,12 @@ const spec = {
     playerLink: {
       dialog: 'thePeople',
       frame: 'back',
-      actions: { btnGuild: 'link1', btnFriend: 'link2', btnIgnored: 'link3' },
+      actions: {
+        btnGuild: 'link1',
+        btnFriend: 'link2',
+        btnIgnored: 'link3',
+        btnFourth: 'link4',
+      },
     },
   },
 };
@@ -165,7 +176,7 @@ describe('ArtSocialWindow', () => {
     expect(getByLabelText('Guildie')).toBeTruthy();
   });
 
-  it('takes a friend off the list from the menu beside their name', () => {
+  it('asks before taking a friend off the list from the menu beside their name', () => {
     uiSpec.value = spec;
     setMovie({ skin: skin(), art: new Map() });
     const removeFriend = vi.fn();
@@ -182,7 +193,7 @@ describe('ArtSocialWindow', () => {
     fireEvent.click(getByLabelText('Friends'));
     fireEvent.click(getByLabelText('Ayla'));
     fireEvent.click(getByRole('menuitem', { name: 'Delete' }));
-    expect(removeFriend).toHaveBeenCalledWith(7);
+    expect(removeFriend).not.toHaveBeenCalled();
   });
 
   it('offers a friend in the world a whisper and a team invitation from the menu beside their name', () => {
@@ -195,6 +206,7 @@ describe('ArtSocialWindow', () => {
     expect(getAllByRole('menuitem').map(item => item.getAttribute('aria-label'))).toEqual([
       'Whisper',
       'Invite',
+      'Ignore',
       'Delete',
     ]);
   });
