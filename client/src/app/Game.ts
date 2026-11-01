@@ -233,6 +233,7 @@ import {
 } from '../ui/popMessages';
 import {
   WHISPER_CHANNEL,
+  EMOTE_CHANNEL,
   chatSaid,
   clearChat,
   clearSaid,
@@ -243,6 +244,7 @@ import {
   setWhisperSink,
   networkIdOfWhisperTarget,
 } from '../ui/chatStore';
+import { emoteLine } from '../ui/emoteLines';
 import { setDeathActions, setDeathToll } from '../ui/deathStore';
 import { closeLoot, lootWindow } from '../ui/lootStore';
 import { noteRefusal } from '../ui/protocolNotices';
@@ -894,7 +896,7 @@ export class Game {
       const networkId = this.bodies.networkIdOf(Number(targetId));
       if (networkId !== undefined) this.connection.sendReportPlayer(networkId, reason);
     });
-    setEmoteSink(name => this.connection.sendEmote(name));
+    setEmoteSink(name => this.connection.sendEmote(name, this.whoIs.targetNetworkId()));
     setChatCommandSink(command => {
       if (command.kind === 'who') this.connection.sendWho();
       else if (command.kind === 'invite') partyActions().inviteNamed(command.name);
@@ -1940,7 +1942,20 @@ export class Game {
         // Logged on arrival, not on send: the server refuses offline and self whispers.
         noteChat({ channel: WHISPER_CHANNEL, sender: `To ${targetName}`, text, mine: true });
       },
-      onEmotePerformed: (networkId, animationId) => this.playEmote(networkId, animationId),
+      onEmotePerformed: (networkId, animationId, name, targetNetworkId) => {
+        this.playEmote(networkId, animationId);
+        const text = emoteLine({
+          emote: name,
+          by: this.whoIs.isSelf(networkId) ? null : this.whoIs.networkName(networkId),
+          at:
+            targetNetworkId === undefined
+              ? null
+              : this.whoIs.isSelf(targetNetworkId)
+                ? { you: true }
+                : this.whoIs.networkName(targetNetworkId),
+        });
+        if (text) noteChat({ channel: EMOTE_CHANNEL, sender: '', text });
+      },
     };
   }
 
