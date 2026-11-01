@@ -29,6 +29,8 @@ import {
   setActionSlotSink,
   mountSlot,
   setMountSpells,
+  setRiddenMount,
+  riddenMountAmong,
   setSpellName,
   setSpellRank,
   shortcutSlots,
@@ -188,11 +190,13 @@ describe('the bar of twelve', () => {
     expect(spellBar.value).toEqual([2, 3]);
   });
 
-  it('offers the mount in its own slot for casting, as it does what the bar holds', () => {
+  it('offers the mount being ridden in its own slot for casting, as it does what the bar holds', () => {
     initSpells([2, 6978], at(savedEmpty(), 'primary', 0, { id: 2 }));
     setMountSpells([6978]);
+    setRiddenMount(6978);
     expect(mountSlot.value).toBe(6978);
     expect(spellBar.value).toEqual([2, 6978]);
+    setRiddenMount(null);
     setMountSpells([]);
   });
 
@@ -247,42 +251,38 @@ describe('the mount’s slot', () => {
   beforeEach(() => {
     setActionSlotSink(null);
     setMountSpells([]);
-    assignBarSlot(MOUNT_SLOT, null);
+    setRiddenMount(null);
   });
 
   it('is the one after the twelve', () => {
     expect(MOUNT_SLOT).toBe(BAR_SLOTS);
   });
 
-  it('holds the first mount the player has until they choose another', () => {
+  it('is empty on foot, whatever mounts the player knows', () => {
     setMountSpells([900, 901]);
-    expect(mountSlot.value).toBe(900);
-    assignBarSlot(MOUNT_SLOT, 901);
-    expect(mountSlot.value).toBe(901);
-    assignBarSlot(MOUNT_SLOT, null);
-    expect(mountSlot.value).toBe(900);
+    expect(mountSlot.value).toBeNull();
   });
 
-  it('takes only a mount, and saves nothing for it', () => {
+  it('shows the mount being ridden, and empties again on getting down', () => {
+    setMountSpells([900, 901]);
+    setRiddenMount(901);
+    expect(mountSlot.value).toBe(901);
+    setRiddenMount(null);
+    expect(mountSlot.value).toBeNull();
+  });
+
+  it('takes nothing put there by hand, and saves nothing for it', () => {
     const saved: ActionBarRecord[] = [];
     setActionSlotSink(record => saved.push(record));
     setMountSpells([900]);
     assignBarSlot(MOUNT_SLOT, 900);
-    expect(mountSlot.value).toBe(900);
-    assignBarSlot(MOUNT_SLOT, 133);
-    expect(mountSlot.value).toBe(900);
+    expect(mountSlot.value).toBeNull();
     expect(saved).toEqual([]);
   });
 
-  it('goes back to the first mount the player has when the one chosen is gone', () => {
-    setMountSpells([900, 901]);
-    assignBarSlot(MOUNT_SLOT, 901);
-    setMountSpells([900]);
-    expect(mountSlot.value).toBe(900);
-  });
-
-  it('is empty when the player has no mount', () => {
-    expect(mountSlot.value).toBeNull();
+  it('reads the ride from the hero’s own buffs', () => {
+    expect(riddenMountAmong([12, 901, 40], [900, 901])).toBe(901);
+    expect(riddenMountAmong([12, 40], [900, 901])).toBeNull();
   });
 });
 

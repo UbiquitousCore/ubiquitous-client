@@ -206,6 +206,7 @@ import {
   appliedFrom,
   auraCancel,
   auraKey,
+  auras,
   clearAura,
   clearAuras,
   setAura,
@@ -318,6 +319,8 @@ import {
   setClassTrees,
   setMountSpells,
   mountSpells,
+  riddenMountAmong,
+  setRiddenMount,
   wantedSpellDetails,
   wantedSpellStats,
   wantedTalentWords,
@@ -565,6 +568,7 @@ export class Game {
   private readonly stopDialogs: () => void;
   private readonly stopEmblems: () => void;
   private readonly stopSpellIcons: () => void;
+  private readonly stopRiddenMount: () => void;
   private readonly stopTalentWords: () => void;
   private readonly stopSpellStats: () => void;
   private readonly diagnosticsRoot: HTMLElement;
@@ -833,6 +837,15 @@ export class Game {
     this.stopSpellIcons = effect(() => {
       const wanted = wantedSpellDetails.value;
       if (wanted.length) void this.art.loadSpellDetails(wanted);
+    });
+    this.stopRiddenMount = effect(() => {
+      const own = auras.value.get(auraKey(this.selfNetworkId)) ?? [];
+      setRiddenMount(
+        riddenMountAmong(
+          own.map(aura => aura.spellId),
+          mountSpells.value,
+        ),
+      );
     });
     this.stopSpellStats = effect(() => {
       const wanted = wantedSpellStats.value;
@@ -4564,6 +4577,7 @@ export class Game {
     this.stopDialogs();
     this.stopEmblems();
     this.stopSpellIcons();
+    this.stopRiddenMount();
     this.stopSpellStats();
     this.stopTalentWords();
     this.stop();

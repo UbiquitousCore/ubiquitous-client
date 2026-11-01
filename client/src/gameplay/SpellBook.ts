@@ -186,7 +186,7 @@ export const globalCooldown = signal<CooldownTimer | null>(null);
 /** The bar the player sees has this many buttons: six rows of two. */
 export const BAR_SLOTS = 12;
 
-/** The extra mount slot after the numbered ones; unsaved, so it lasts as long as the tab. */
+/** The extra mount slot after the numbered ones, filled only while riding. */
 export const MOUNT_SLOT = BAR_SLOTS;
 
 /** The ring in the corner holds this many spells, after the mount's slot in the order of drop targets. */
@@ -204,15 +204,28 @@ export const wheelSlots = computed<Array<number | null>>(() =>
   ),
 );
 
-/** The mount the player put in the mount slot, or null while they have not chosen one. */
-const mountChoice = signal<number | null>(null);
+/** The spell the hero is riding by, or null on foot. */
+const riddenMount = signal<number | null>(null);
 
-/** The mount the player put there while they still have it, else their first. */
+export function setRiddenMount(spellId: number | null): void {
+  riddenMount.value = spellId;
+}
+
+/** Which of the hero's auras is a ride, if any: a mount shows among its rider's buffs while ridden. */
+export function riddenMountAmong(
+  auraSpellIds: readonly number[],
+  mounts: readonly number[],
+): number | null {
+  return auraSpellIds.find(id => mounts.includes(id)) ?? null;
+}
+
+/**
+ * The mount slot shows the mount being ridden, and pressing it gets down;
+ * on foot there is nothing in it.
+ */
 export const mountSlot = computed<number | null>(() => {
-  const owned = mountSpells.value;
-  const chosen = mountChoice.value;
-  if (chosen !== null && owned.includes(chosen)) return chosen;
-  return owned[0] ?? null;
+  const riding = riddenMount.value;
+  return riding !== null && mountSpells.value.includes(riding) ? riding : null;
 });
 
 /** Own convention: buttons 1-6 are the primary bar, 7-12 the first six shortcut slots. */
@@ -538,13 +551,9 @@ export function setActionSlotSink(sink: ActionSlotSink | null): void {
   saveSlot = sink;
 }
 
-/** Put a spell on a bar or ring button and save its slot, or a mount in the unsaved mount slot; `null` clears. */
+/** Put a spell on a bar or ring button and save its slot; `null` clears. The mount slot is not the player's to fill. */
 export function assignBarSlot(index: number, spellId: number | null): void {
-  if (index === MOUNT_SLOT) {
-    // Only a mount goes in the mount's slot; clearing it goes back to the first the player has.
-    if (spellId === null || mountSpells.value.includes(spellId)) mountChoice.value = spellId;
-    return;
-  }
+  if (index === MOUNT_SLOT) return;
   const wheel = index - WHEEL_FIRST;
   const place =
     index >= 0 && index < BAR_SLOTS
