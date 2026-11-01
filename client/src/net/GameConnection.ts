@@ -647,8 +647,13 @@ export interface ConnectionEvents {
   onWhisperReceived?(senderNetworkId: number, senderName: string, text: string): void;
   /** A whisper this player sent, echoed once delivered; logged then, not on send. */
   onWhisperSent?(targetNetworkId: number, targetName: string, text: string): void;
-  /** `animationId` is an animation-table row; `name` the protocol's keyword for it. */
-  onEmotePerformed?(networkId: number, animationId: number, name: string): void;
+  /** `animationId` is an animation-table row; `name` the protocol's keyword for it; `targetNetworkId` whom it was aimed at, if anyone. */
+  onEmotePerformed?(
+    networkId: number,
+    animationId: number,
+    name: string,
+    targetNetworkId?: number,
+  ): void;
   onTargetChanged?(networkId: number): void;
   /** An NPC conversation; what it says comes from local tables by `entry`. */
   onNpcConversation?(networkId: number, entry: number): void;
@@ -1004,8 +1009,8 @@ export interface GameConnection {
   sendChat(channel: string, text: string): void;
   /** Answered by `onWhisperReceived` there and `onWhisperSent` here once delivered. */
   sendWhisper(networkId: number, text: string): void;
-  /** Perform an emote, by the keyword the server knows it under. */
-  sendEmote(name: string): void;
+  /** Perform an emote, by the keyword the server knows it under, at `targetNetworkId` if given. */
+  sendEmote(name: string, targetNetworkId?: number): void;
   sendTarget(networkId: number): void;
   /** Start talking to an NPC. */
   sendNpcTalk(networkId: number): void;

@@ -35,6 +35,7 @@ import type { ScreenSpec } from '../src/ui/art/uiSpec';
 import { KNOWN_SCREENS } from '../dev/knownScreens';
 import { heroFaces, strangers } from '../src/ui/components/ArtPlayerFrame';
 import { LINES } from '../src/ui/gameLines';
+import { EMOTE_ORDER, emoteLine } from '../src/ui/emoteLines';
 import { slotRefs } from '../src/ui/spellBarModel';
 import { wheelRefs } from '../src/ui/spellWheelModel';
 
@@ -1122,4 +1123,27 @@ describe.skipIf(!BUILDS.size)('the lines the interface says, against the playerâ
     }
     expect(misfits).toEqual([]);
   });
+
+  it.skipIf(!TARGET)(
+    'has a line for every emote in the gameâ€™s list, from every point of view',
+    () => {
+      const words = read.get(TARGET!)!.words;
+      const missing: string[] = [];
+      for (const emote of EMOTE_ORDER) {
+        const seen = [
+          [emote, emoteLine({ emote, by: 'Ayla', at: 'Borin' }, words), ['Ayla', 'Borin']],
+          [emote, emoteLine({ emote, by: 'Ayla', at: null }, words), ['Ayla']],
+          [emote, emoteLine({ emote, by: 'Ayla', at: { you: true } }, words), ['Ayla']],
+          [emote, emoteLine({ emote, by: null, at: 'Borin' }, words), ['Borin']],
+          [emote, emoteLine({ emote, by: null, at: null }, words), []],
+        ] as const;
+        for (const [name, line, names] of seen) {
+          if (!line || line.includes('%') || !names.every(one => line.includes(one))) {
+            missing.push(`${name}: ${line}`);
+          }
+        }
+      }
+      expect(missing).toEqual([]);
+    },
+  );
 });

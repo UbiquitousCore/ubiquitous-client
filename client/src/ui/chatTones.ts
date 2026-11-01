@@ -1,6 +1,6 @@
 /** Chat channel colours as a utility (`CHANNEL_TEXT`) and a value (`channelColour`), theme tokens only. */
 
-import { WHISPER_CHANNEL } from './chatStore';
+import { EMOTE_CHANNEL, WHISPER_CHANNEL } from './chatStore';
 
 /** The utility class each channel's lines are written in. */
 export const CHANNEL_TEXT: Readonly<Record<string, string>> = {
@@ -15,6 +15,8 @@ export const CHANNEL_TEXT: Readonly<Record<string, string>> = {
   notice: 'text-notice',
   yell: 'text-alert',
   [WHISPER_CHANNEL]: 'text-chat-whisper',
+  // The game writes emotes in orange, the same orange as an artifact's name.
+  [EMOTE_CHANNEL]: 'text-quality-artifact',
 };
 
 /** A channel with no colour of its own is written in the plain log colour. */

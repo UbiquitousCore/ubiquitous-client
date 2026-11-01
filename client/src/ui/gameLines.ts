@@ -18,6 +18,11 @@ function line(later: number, earlier: number, fallback: string): GameLine {
   return { at: { [LATER_BUILD]: later, [EARLIER_BUILD]: earlier }, fallback };
 }
 
+/** A line placed in the earlier build only, where the later build's place is not known. */
+export function earlierBuildLine(earlier: number, fallback: string): GameLine {
+  return { at: { [EARLIER_BUILD]: earlier }, fallback };
+}
+
 export const LINES = {
   dead: line(638, 630, 'You have died.'),
   killedBy: line(639, 631, 'Killed by %s.'),

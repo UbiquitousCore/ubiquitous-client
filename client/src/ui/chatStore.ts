@@ -31,6 +31,9 @@ export type ChannelId = (typeof CHANNELS)[number]['id'];
 /** A one-off addressed send, not a channel: a channel value has no target. */
 export const WHISPER_CHANNEL = 'whisper';
 
+/** The log's own channel for emote lines; nothing is sent on it. */
+export const EMOTE_CHANNEL = 'emote';
+
 /** How many lines the log keeps. Older ones are gone, not scrolled to. */
 const LOG_DEPTH = 100;
 

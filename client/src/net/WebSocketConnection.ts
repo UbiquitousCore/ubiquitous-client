@@ -707,8 +707,9 @@ export class WebSocketConnection implements GameConnection {
     if (wire !== undefined) this.send(OUTBOUND.whisper, { targetId: wire, text });
   }
 
-  sendEmote(name: string): void {
-    this.send(OUTBOUND.emote, { name });
+  sendEmote(name: string, targetNetworkId?: number): void {
+    const targetId = targetNetworkId === undefined ? undefined : this.ids.wireFor(targetNetworkId);
+    this.send(OUTBOUND.emote, targetId === undefined ? { name } : { name, targetId });
   }
 
   sendTarget(networkId: number): void {
@@ -1538,6 +1539,7 @@ export class WebSocketConnection implements GameConnection {
           this.ids.idFor(payload.networkId, type),
           readNumber(payload, 'id', type),
           readString(payload, 'name', type),
+          payload.targetId === undefined ? undefined : this.ids.idFor(payload.targetId, type),
         );
         return;
 
