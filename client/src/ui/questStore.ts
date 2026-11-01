@@ -110,13 +110,17 @@ export function clearQuestGiverStatuses(): void {
   questGiverStatuses.value = new Map();
 }
 
-/** Track one quest for the guide arrow; exclusive, and untracking leaves none. */
+/** How many quests can be tracked at once. */
+export const MOST_TRACKED = 3;
+
+/** Track a quest, or stop; a fourth is refused while three are tracked. */
 export function setTracked(id: number, tracked: boolean): void {
-  questLog.value = questLog.value.map(quest =>
-    quest.id === id ? { ...quest, tracked } : tracked ? { ...quest, tracked: false } : quest,
-  );
+  const others = questLog.value.filter(quest => quest.tracked && quest.id !== id).length;
+  if (tracked && others >= MOST_TRACKED) return;
+  questLog.value = questLog.value.map(quest => (quest.id === id ? { ...quest, tracked } : quest));
 }
 
+/** The quest the guide arrow points at. Own choice: the first tracked one in the log. */
 export const trackedQuest = computed(() => questLog.value.find(quest => quest.tracked) ?? null);
 
 /** Whether the tracked quest resolves somewhere walkable (false is ordinary:

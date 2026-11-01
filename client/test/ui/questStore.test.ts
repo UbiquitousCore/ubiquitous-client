@@ -115,6 +115,23 @@ describe('tracking', () => {
     expect(trackedQuest.value).toBeNull();
   });
 
+  it('tracks up to three quests at once, and refuses a fourth', () => {
+    for (const id of [1, 2, 3, 4]) upsertQuest(quest(id));
+    for (const id of [1, 2, 3, 4]) setTracked(id, true);
+    expect(questLog.value.filter(one => one.tracked).map(one => one.id)).toEqual([1, 2, 3]);
+
+    setTracked(2, false);
+    setTracked(4, true);
+    expect(questLog.value.filter(one => one.tracked).map(one => one.id)).toEqual([1, 3, 4]);
+  });
+
+  it('points the guide arrow at the first tracked quest in the log', () => {
+    for (const id of [1, 2, 3]) upsertQuest(quest(id));
+    setTracked(3, true);
+    setTracked(2, true);
+    expect(trackedQuest.value?.id).toBe(2);
+  });
+
   it('auto-tracks a freshly accepted quest when nothing else is tracked', () => {
     // Taking a quest tracks it exactly when nothing else already is. Without this,
     // the guide arrow's own data can be perfect and nothing still ever draws
