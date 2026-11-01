@@ -267,9 +267,11 @@
   ],
   "spellRefusals": [
     "alreadyCasting",
+    "inCombat",
     "incapacitated",
     "invalidTarget",
     "missingEquipment",
+    "mountNotHere",
     "noEffectData",
     "notEnoughPower",
     "onCooldown",

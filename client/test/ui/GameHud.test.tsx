@@ -644,7 +644,8 @@ describe('GameHud', () => {
       const { container } = render(<GameHud />);
       const bar = container.querySelector('[data-spell-bar]')!;
       expect(bar).not.toBeNull();
-      expect(bar.querySelectorAll('[data-spell-slot]')).toHaveLength(3);
+      // On foot, so the mount's slot is not there.
+      expect(bar.querySelectorAll('[data-spell-slot]')).toHaveLength(2);
       expect(bar.querySelector('[title="Spell 101"]')).not.toBeNull();
       expect(bar.querySelector('[title="Spell 102"]')).not.toBeNull();
     });
