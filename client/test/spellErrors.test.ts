@@ -13,6 +13,11 @@ describe('spellErrorMessage', () => {
     expect(spellErrorMessage('missingEquipment')).toContain('weapon');
   });
 
+  it('says why a mount would not come', () => {
+    expect(spellErrorMessage('inCombat')).toContain('combat');
+    expect(spellErrorMessage('mountNotHere')).toContain('here');
+  });
+
   it('names a reason it does not know', () => {
     expect(spellErrorMessage('somethingNew')).toMatch(/^The spell could not be cast/);
     expect(spellErrorMessage('somethingNew')).toContain('somethingNew');

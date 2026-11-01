@@ -11,6 +11,8 @@ const MESSAGES: Record<string, string> = {
   missingEquipment: 'You need the right weapon for that.',
   alreadyCasting: 'You are already casting.',
   outOfRange: 'Your target is too far away.',
+  inCombat: 'You cannot summon a mount in combat.',
+  mountNotHere: 'Mounts cannot be ridden here.',
 };
 
 /** A readable reason a cast was refused. */
