@@ -155,6 +155,21 @@ describe('ArtSocialWindow', () => {
     expect(getByLabelText('Pest')).toBeTruthy();
   });
 
+  it('gives an unpicked row the whole row to press, though its only art is the hidden backing', () => {
+    uiSpec.value = spec;
+    const bare = skin();
+    bare.sprites = bare.sprites.map(sprite =>
+      sprite.id === 21 ? { ...sprite, frames: [[place(11, 0, 0, 'background')]] } : sprite,
+    );
+    setMovie({ skin: bare, art: new Map() });
+    setFriendList([{ networkId: 7, name: 'Ayla' }]);
+    const { getByLabelText, container } = render(<ArtSocialWindow onClose={() => {}} />);
+    fireEvent.click(getByLabelText('Friends'));
+    const row = container.querySelector<HTMLElement>('[data-person-row="7"]')!;
+    expect(row.style.width).not.toBe('');
+    expect(row.style.height).not.toBe('');
+  });
+
   it('lists the guild on its own tab where the friends tab comes first', () => {
     const tabs = spec.screens.social.tabs;
     uiSpec.value = {
