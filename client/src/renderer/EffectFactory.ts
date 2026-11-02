@@ -44,6 +44,8 @@ const FORWARD = new THREE.Vector3(0, 0, 1);
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const WORLD_X = new THREE.Vector3(1, 0, 0);
 
+const STILL_SPEED = 0.1;
+
 /** A quarter turn about X lays a free quad flat, face up, before its own tilt. */
 const FLAT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 
@@ -277,7 +279,7 @@ class EmitterRun {
 
   private get emitting(): boolean {
     if (this.woundDown) return false;
-    return this.def.activeFrames < 0 || this.frame < this.def.activeFrames;
+    return this.def.activeFrames < 0 || this.frame < this.def.firstBurstFrame + this.def.activeFrames;
   }
 
   /** Advance by `dt` seconds. `camera` orients camera-facing particles. */
@@ -296,7 +298,8 @@ class EmitterRun {
       // A spacing of 0 or less bursts every frame. The epsilon absorbs float
       // drift on a fractional clock that lands on a burst boundary.
       const spacing = Math.max(0, this.def.burstSpacing);
-      if (!holding && this.frame - this.lastBurst >= spacing - 1e-6) {
+      const ticked = spacing > 0 || Math.floor(this.frame) > Math.floor(this.lastBurst);
+      if (!holding && ticked && this.frame - this.lastBurst >= spacing - 1e-6) {
         this.burst();
         this.lastBurst = this.frame;
       }
@@ -366,6 +369,10 @@ class EmitterRun {
         this.spawn,
         this.outward,
       );
+      if (def.shape === 'disc' && def.faceCamera) {
+        this.spawn.set(this.spawn.x, this.spawn.z, 0);
+        this.outward.set(this.outward.x, this.outward.z, 0);
+      }
 
       launchDirection(this.aim, spread, this.outward, this.random, this.launch);
       radialDirection(this.outward, this.random, this.radial);
@@ -520,11 +527,17 @@ class EmitterRun {
       const spinZ = particle.tilt[2] + curveAt(p.spinZ, t) * particle.spinScale[2];
       this.localPosition(particle, this.at);
 
+      // Own choice: column 1 anchors the left edge, 2 the right; row 1 the
+      // bottom, 2 the top, so a row-2 streak trails behind its particle.
+      const ox = p.anchorColumn === 'start' ? sx / 2 : p.anchorColumn === 'end' ? -sx / 2 : 0;
+      const oy = p.anchorRow === 'start' ? sy / 2 : p.anchorRow === 'end' ? -sy / 2 : 0;
+
       if (streak) {
         // The long side along travel; a facing streak rolls to face the viewer.
         const along = this.worldVelocity(particle, this.along);
-        if (along.lengthSq() < 1e-12) along.copy(WORLD_UP);
-        along.normalize();
+        const speed = along.length();
+        if (speed < 1e-9 || (speed < STILL_SPEED && (ox !== 0 || oy !== 0))) along.copy(WORLD_UP);
+        else along.normalize();
         if (p.shape === 'facingStreak') {
           this.view.copy(this.at).applyMatrix4(mesh.matrixWorld).sub(this.eye);
           this.across.crossVectors(along, this.view);
@@ -558,10 +571,6 @@ class EmitterRun {
       }
 
       this.scale.set(sx, sy, 1);
-      // Own choice: column 1 anchors the left edge, 2 the right; row 1 the
-      // bottom, 2 the top, so a row-2 streak trails behind its particle.
-      const ox = p.anchorColumn === 'start' ? sx / 2 : p.anchorColumn === 'end' ? -sx / 2 : 0;
-      const oy = p.anchorRow === 'start' ? sy / 2 : p.anchorRow === 'end' ? -sy / 2 : 0;
       if (ox || oy) this.at.add(this.offset.set(ox, oy, 0).applyQuaternion(this.quat));
       this.matrix.compose(this.at, this.quat, this.scale);
       mesh.setMatrixAt(n, this.matrix);

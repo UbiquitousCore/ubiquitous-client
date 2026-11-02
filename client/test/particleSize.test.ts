@@ -596,6 +596,13 @@ describe('burst timing', () => {
     expect(aliveAfter(e, 20)).toBe(20);
   });
 
+  it('bursts once per effect frame at a spacing of zero, however fast the display', () => {
+    const e = emitter({ burstSpacing: 0, burstSize: flat(1), firstBurstFrame: 1 });
+    e.particle.lifeFrames = 10_000;
+    // Forty half-frame updates cover the same twenty frames as twenty whole ones.
+    expect(aliveAfter(e, 20, 0.5)).toBe(aliveAfter(e, 20, 1));
+  });
+
   it('carries a fractional burst size over to later bursts', () => {
     const e = emitter({ burstSpacing: 0, burstSize: flat(0.5) });
     e.particle.lifeFrames = 10_000;
@@ -619,6 +626,25 @@ describe('burst timing', () => {
     e.particle.lifeFrames = 10_000;
     expect(aliveAfter(e, 9)).toBe(0);
     expect(aliveAfter(e, 12)).toBeGreaterThan(0);
+  });
+
+  it('counts active frames from the first burst, so a late short emitter still fires', () => {
+    const e = emitter({ burstSpacing: 0, activeFrames: 3, firstBurstFrame: 5 });
+    e.particle.lifeFrames = 10_000;
+    expect(aliveAfter(e, 4)).toBe(0);
+    expect(aliveAfter(e, 7)).toBeGreaterThan(0);
+  });
+
+  it('stops a late emitter once its window past the first burst ends', () => {
+    const e = emitter({ burstSpacing: 0, activeFrames: 3, firstBurstFrame: 5 });
+    e.particle.lifeFrames = 3;
+    const instance = new EffectInstance(effect(e), () => new THREE.MeshBasicMaterial());
+    const camera = still();
+    for (let f = 0; f < 8; f++) instance.update(1 / 30, camera);
+    expect(meshOf(instance).count).toBeGreaterThan(0);
+    for (let f = 0; f < 30; f++) instance.update(1 / 30, camera);
+    expect(meshOf(instance).count).toBe(0);
+    expect(instance.finished).toBe(true);
   });
 
   it('stops after its active frames, and its particles finish their lives', () => {
@@ -758,6 +784,16 @@ describe('a disc emitter', () => {
       expect(quarters).toEqual([0, 1, 2, 3]);
     }
   });
+
+  it('lies in the screen plane when the emitter faces the camera', () => {
+    const e = ring(0);
+    e.faceCamera = true;
+    e.aimSpeed = flat(0);
+    const at = positions(e);
+    expect(at).toHaveLength(4);
+    for (const p of at) expect(Math.hypot(p.x, p.y)).toBeCloseTo(1, 5);
+    for (const p of at) expect(p.z).toBeCloseTo(0, 5);
+  });
 });
 
 describe('launch speed jitter', () => {
@@ -847,6 +883,25 @@ describe('streaks', () => {
     const [p] = drawn(play(e, 3, looking(0, 10)));
     // The particle has climbed 0.1; the quad's centre sits a half-height below it.
     expect(p!.position.y).toBeCloseTo(0.1 - 1, 4);
+  });
+
+  it('keep their authored orientation below a crawl instead of flipping end over end', () => {
+    const e = rising('facingStreak');
+    e.particle.anchorRow = 'end';
+    // A hanging beam's drift: aimed down, but far too slow to steer by.
+    e.aimSpeed = flat(0.01);
+    e.aimAxis = flat([0, -1, 0]);
+    const [p] = drawn(play(e, 3, looking(0, 10)));
+    // Hangs below its particle, as authored, rather than flipping above it.
+    expect(p!.position.y).toBeLessThan(-0.5);
+  });
+
+  it('lets a centred still streak follow its drift instead of stacking upright', () => {
+    const e = rising('facingStreak');
+    e.aimSpeed = flat(0.01);
+    e.aimAxis = flat([0, -1, 0]);
+    const [p] = drawn(play(e, 3, looking(0, 10)));
+    expect(p!.upAxis.y).toBeCloseTo(-1, 4);
   });
 
   it('draw as free quads with the velocity switch off', () => {
