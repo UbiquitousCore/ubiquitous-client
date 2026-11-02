@@ -170,6 +170,51 @@ describe('ArtSocialWindow', () => {
     expect(row.style.height).not.toBe('');
   });
 
+  it('ignores by name someone who is not in the world, from the ignored tab', () => {
+    uiSpec.value = {
+      screens: {
+        ...spec.screens,
+        social: {
+          ...spec.screens.social,
+          edits: { btnName: { holds: 'name' } },
+          actions: { btnAdd: 'invite' },
+        },
+      },
+    };
+    const withBox = skin();
+    withBox.sprites = withBox.sprites.map(sprite =>
+      sprite.id === 20
+        ? {
+            ...sprite,
+            frames: [
+              [...sprite.frames[0]!, place(11, 0, 180, 'btnName'), place(11, 100, 180, 'btnAdd')],
+            ],
+          }
+        : sprite,
+    );
+    setMovie({ skin: withBox, art: new Map() });
+    const actions = {
+      addFriend: vi.fn(),
+      addFriendNamed: vi.fn(),
+      removeFriend: vi.fn(),
+      addIgnore: vi.fn(),
+      addIgnoreNamed: vi.fn(),
+      removeIgnore: vi.fn(),
+      refresh: vi.fn(),
+    };
+    setSocialListActions(actions);
+    const { getByLabelText, container } = render(<ArtSocialWindow onClose={() => {}} />);
+    fireEvent.click(getByLabelText('Ignored'));
+    fireEvent.click(getByLabelText('name'));
+    const box = container.querySelector<HTMLInputElement>('input')!;
+    fireEvent.input(box, { target: { value: 'Pest' } });
+    const add = getByLabelText(/Pest/);
+    expect(add.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(add);
+    expect(actions.addIgnoreNamed).toHaveBeenCalledWith('Pest');
+    expect(actions.addIgnore).not.toHaveBeenCalled();
+  });
+
   it('lists the guild on its own tab where the friends tab comes first', () => {
     const tabs = spec.screens.social.tabs;
     uiSpec.value = {
@@ -200,6 +245,7 @@ describe('ArtSocialWindow', () => {
       addFriendNamed: vi.fn(),
       removeFriend,
       addIgnore: vi.fn(),
+      addIgnoreNamed: vi.fn(),
       removeIgnore: vi.fn(),
       refresh: vi.fn(),
     });

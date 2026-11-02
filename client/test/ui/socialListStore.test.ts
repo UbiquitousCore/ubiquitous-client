@@ -27,6 +27,7 @@ beforeEach(() => {
     addFriendNamed: () => {},
     removeFriend: () => {},
     addIgnore: () => {},
+    addIgnoreNamed: () => {},
     removeIgnore: () => {},
     refresh: () => {},
   });
@@ -72,6 +73,7 @@ describe('the installed actions', () => {
       addFriendNamed: () => {},
       removeFriend: () => {},
       addIgnore: addI,
+      addIgnoreNamed: () => {},
       removeIgnore: () => {},
       refresh: () => {},
     });
@@ -91,6 +93,7 @@ describe('the installed actions', () => {
       addFriendNamed: () => {},
       removeFriend: removeF,
       addIgnore: () => {},
+      addIgnoreNamed: () => {},
       removeIgnore: removeI,
       refresh: () => {},
     });
@@ -108,6 +111,7 @@ describe('the installed actions', () => {
       addFriendNamed: () => {},
       removeFriend: () => {},
       addIgnore: () => {},
+      addIgnoreNamed: () => {},
       removeIgnore: () => {},
       refresh: () => {},
     });

@@ -24,6 +24,7 @@ function lists() {
     addFriendNamed: vi.fn(),
     removeFriend: vi.fn(),
     addIgnore: vi.fn(),
+    addIgnoreNamed: vi.fn(),
     removeIgnore: vi.fn(),
     refresh: vi.fn(),
   };

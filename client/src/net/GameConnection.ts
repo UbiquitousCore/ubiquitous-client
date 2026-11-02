@@ -1140,6 +1140,8 @@ export interface GameConnection {
   sendFriendAdd(networkId: number): void;
   /** Add a character by name, in the world or not. */
   sendFriendAddNamed(name: string): void;
+  /** Ignore a character by name, in the world or not. */
+  sendIgnoreAddNamed(name: string): void;
   /** Ask who is in the world. */
   sendWho(): void;
   /** Take a name off the friend list. */
@@ -1372,6 +1374,7 @@ export class OfflineConnection implements GameConnection {
   sendGuildRosterRequest(): void {}
   sendFriendAdd(): void {}
   sendFriendAddNamed(): void {}
+  sendIgnoreAddNamed(): void {}
   sendWho(): void {}
   sendFriendRemove(): void {}
   sendIgnoreAdd(): void {}

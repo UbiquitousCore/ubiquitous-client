@@ -115,6 +115,7 @@ describe('Friends', () => {
       addFriendNamed: () => {},
       removeFriend: () => {},
       addIgnore: () => {},
+      addIgnoreNamed: () => {},
       removeIgnore: () => {},
       refresh: () => {},
     });

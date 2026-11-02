@@ -129,6 +129,7 @@ export class Friends {
         const networkId = this.networkIdOfUnit(unitId);
         if (networkId !== undefined) this.connection.sendIgnoreAdd(networkId);
       },
+      addIgnoreNamed: name => this.connection.sendIgnoreAddNamed(name),
       removeIgnore: networkId => this.connection.sendIgnoreRemove(networkId),
       refresh: () => this.connection.sendSocialListRequest(),
     });

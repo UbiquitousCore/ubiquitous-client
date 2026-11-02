@@ -37,6 +37,8 @@ export interface SocialListActions {
   /** Add a character by name, in the world or not. */
   addFriendNamed(name: string): void;
   addIgnore(unitId: string): void;
+  /** Ignore a character by name, in the world or not. */
+  addIgnoreNamed(name: string): void;
   removeIgnore(networkId: number): void;
   /** Ask for both lists again — who is online changes while nobody is looking. */
   refresh(): void;
@@ -47,6 +49,7 @@ const NOTHING: SocialListActions = {
   removeFriend: () => {},
   addFriendNamed: () => {},
   addIgnore: () => {},
+  addIgnoreNamed: () => {},
   removeIgnore: () => {},
   refresh: () => {},
 };
@@ -71,6 +74,10 @@ export function removeFriend(networkId: number): void {
 
 export function addIgnore(unitId: string): void {
   actions.addIgnore(unitId);
+}
+
+export function addIgnoreNamed(name: string): void {
+  actions.addIgnoreNamed(name);
 }
 
 export function removeIgnore(networkId: number): void {
