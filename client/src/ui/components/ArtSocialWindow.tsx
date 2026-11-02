@@ -24,6 +24,7 @@ import {
   addFriend,
   addFriendNamed,
   addIgnore,
+  addIgnoreNamed,
   friends,
   ignored,
   removeFriend,
@@ -309,10 +310,10 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
         const found = named
           ? worldUnits.value.find(unit => unit.name?.toLowerCase() === named.toLowerCase())
           : null;
-        // A friend is taken on by name wherever they are; the server knows
-        // every character, in the world or not.
+        // A friend or someone to ignore is taken on by name wherever they
+        // are; the server knows every character, in the world or not.
         const can = named
-          ? open === 'friends' || (found !== undefined && found !== null)
+          ? open === 'friends' || open === 'ignored' || (found !== undefined && found !== null)
           : asking.length > 0;
         return (
           <button
@@ -331,6 +332,7 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
               // The same control adds to whichever list is open: the
               // guild asks them in, the other two take them on at once.
               if (open === 'friends' && named) addFriendNamed(named);
+              else if (open === 'ignored' && named) addIgnoreNamed(named);
               else if (open === 'friends' || open === 'ignored') {
                 const who = named ? found?.id : target.value?.id;
                 if (who) (open === 'friends' ? addFriend : addIgnore)(who);

@@ -287,6 +287,7 @@ beforeEach(() => {
     addFriendNamed: () => {},
     removeFriend: () => {},
     addIgnore: () => {},
+    addIgnoreNamed: () => {},
     removeIgnore: () => {},
     refresh: () => {},
   });
@@ -482,6 +483,7 @@ describe('GameHud', () => {
       addFriendNamed: () => {},
       removeFriend: vi.fn(),
       addIgnore: vi.fn(),
+      addIgnoreNamed: vi.fn(),
       removeIgnore: vi.fn(),
       refresh: vi.fn(),
     });

@@ -884,6 +884,19 @@ describe('receiving world state', () => {
     expect(events.onSummonTooLow).toHaveBeenCalledWith('Mira');
   });
 
+  it('ignores by name someone who is not in sight, and sends nothing for a blank name', async () => {
+    const conn = await connected();
+
+    conn.sendIgnoreAddNamed(' Pest ');
+    conn.sendIgnoreAddNamed('  ');
+
+    expect(socket.sent.at(-1)).toMatchObject({
+      type: 'social.ignoreAdd',
+      payload: { name: 'Pest' },
+    });
+    expect(socket.sent.filter(m => m.type === 'social.ignoreAdd')).toHaveLength(1);
+  });
+
   it('applies a movement correction', async () => {
     await connected();
 

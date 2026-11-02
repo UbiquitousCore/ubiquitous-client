@@ -960,6 +960,10 @@ export class WebSocketConnection implements GameConnection {
     if (wire !== undefined) this.send(OUTBOUND.ignoreAdd, { targetId: wire });
   }
 
+  sendIgnoreAddNamed(name: string): void {
+    if (name.trim()) this.send(OUTBOUND.ignoreAdd, { name: name.trim() });
+  }
+
   sendIgnoreRemove(networkId: number): void {
     const wire = this.ids.wireFor(networkId);
     if (wire !== undefined) this.send(OUTBOUND.ignoreRemove, { targetId: wire });
