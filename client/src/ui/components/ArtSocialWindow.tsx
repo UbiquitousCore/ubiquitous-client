@@ -226,6 +226,7 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
       {rows.map(({ row, item }) => (
         <button
           key={row.path}
+          data-person-row={item.id}
           type="button"
           aria-current={item.id === chosen ? 'true' : undefined}
           aria-label={item.name}
@@ -234,7 +235,9 @@ function Worn({ onClose, spec }: ArtSocialWindowProps & { spec: ScreenSpec }): J
             setBeside({ x: on.right, y: on.top });
             setChosen(current => (current === item.id ? null : item.id));
           }}
-          style={worn.box(row)}
+          // A row's own art is only the backing that lights the picked one,
+          // hidden on the rest; measured as drawn, an unpicked row has no size.
+          style={worn.box(worn.whole.find(part => part.path === row.path) ?? row)}
           className={HIT}
         />
       ))}
