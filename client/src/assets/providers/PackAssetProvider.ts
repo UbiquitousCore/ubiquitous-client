@@ -477,6 +477,9 @@ export class PackAssetProvider implements AssetProvider {
       case 'spellAvatar':
         return (await this.worldTables()).spellAvatarDisplay(target.id) as ResourceTypes[K];
 
+      case 'spellMount':
+        return (await this.worldTables()).spellMountId(target.id) as ResourceTypes[K];
+
       case 'spellString':
         return (await this.spellString(target.id)) as ResourceTypes[K];
       case 'soundCatalogue':

@@ -436,6 +436,15 @@ describe('PackAssetProvider', () => {
       expect(await provider.load({ kind: 'spellAvatar', id: 123456 })).toBe(0);
     });
 
+    it('reads the mount a spell seats its caster on from its effect rows', async () => {
+      const provider = new PackAssetProvider();
+      await provider.useSource(provider.offer(ipaFile({ 'tables.bin': buildTablesPack() })).id);
+
+      expect(await provider.load({ kind: 'spellMount', id: 9002 })).toBe(12);
+      expect(await provider.load({ kind: 'spellMount', id: 9001 })).toBe(0);
+      expect(await provider.load({ kind: 'spellMount', id: 123456 })).toBe(0);
+    });
+
     it('wears its own texture when its look row wears nothing (a boss is not a body to dress)', async () => {
       const look = await appearanceOf(601);
 

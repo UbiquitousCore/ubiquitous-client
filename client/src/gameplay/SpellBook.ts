@@ -219,6 +219,15 @@ export function riddenMountAmong(
   return auraSpellIds.find(id => mounts.includes(id)) ?? null;
 }
 
+/** Whether casting `spellId` is about to summon a mount, which is when it is worth loading. Riding, it gets down. */
+export function castSummonsMount(
+  spellId: number,
+  riding: boolean,
+  mounts: readonly number[],
+): boolean {
+  return !riding && mounts.includes(spellId);
+}
+
 /**
  * The mount slot shows the mount being ridden, and pressing it gets down;
  * on foot there is nothing in it.

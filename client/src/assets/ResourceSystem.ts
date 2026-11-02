@@ -28,6 +28,7 @@ import {
   teleportStopsId,
   itemCatalogId,
   spellAvatarId,
+  spellMountId,
   storageUpgradesId,
   talentsId,
   spellStringId,
@@ -104,6 +105,7 @@ const CACHEABLE: ReadonlySet<ResourceKind> = new Set<ResourceKind>([
   'spellVisual',
   'spellVisualOf',
   'spellAvatar',
+  'spellMount',
   'spellCastable',
   'spellRank',
   'spellCastingTime',
@@ -149,6 +151,15 @@ export class ResourceSystem {
   async spellAvatar(id: number): Promise<number> {
     try {
       return await this.get(spellAvatarId(id));
+    } catch {
+      return 0;
+    }
+  }
+
+  /** The mount a spell summons, or 0; a missing row is "none", not an error. */
+  async spellMount(id: number): Promise<number> {
+    try {
+      return await this.get(spellMountId(id));
     } catch {
       return 0;
     }

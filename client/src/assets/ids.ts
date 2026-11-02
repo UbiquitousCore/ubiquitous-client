@@ -53,6 +53,8 @@ export type ResourceId =
   | { readonly kind: 'itemCatalog' }
   /** The display a spell's aura turns its wearer into (a boss's demon shape), 0 for none. */
   | { readonly kind: 'spellAvatar'; readonly id: number }
+  /** The mount a spell summons, as its `mountList` row id, 0 for none. */
+  | { readonly kind: 'spellMount'; readonly id: number }
   | { readonly kind: 'talents' }
   | { readonly kind: 'spellString'; readonly id: number }
   /** The bus network's legs, which decide what a teleport costs and whether it exists. */
@@ -228,6 +230,8 @@ export function resourceKey(id: ResourceId): string {
       return 'itemCatalog';
     case 'spellAvatar':
       return `spellAvatar:${id.id}`;
+    case 'spellMount':
+      return `spellMount:${id.id}`;
     case 'talents':
       return 'talents';
     case 'spellString':
@@ -341,6 +345,7 @@ export const modelId = (path: string): IdOf<'model'> => ({ kind: 'model', path }
 export const textureId = (ref: string): IdOf<'texture'> => ({ kind: 'texture', ref });
 export const teleportStopsId = (): IdOf<'teleportStops'> => ({ kind: 'teleportStops' });
 export const spellAvatarId = (id: number): IdOf<'spellAvatar'> => ({ kind: 'spellAvatar', id });
+export const spellMountId = (id: number): IdOf<'spellMount'> => ({ kind: 'spellMount', id });
 export const itemCatalogId = (): IdOf<'itemCatalog'> => ({ kind: 'itemCatalog' });
 export const storageUpgradesId = (): IdOf<'storageUpgrades'> => ({ kind: 'storageUpgrades' });
 export const talentsId = (): IdOf<'talents'> => ({ kind: 'talents' });

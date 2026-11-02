@@ -482,6 +482,13 @@ const SEAT = 'Dummy_ride';
 
 /** What a rider plays, whatever the mount under them is doing. */
 const RIDER_CLIP = 'ride_idle';
+/** Own choice: the mount clips a rider asks for first, standing and running. */
+const MOUNT_FIRST_CLIPS = ['idle', 'run_normal'] as const;
+
+/** How a mount wears its own texture, the same for a preload and a seating so they share a build. */
+function mountLook(row: MountRow): Entity['appearance'] {
+  return { skin: row.texture, meshes: [], skinReplacesAll: true, key: `skin:${row.texture}` };
+}
 
 export interface RendererStats {
   drawCalls: number;
@@ -2063,6 +2070,23 @@ export class Renderer {
     await this.seatOn(entityId, rows.find(row => row.id === mountId) ?? null);
   }
 
+  /**
+   * Build a mount, its first clips and the rider's seated clip ahead of the
+   * summons finishing, so getting on draws at once rather than loading.
+   */
+  async preloadMount(mountId: number, riderId: EntityId): Promise<void> {
+    const row = (await this.resources.mountList().catch(() => [])).find(one => one.id === mountId);
+    if (!row) return;
+    const rider = this.views.get(riderId)?.modelPath;
+    const [prototype] = await Promise.all([
+      this.modelPrototype(row.model, mountLook(row)),
+      ...MOUNT_FIRST_CLIPS.map(name => this.loadClip(row.model, name)),
+      rider ? this.loadClip(rider, RIDER_CLIP) : null,
+    ]);
+    // Programs compile on first draw, which is the moment the rider gets on.
+    if (prototype) await this.gl.compileAsync(prototype.object, this.rig.camera, this.scene);
+  }
+
   private async seatOn(entityId: EntityId, row: MountRow | null): Promise<void> {
     const view = this.views.get(entityId);
     if (!view?.attached) {
@@ -2076,12 +2100,7 @@ export class Renderer {
     this.dropMount(entityId, view);
     if (!row) return;
 
-    const prototype = await this.modelPrototype(row.model, {
-      skin: row.texture,
-      meshes: [],
-      skinReplacesAll: true,
-      key: `skin:${row.texture}`,
-    });
+    const prototype = await this.modelPrototype(row.model, mountLook(row));
     if (!prototype || this.views.get(entityId) !== view || view.mountSeq !== seq) return;
     const object = prototype.skinned
       ? cloneSkinned(prototype.object)

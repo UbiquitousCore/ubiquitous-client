@@ -2475,6 +2475,17 @@ describe.skipIf(!TABLES)('spell visuals, in the user tables', () => {
     expect(instant).toBeLessThan(castable);
   }, 60_000);
 
+  it('names, for every mount spell, a mount the build ships', async () => {
+    const tables = await load();
+    const shipped = new Set(tables.mounts().map(row => row.id));
+    const mountSpells = [...tables.keyedRows('spell_new').keys()].filter(
+      id => tables.spellStats(id).mount,
+    );
+    expect(mountSpells.length).toBeGreaterThan(0);
+    const unnamed = mountSpells.filter(id => !shipped.has(tables.spellMountId(id)));
+    expect(unnamed).toEqual([]);
+  }, 60_000);
+
   it('carries a cost, a cooldown and a reach for the spell book card', async () => {
     const tables = await load();
     let cooling = 0;

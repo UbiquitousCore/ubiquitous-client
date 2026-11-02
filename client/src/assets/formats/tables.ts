@@ -624,6 +624,11 @@ const SPELL_EFFECT_SLOTS = [33, 34, 35] as const;
 /** In an effect row: the written name of what it does, and the number it does it with. */
 const SPELL_EFFECT_LABEL = 22;
 const SPELL_EFFECT_ARGUMENT = 11;
+/** In an effect row: its kind and detail; an aura (1) of detail 50 seats its caster on a mount. */
+const SPELL_EFFECT_KIND = 6;
+const SPELL_EFFECT_DETAIL = 7;
+const AURA_EFFECT = 1;
+const MOUNT_DETAIL = 50;
 
 /** Every table the client reads, decoded once per source (6 MB, cheap to hold). */
 export class WorldTables {
@@ -1359,6 +1364,23 @@ export class WorldTables {
       if (!effect) continue;
       const label = effect[SPELL_EFFECT_LABEL];
       if (typeof label === 'string' && label.startsWith('Avatar'))
+        return num(effect[SPELL_EFFECT_ARGUMENT]);
+    }
+    return 0;
+  }
+
+  /** The `mountList` row a spell seats its caster on, from its effect slots; 0 when it summons no mount. */
+  spellMountId(spellId: number): number {
+    const row = this.keyedRows('spell_new').get(spellId);
+    if (!row) return 0;
+    const effects = this.keyedRows('spell_effect');
+    for (const slot of SPELL_EFFECT_SLOTS) {
+      const effect = effects.get(num(row[slot]));
+      if (
+        effect &&
+        num(effect[SPELL_EFFECT_KIND]) === AURA_EFFECT &&
+        num(effect[SPELL_EFFECT_DETAIL]) === MOUNT_DETAIL
+      )
         return num(effect[SPELL_EFFECT_ARGUMENT]);
     }
     return 0;

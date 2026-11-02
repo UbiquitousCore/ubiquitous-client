@@ -314,19 +314,32 @@ export function buildTableFiles(): Array<{ name: string; data: Uint8Array }> {
   );
   const itemDisplay = t('uus', [[0, 0, '']], [1]);
 
-  // spell_new: spell 9001's first effect slot (column 33) is effect row 7001.
-  // spell_effect: that row is an aura labelled "Avatar", its argument display 301.
+  // spell_new: spell 9001's first effect slot (column 33) is effect row 7001;
+  // spell 9002's second (column 34) is effect row 7002.
+  // spell_effect: 7001 is an aura labelled "Avatar", its argument display 301;
+  // 7002 is an aura (kind 1) of detail 50, its argument mount row 12.
   const spellRow: number[] = new Array(53).fill(0);
   spellRow[0] = 9001;
   spellRow[33] = 7001;
-  const spellNew = t('u'.repeat(53), [spellRow], [9001]);
+  const mountSpellRow: number[] = new Array(53).fill(0);
+  mountSpellRow[0] = 9002;
+  mountSpellRow[34] = 7002;
+  const spellNew = t('u'.repeat(53), [spellRow, mountSpellRow], [9001, 9002]);
   const effectRow: (number | string)[] = new Array(24).fill(0);
   effectRow[0] = 7001;
   effectRow[11] = 301;
   effectRow[21] = 'Aura';
   effectRow[22] = 'Avatar<miscValue:displayinfo>';
   effectRow[23] = 'None';
-  const spellEffect = t('u'.repeat(21) + 'sss', [effectRow], [7001]);
+  const mountEffectRow: (number | string)[] = new Array(24).fill(0);
+  mountEffectRow[0] = 7002;
+  mountEffectRow[6] = 1;
+  mountEffectRow[7] = 50;
+  mountEffectRow[11] = 12;
+  mountEffectRow[21] = 'Aura';
+  mountEffectRow[22] = 'Mount';
+  mountEffectRow[23] = 'None';
+  const spellEffect = t('u'.repeat(21) + 'sss', [effectRow, mountEffectRow], [7001, 7002]);
 
   return tableEntries({
     mapInfo,
