@@ -31,6 +31,7 @@ import {
   setMountSpells,
   setRiddenMount,
   riddenMountAmong,
+  castSummonsMount,
   setSpellName,
   setSpellRank,
   shortcutSlots,
@@ -278,6 +279,12 @@ describe('the mount’s slot', () => {
     assignBarSlot(MOUNT_SLOT, 900);
     expect(mountSlot.value).toBeNull();
     expect(saved).toEqual([]);
+  });
+
+  it('loads a mount only for a mount spell cast on foot', () => {
+    expect(castSummonsMount(900, false, [900, 901])).toBe(true);
+    expect(castSummonsMount(900, true, [900, 901])).toBe(false);
+    expect(castSummonsMount(12, false, [900, 901])).toBe(false);
   });
 
   it('reads the ride from the hero’s own buffs', () => {

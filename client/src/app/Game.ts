@@ -320,6 +320,7 @@ import {
   setMountSpells,
   mountSpells,
   riddenMountAmong,
+  castSummonsMount,
   setRiddenMount,
   wantedSpellDetails,
   wantedSpellStats,
@@ -2505,9 +2506,19 @@ export class Game {
 
     // The server takes id 0 for self or no target.
     this.connection.sendCastSpell(spellId, targetNetworkId);
+    this.preloadSummonedMount(spellId);
     if (targetNetworkId !== 0 && !this.whoIs.isSelf(targetNetworkId)) {
       this.castFacing.aimed(targetNetworkId, performance.now());
     }
+  }
+
+  /** A mount loads while it is being summoned, not once the hero is on it. */
+  private preloadSummonedMount(spellId: number): void {
+    const player = this.world.player;
+    if (!player || !castSummonsMount(spellId, this.movement.isMounted(), mountSpells.value)) return;
+    void this.resources.spellMount(spellId).then(mountId => {
+      if (mountId > 0) void this.renderer.preloadMount(mountId, player.id);
+    });
   }
 
   /** Report position now, for a teleport or arrival rather than a walk. */

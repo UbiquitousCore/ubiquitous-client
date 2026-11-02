@@ -842,6 +842,7 @@ export interface ResourceTypes {
   itemName: string | null;
   itemCatalog: ReadonlyArray<{ entry: number; name: string }>;
   spellAvatar: number;
+  spellMount: number;
   itemText: string | null;
   spellVisual: SpellVisualData | null;
 }
