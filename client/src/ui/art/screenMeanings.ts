@@ -1244,7 +1244,13 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
         of: 'member',
       },
     ],
-    values: { leader: 'teamsetting/txtLeaderName', dungeonMode: 'dungeonsetting/txtdungeonmode' },
+    values: {
+      leader: 'teamsetting/txtLeaderName',
+      dungeonMode: 'dungeonsetting/txtdungeonmode',
+      exhaustion: 'dungeonsetting/exhausting/txt',
+      exhaustionBar: 'dungeonsetting/exhausting/bar',
+    },
+    formats: { exhaustion: '@1500?~00c7ce14a76a8b98~19' },
     // The two modes the Dungeon page steps between.
     words: { normal: '@1484?~e68b9c52af755a66~6', legend: '@1485?~0214fc64b9f87d58~6' },
     emptyNote: 'teamsetting/txtNotinteam',
@@ -1283,8 +1289,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       'teamsetting/txtKick': '@1402?~54eac627fd9afd6b~9',
       'teamsetting/txtNotinteam': 'You are not in a team.',
     },
-    // The arena page, the rules for sharing out loot, and the dungeon page's
-    // exhaustion, are the build's and not yet this client's.
+    // The arena page and the rules for sharing out loot are the build's and
+    // not yet this client's.
     hidden: [
       // The buttons' words sit across the paper's edge; the icons say it.
       'textInvite',
@@ -1292,7 +1298,6 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       'btnPVPSetting',
       'txtTitleArena',
       'pvpsetting',
-      'dungeonsetting/exhausting',
       'teamsetting/btnLeaderLeft',
       'teamsetting/btnLeaderRight',
       'teamsetting/btnQualityLeft',
