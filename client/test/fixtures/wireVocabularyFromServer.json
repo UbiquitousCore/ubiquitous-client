@@ -131,6 +131,8 @@
     "mail.open",
     "mail.opened",
     "mail.read",
+    "mail.return",
+    "mail.returned",
     "mail.send",
     "mail.sent",
     "mail.unread",

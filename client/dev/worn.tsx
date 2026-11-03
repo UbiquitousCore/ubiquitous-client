@@ -1125,6 +1125,7 @@ function Bench(): preact.JSX.Element {
           onSelect={() => undefined}
           onClaim={() => undefined}
           onDelete={() => undefined}
+          onSendBack={() => undefined}
           onWrite={() => undefined}
           onCloseLetter={() => undefined}
           onClose={() => undefined}

@@ -77,6 +77,7 @@ export const OUTBOUND = {
   mailRead: 'mail.read',
   mailClaim: 'mail.claim',
   mailDelete: 'mail.delete',
+  mailReturn: 'mail.return',
   /** Each keeps the server's `targetId` or `networkId` spelling, even where they differ. */
   partyInvite: 'party.invite',
   partyAccept: 'party.accept',
@@ -260,6 +261,7 @@ export const INBOUND = {
   mailClaimed: 'mail.claimed',
   /** The delete outcome. */
   mailDeleted: 'mail.deleted',
+  mailReturned: 'mail.returned',
   mailUnread: 'mail.unread',
   /**
    * Refusals with no dedicated result: `{ code, reason }`, `reason` for

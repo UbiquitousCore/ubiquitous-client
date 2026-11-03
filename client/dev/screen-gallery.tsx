@@ -909,6 +909,7 @@ const SHOWN: Shown[] = [
           onSelect={nothing}
           onClaim={nothing}
           onDelete={nothing}
+          onSendBack={nothing}
           onWrite={nothing}
           onCloseLetter={nothing}
           onClose={nothing}

@@ -25,7 +25,7 @@ export const mailMessage = signal<MailMessage | null>(null);
 
 /** The last send/claim/delete outcome, for the window to show in words. */
 export interface MailNotice {
-  kind: 'sent' | 'claim' | 'delete';
+  kind: 'sent' | 'claim' | 'delete' | 'return';
   ok: boolean;
   text: string | null;
   /** The server's code for a refusal (`selfMail`, `inventoryFull`, ...), where it sent one. */
@@ -215,6 +215,17 @@ export function applyMailDeleted(ok: boolean, id: string, reason: string | null)
   mailNotice.value = { kind: 'delete', ok, text: 'Deleted.' };
 }
 
+/** A letter sent back has left this box, as a deleted one has. */
+export function applyMailReturned(ok: boolean, id: string, reason: string | null): void {
+  if (!ok) {
+    mailNotice.value = { kind: 'return', ok, text: reason ?? 'Return refused.' };
+    return;
+  }
+  mailInbox.value = mailInbox.value.filter(row => row.id !== id);
+  if (mailMessage.value?.id === id) mailMessage.value = null;
+  mailNotice.value = { kind: 'return', ok, text: 'Returned.' };
+}
+
 /** Put the window away. Tells the server nothing — mail has no close message. */
 export function closeMail(): void {
   mailOpen.value = false;
@@ -239,6 +250,8 @@ export interface MailActions {
   claim(id: string, take?: MailTake): void;
   /** Delete one message. Answered by `onMailDeleted`. */
   remove(id: string): void;
+  /** Send one message back to its writer. Answered by `onMailReturned`. */
+  sendBack(id: string): void;
 }
 
 const NOTHING: MailActions = {
@@ -247,6 +260,7 @@ const NOTHING: MailActions = {
   read: () => {},
   claim: () => {},
   remove: () => {},
+  sendBack: () => {},
 };
 
 let actions: MailActions = NOTHING;

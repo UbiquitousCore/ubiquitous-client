@@ -48,6 +48,7 @@ export function MailWindowContainer(): JSX.Element | null {
         onSelect={readMail}
         onClaim={claimMail}
         onDelete={id => actions.remove(id)}
+        onSendBack={id => actions.sendBack(id)}
         onCloseLetter={closeMailMessage}
         // Pressing it again while a letter is open puts it away, which
         // is what the box's own control does.
