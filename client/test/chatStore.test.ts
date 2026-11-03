@@ -16,6 +16,7 @@ import {
   SAID_LIFETIME_MS,
   SAID_AT_ONCE,
   WHISPER_CHANNEL,
+  answerLastWhisper,
   beginWhisper,
   chatAsking,
   chatLastSaid,
@@ -27,7 +28,9 @@ import {
   clearChat,
   clearSaid,
   forgetOldSaid,
+  heardWhisper,
   noteChat,
+  repeatLastSaid,
   saidFade,
   emote,
   say,
@@ -157,6 +160,31 @@ describe('saying something', () => {
     expect(chatLastSaid.value).toBe('once more');
   });
 
+  it('says the last line again on the channel that is open', () => {
+    const sent: Array<[string, string]> = [];
+    setChatSink((channel, text) => sent.push([channel, text]));
+    say('once more');
+
+    repeatLastSaid('Nothing to repeat.');
+
+    expect(sent).toEqual([
+      ['say', 'once more'],
+      ['say', 'once more'],
+    ]);
+  });
+
+  it('says why in the log when there is nothing to say again', () => {
+    const sent: string[] = [];
+    setChatSink((_channel, text) => sent.push(text));
+
+    repeatLastSaid('Nothing to repeat.');
+
+    expect(sent).toEqual([]);
+    expect(chatLines.value.map(line => [line.channel, line.text])).toEqual([
+      ['notice', 'Nothing to repeat.'],
+    ]);
+  });
+
   it('says nothing at all for an empty line', () => {
     const sent: string[] = [];
     setChatSink((_channel, text) => sent.push(text));
@@ -225,7 +253,7 @@ describe('whispering', () => {
   });
 
   it('notes an incoming whisper in the log only, under its own channel', () => {
-    noteChat({ channel: WHISPER_CHANNEL, sender: 'Rock Elemental', text: 'hi there' });
+    heardWhisper(7, 'Rock Elemental', 'hi there');
 
     expect(chatLines.value).toEqual([
       expect.objectContaining({
@@ -250,11 +278,31 @@ describe('whispering', () => {
     expect(chatSaid.value).toHaveLength(0);
   });
 
+  it('answers whoever whispered last, wherever they are', () => {
+    heardWhisper(7, 'Ayla', 'hi');
+    heardWhisper(9, 'Bran', 'hey');
+
+    answerLastWhisper('Nobody.');
+
+    expect(chatWhisperTarget.value).toEqual({ id: 'net:9', name: 'Bran' });
+    expect(chatOpen.value).toBe(true);
+  });
+
+  it('says why in the log when nobody has whispered yet', () => {
+    answerLastWhisper('Nobody.');
+
+    expect(chatWhisperTarget.value).toBeNull();
+    expect(chatLines.value.map(line => line.text)).toEqual(['Nobody.']);
+  });
+
   it('is forgotten when the world is left', () => {
+    heardWhisper(7, 'Ayla', 'hi');
     beginWhisper('mob-1', 'Rock Elemental');
 
     clearChat();
 
+    expect(chatWhisperTarget.value).toBeNull();
+    answerLastWhisper('Nobody.');
     expect(chatWhisperTarget.value).toBeNull();
   });
 });

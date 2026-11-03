@@ -239,6 +239,7 @@ import {
   clearChat,
   clearSaid,
   forgetOldSaid,
+  heardWhisper,
   noteChat,
   setChatSink,
   setEmoteSink,
@@ -252,7 +253,7 @@ import { noteRefusal } from '../ui/protocolNotices';
 import { partyActions, resetParty, partyRoster } from '../ui/partyStore';
 import { resetSharedQuests } from '../ui/questShareStore';
 import { resetGuild } from '../ui/guildStore';
-import { addFriendNamed, resetSocialLists } from '../ui/socialListStore';
+import { addFriendNamed, isIgnored, resetSocialLists } from '../ui/socialListStore';
 import { setReportSink } from '../ui/reportStore';
 import { setFollowActions, setFollowing } from '../ui/followStore';
 import { openInspect, setInspectActions } from '../ui/inspectStore';
@@ -1945,15 +1946,15 @@ export class Game {
       onChat: message => {
         // A creature is named by id; anyone else by name, and a name nobody in view has is a log line only.
         const { senderId, ...line } = message;
+        const mine = message.sender === this.selectedCharacter?.name;
+        if (!mine && senderId === undefined && isIgnored(message.sender)) return;
         noteChat(
-          { ...line, mine: message.sender === this.selectedCharacter?.name },
+          { ...line, mine },
           senderId === undefined ? this.saidBy(message.sender) : this.bodies.localIdOf(senderId),
         );
       },
-      onWhisperReceived: (_senderNetworkId, senderName, text) => {
-        // Private, so never a box over a head.
-        noteChat({ channel: WHISPER_CHANNEL, sender: senderName, text });
-      },
+      onWhisperReceived: (senderNetworkId, senderName, text) =>
+        heardWhisper(senderNetworkId, senderName, text),
       onWhisperSent: (_targetNetworkId, targetName, text) => {
         // Logged on arrival, not on send: the server refuses offline and self whispers.
         noteChat({ channel: WHISPER_CHANNEL, sender: `To ${targetName}`, text, mine: true });

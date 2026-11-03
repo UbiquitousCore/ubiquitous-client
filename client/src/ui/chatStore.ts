@@ -99,6 +99,8 @@ export const chatLastSaid = signal('');
 export const chatPeekUntil = signal(0);
 /** A whisper target for the box, or null for `chatChannel`; sending or backing out clears it. */
 export const chatWhisperTarget = signal<{ id: string; name: string } | null>(null);
+/** Who last whispered the player, for the control that answers them. */
+export const chatLastWhisperer = signal<{ id: string; name: string } | null>(null);
 
 /** Emotes by the keyword the server knows them by. */
 export const EMOTES = [
@@ -218,6 +220,26 @@ export function stopWhispering(): void {
   chatWhisperTarget.value = null;
 }
 
+/** Say the last line again; with nothing said yet, `nothing` goes in the log instead. */
+export function repeatLastSaid(nothing: string): void {
+  const last = chatLastSaid.peek();
+  if (last) say(last);
+  else noteChat({ channel: 'notice', sender: '', text: nothing });
+}
+
+/** Address the box at whoever last whispered; with nobody, `nobody` goes in the log instead. */
+export function answerLastWhisper(nobody: string): void {
+  const last = chatLastWhisperer.peek();
+  if (last) beginWhisper(last.id, last.name);
+  else noteChat({ channel: 'notice', sender: '', text: nobody });
+}
+
+/** A whisper that reached the player: logged, never over a head, and remembered for an answer. */
+export function heardWhisper(senderNetworkId: number, senderName: string, text: string): void {
+  chatLastWhisperer.value = { id: whisperTargetOfNetworkId(senderNetworkId), name: senderName };
+  noteChat({ channel: WHISPER_CHANNEL, sender: senderName, text });
+}
+
 /** Send a whisper; clears the target. Logged only when the server echoes it as delivered. */
 export function whisper(targetId: string, text: string): void {
   const said = text.trim();
@@ -286,5 +308,6 @@ export function clearChat(): void {
   chatDraft.value = '';
   chatLastSaid.value = '';
   chatWhisperTarget.value = null;
+  chatLastWhisperer.value = null;
   chatPeekUntil.value = 0;
 }

@@ -19,6 +19,12 @@ export function setIgnoreList(members: SocialListMember[]): void {
   ignored.value = members;
 }
 
+/** Whether lines from this name are kept out of the log; whispers the server already drops. */
+export function isIgnored(name: string): boolean {
+  const wanted = name.toLowerCase();
+  return ignored.peek().some(one => one.name.toLowerCase() === wanted);
+}
+
 /** Forget both lists. Neither is persisted client-side across a session. */
 export function resetSocialLists(): void {
   friends.value = [];

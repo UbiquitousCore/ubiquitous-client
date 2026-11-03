@@ -9,6 +9,7 @@ import { noteChat } from '../../../ui/chatStore';
 import { acknowledgeReport } from '../../../ui/reportStore';
 import {
   friends,
+  ignored,
   setFriendList,
   setIgnoreList,
   setSocialListActions,
@@ -67,6 +68,8 @@ export function whoLine(player: SocialListMember): string {
 export class Friends {
   /** Set by asking to add one, so only the list that answers it announces who is new. */
   private asked = false;
+  /** The same, for an ask to ignore someone. */
+  private askedIgnore = false;
   /** Counts friend lists, so a slow naming of an older one is dropped. */
   private naming = 0;
 
@@ -94,6 +97,12 @@ export class Friends {
         log.info(`friends: ${members.length}`);
       },
       onIgnoreList: members => {
+        if (this.askedIgnore) {
+          this.askedIgnore = false;
+          for (const name of friendsAdded(ignored.peek(), members)) {
+            noteChat({ channel: 'notice', sender: '', text: `Ignored [${name}] successfully.` });
+          }
+        }
         setIgnoreList(members);
         log.info(`ignored: ${members.length}`);
       },
@@ -127,9 +136,14 @@ export class Friends {
       },
       addIgnore: unitId => {
         const networkId = this.networkIdOfUnit(unitId);
-        if (networkId !== undefined) this.connection.sendIgnoreAdd(networkId);
+        if (networkId === undefined) return;
+        this.askedIgnore = true;
+        this.connection.sendIgnoreAdd(networkId);
       },
-      addIgnoreNamed: name => this.connection.sendIgnoreAddNamed(name),
+      addIgnoreNamed: name => {
+        this.askedIgnore = true;
+        this.connection.sendIgnoreAddNamed(name);
+      },
       removeIgnore: networkId => this.connection.sendIgnoreRemove(networkId),
       refresh: () => this.connection.sendSocialListRequest(),
     });

@@ -16,6 +16,8 @@ import {
   setSocialListActions,
   addFriend,
   addIgnore,
+  addIgnoreNamed,
+  isIgnored,
   removeFriend,
   removeIgnore,
   refreshSocialLists,
@@ -93,6 +95,7 @@ describe('Friends', () => {
       sendFriendAdd: vi.fn(),
       sendFriendRemove: vi.fn(),
       sendIgnoreAdd: vi.fn(),
+      sendIgnoreAddNamed: vi.fn(),
       sendIgnoreRemove: vi.fn(),
       sendSocialListRequest: vi.fn(),
     };
@@ -181,6 +184,26 @@ describe('Friends', () => {
     h.onReportAcknowledged!();
     expect(reportSent.value).toBe(true);
     closeReport();
+  });
+
+  it('announces who was ignored only on the list that answers an ignore', () => {
+    const { h } = setup();
+    h.onIgnoreList!([online(4, 'Dara')]);
+    expect(noticeTexts()).toEqual([]);
+
+    addIgnoreNamed('Bran');
+    h.onIgnoreList!([online(4, 'Dara'), online(2, 'Bran')]);
+    expect(noticeTexts()).toEqual(['Ignored [Bran] successfully.']);
+
+    h.onIgnoreList!([online(4, 'Dara'), online(2, 'Bran'), online(3, 'Cole')]);
+    expect(noticeTexts()).toHaveLength(1);
+  });
+
+  it('knows an ignored name whatever its case', () => {
+    const { h } = setup();
+    h.onIgnoreList!([online(4, 'Dara')]);
+    expect(isIgnored('dara')).toBe(true);
+    expect(isIgnored('Bran')).toBe(false);
   });
 
   it('keeps the ignore list as sent, and passes requests through', () => {
