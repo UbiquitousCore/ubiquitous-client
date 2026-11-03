@@ -655,6 +655,7 @@ const SHOWN: Shown[] = [
         spellId={auraSpells[0] ?? 1}
         beside={{ left: 40, top: 20, right: 40, bottom: 20 }}
         onClose={nothing}
+        onUse={nothing}
       />
     ),
   },
@@ -1092,7 +1093,7 @@ const SHOWN: Shown[] = [
           setMountSpells([20]);
         }}
       >
-        <ArtSpellsWindow onClose={nothing} />
+        <ArtSpellsWindow onClose={nothing} onCast={nothing} />
       </Seeded>
     ),
   },

@@ -1,4 +1,4 @@
-/** A spell's shipped card from the spell book: name, four stat lines (`spellCardLines`), words; no cast button. */
+/** A spell's shipped card from the spell book: name, four stat lines (`spellCardLines`), words and Use. */
 
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
@@ -9,6 +9,7 @@ import { iconUrl } from '../iconUrl';
 import { spellCardLines } from '../spellCard';
 import type { ScreenSpec } from '../art/uiSpec';
 import { INK, LIGHT, useWorn, useWornScreen } from '../art/useWorn';
+import { WornCaptions } from '../art/WornCaptions';
 import { standBeside } from './ArtTalentCard';
 import type { WhereOnPage } from './ArtTalentCard';
 
@@ -27,6 +28,8 @@ export interface ArtSpellCardProps {
   /** Where the row that opened it is on the page, so the card stands beside it. */
   beside?: WhereOnPage | null;
   onClose(): void;
+  /** Casts it, as its slot on the bar would; mounts are summoned the same way. */
+  onUse(): void;
 }
 
 export function ArtSpellCard(props: ArtSpellCardProps): JSX.Element | null {
@@ -38,6 +41,7 @@ function Worn({
   spellId,
   beside,
   onClose,
+  onUse,
   spec,
 }: ArtSpellCardProps & { spec: ScreenSpec }): JSX.Element | null {
   useEffect(() => wantSpellStats([spellId]), [spellId]);
@@ -89,6 +93,7 @@ function Worn({
   const holder = worn.find('group/groupIcon');
   const icon = getSpellIcon(spellId);
   const shut = worn.find(spec.close);
+  const use = worn.find(Object.entries(spec.actions ?? {}).find(([, does]) => does === 'use')?.[0]);
 
   return (
     <div
@@ -117,6 +122,18 @@ function Worn({
           className={HIT}
         />
       ) : null}
+
+      {use ? (
+        <button
+          type="button"
+          aria-label="Use"
+          data-spell-card-use
+          onClick={onUse}
+          style={worn.box(use)}
+          className={HIT}
+        />
+      ) : null}
+      <WornCaptions worn={worn} spec={spec} tone={LIGHT} />
 
       {title ? <span style={worn.words(title, LIGHT, true)}>{getSpellName(spellId)}</span> : null}
 

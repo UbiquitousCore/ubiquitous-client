@@ -24,12 +24,14 @@ export interface InventoryWindowProps {
   screen: ScreenId;
   onScreenChange(screen: ScreenId): void;
   onClose(): void;
+  onCast(spellId: number): void;
 }
 
 export function InventoryWindow({
   screen,
   onScreenChange,
   onClose,
+  onCast,
 }: InventoryWindowProps): JSX.Element | null {
   // Asked before anything else this draws, so the same number of hooks
   // runs whichever screen is open.
@@ -69,7 +71,7 @@ export function InventoryWindow({
     ) : screen === 'quests' && wornQuests ? (
       <ArtQuestLogWindow onClose={onClose} />
     ) : screen === 'spells' && wornSpells ? (
-      <ArtSpellsWindow onClose={onClose} />
+      <ArtSpellsWindow onClose={onClose} onCast={onCast} />
     ) : screen === 'social' && wornSocial ? (
       <ArtSocialWindow onClose={onClose} />
     ) : screen === 'team' && wornTeam ? (
