@@ -1023,9 +1023,7 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
   // has the build's own picture of what it is for drawn beside it.
   spellCard: {
     dialog: 'dlgSpellDesc',
-    // The sheet and its close, and not the strip along the foot that
-    // carries the cast button this card leaves out.
-    frame: ['background', 'btnClose'],
+    frame: ['background', 'btnClose', 'bottomside', 'bottomline', 'btnUse'],
     card: { title: 'textTitle', body: 'group/textDesc' },
     values: {
       cost: 'group/groupIcon/text01',
@@ -1035,8 +1033,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     formats: { range: '@352?~d06851381e20e8d4~6' },
     ...CARD_RUNS_ON,
-    // The book opens it to be read. Casting is the bar's.
-    hidden: ['btnUse', 'textUse', 'bottomside', 'bottomline'],
+    actions: { btnUse: 'use' },
+    captions: { textUse: '@294?~5791c4f4ce83e388~3' },
   },
 
   fittingRoom: {

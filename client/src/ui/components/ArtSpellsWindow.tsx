@@ -88,6 +88,7 @@ const HIT =
 
 export interface ArtSpellsWindowProps {
   onClose(): void;
+  onCast(spellId: number): void;
 }
 
 export function ArtSpellsWindow(props: ArtSpellsWindowProps): JSX.Element | null {
@@ -95,7 +96,11 @@ export function ArtSpellsWindow(props: ArtSpellsWindowProps): JSX.Element | null
   return spec ? <Worn {...props} spec={spec} /> : null;
 }
 
-function Worn({ onClose, spec }: ArtSpellsWindowProps & { spec: ScreenSpec }): JSX.Element | null {
+function Worn({
+  onClose,
+  onCast,
+  spec,
+}: ArtSpellsWindowProps & { spec: ScreenSpec }): JSX.Element | null {
   const scroll = useListScroll();
   const tabs = spec.tabs ?? [];
   const [open, setOpen] = useState(tabs[0]?.panel ?? 'spells');
@@ -416,6 +421,7 @@ function Worn({ onClose, spec }: ArtSpellsWindowProps & { spec: ScreenSpec }): J
           spellId={reading.spellId}
           beside={reading.at}
           onClose={() => setReading(null)}
+          onUse={() => onCast(reading.spellId)}
         />
       ) : null}
 

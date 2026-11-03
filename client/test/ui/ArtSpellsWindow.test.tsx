@@ -102,7 +102,7 @@ describe('ArtSpellsWindow', () => {
       setSpellName(id, name);
     }
     initSpells([1, 2], []);
-    const { getByLabelText } = render(<ArtSpellsWindow onClose={() => {}} />);
+    const { getByLabelText } = render(<ArtSpellsWindow onClose={() => {}} onCast={() => {}} />);
     expect(getByLabelText('Strike')).toBeTruthy();
     expect(getByLabelText('Guard')).toBeTruthy();
   });
@@ -130,7 +130,9 @@ describe('the mounts tab', () => {
     setSpellName(9, 'Brown horse');
     initSpells([1], []);
     setMountSpells([9]);
-    const { getByLabelText, queryByLabelText } = render(<ArtSpellsWindow onClose={() => {}} />);
+    const { getByLabelText, queryByLabelText } = render(
+      <ArtSpellsWindow onClose={() => {}} onCast={() => {}} />,
+    );
     expect(queryByLabelText('Brown horse')).toBeNull();
     fireEvent.click(getByLabelText('Mount'));
     expect(getByLabelText('Brown horse')).toBeTruthy();
@@ -173,7 +175,13 @@ function withCard(): UiSkinData {
       id: 60,
       frameCount: 1,
       frames: [
-        [place(10, 0, 0, 'btnempty'), place(30, 10, 5, 'textTitle'), place(50, 10, 30, 'group')],
+        [
+          place(10, 0, 0, 'btnempty'),
+          place(30, 10, 5, 'textTitle'),
+          place(50, 10, 30, 'group'),
+          place(12, 50, 180, 'btnUse'),
+          place(31, 60, 182, 'textUse'),
+        ],
       ],
     },
   );
@@ -200,7 +208,7 @@ describe("a spell's card", () => {
     setSpellName(1, 'Strike');
     initSpells([1], []);
     const { getByLabelText, queryByRole, getByRole } = render(
-      <ArtSpellsWindow onClose={() => {}} />,
+      <ArtSpellsWindow onClose={() => {}} onCast={() => {}} />,
     );
     expect(queryByRole('dialog', { name: 'Strike' })).toBeNull();
 
@@ -220,6 +228,40 @@ describe("a spell's card", () => {
     expect(card.textContent).toContain('Hits hard.');
   });
 
+  it('summons a mount from its card, the same cast its bar slot sends', () => {
+    uiSpec.value = {
+      screens: {
+        spells: {
+          dialog: 'dlgBook',
+          frame: 'btnempty',
+          tabs: [
+            { control: 'btnSpells', panel: 'spells', caption: 'Spells' },
+            { control: 'btnMounts', panel: 'mounts', caption: 'Mount' },
+          ],
+          sides: [{ control: '', panel: 'mounts', caption: 'Mount' }],
+          panels: { spells: 'group', mounts: 'group' },
+          lists: { spells: { view: 'group', row: 'group/item', fields: { name: 'text01' } } },
+        },
+        spellCard: { ...(SCREEN_MEANINGS.spellCard as ScreenSpec), captions: { textUse: 'Use' } },
+      },
+    };
+    setMovie({ skin: withCard(), art: new Map() });
+    setSpellName(7, 'Brown Horse');
+    initSpells([7], []);
+    setMountSpells([7]);
+    const cast = vi.fn();
+    const { getByLabelText, getByRole } = render(
+      <ArtSpellsWindow onClose={() => {}} onCast={cast} />,
+    );
+    fireEvent.click(getByLabelText('Mount'));
+    fireEvent.click(getByLabelText('Brown Horse'));
+
+    const card = getByRole('dialog', { name: 'Brown Horse' });
+    expect(card.textContent).toContain('Use');
+    fireEvent.click(card.querySelector('[data-spell-card-use]')!);
+    expect(cast).toHaveBeenCalledWith(7);
+  });
+
   it('asks the game for the figures of a spell it has none for', () => {
     uiSpec.value = {
       screens: {
@@ -234,7 +276,7 @@ describe("a spell's card", () => {
     setMovie({ skin: withCard(), art: new Map() });
     setSpellName(1, 'Strike');
     initSpells([1], []);
-    const { getByLabelText } = render(<ArtSpellsWindow onClose={() => {}} />);
+    const { getByLabelText } = render(<ArtSpellsWindow onClose={() => {}} onCast={() => {}} />);
     fireEvent.click(getByLabelText('Strike'));
     expect(wantedSpellStats.value).toContain(1);
   });

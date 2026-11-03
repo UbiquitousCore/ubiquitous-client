@@ -429,6 +429,7 @@ export function GameHud(): JSX.Element {
       {/* Out of the DOM while shut, so keyboards cannot tab into it. */}
       {openScreen.value !== null && (
         <InventoryWindow
+          onCast={handleCast}
           screen={openScreen.value}
           onScreenChange={showScreen}
           onClose={closeCharacterWindow}
