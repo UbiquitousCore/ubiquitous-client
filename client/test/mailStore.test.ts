@@ -23,6 +23,7 @@ import {
   replySubject,
   startLetter,
   applyMailDeleted,
+  applyMailReturned,
   applyMailSent,
   claimMail,
   closeMail,
@@ -64,6 +65,7 @@ beforeEach(() => {
     read: () => {},
     claim: () => {},
     remove: () => {},
+    sendBack: () => {},
   });
 });
 
@@ -170,6 +172,7 @@ describe('sending and deleting', () => {
       read: () => {},
       claim: () => {},
       remove: id => removed.push(id),
+      sendBack: () => {},
     });
     setMailInbox([row('a'), row('b')]);
     setMailMessage(message('a'));
@@ -181,6 +184,19 @@ describe('sending and deleting', () => {
     expect(removed).toEqual([]);
   });
 
+  it('drops a letter sent back once the server says it has gone, and says why when it has not', () => {
+    setMailInbox([row('a'), row('b')]);
+    setMailMessage(message('a'));
+
+    applyMailReturned(false, 'a', 'That letter cannot be sent back.');
+    expect(mailInbox.value).toHaveLength(2);
+    expect(mailNotice.value).toMatchObject({ kind: 'return', ok: false });
+
+    applyMailReturned(true, 'a', null);
+    expect(mailInbox.value.map(item => item.id)).toEqual(['b']);
+    expect(mailMessage.value).toBeNull();
+  });
+
   it('closes locally without telling the server — mail has no close message', () => {
     const removed: string[] = [];
     setMailActions({
@@ -189,6 +205,7 @@ describe('sending and deleting', () => {
       read: () => {},
       claim: () => {},
       remove: id => removed.push(id),
+      sendBack: () => {},
     });
     setMailOpened(true);
     setMailInbox([row('a')]);
@@ -255,6 +272,7 @@ describe('a letter being written', () => {
       read: () => {},
       claim: () => {},
       remove: () => {},
+      sendBack: () => {},
     });
     startLetter('  Someone  ', 'About it');
     editLetter({ body: 'Words.', money: 4_500 });
@@ -288,6 +306,7 @@ describe('a letter being written', () => {
       read: () => {},
       claim: () => {},
       remove: () => {},
+      sendBack: () => {},
     });
     startLetter('   ');
     sendLetter();

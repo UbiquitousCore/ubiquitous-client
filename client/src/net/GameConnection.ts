@@ -765,6 +765,7 @@ export interface ConnectionEvents {
   ): void;
   /** The delete outcome. */
   onMailDeleted?(ok: boolean, id: string, reason: string | null): void;
+  onMailReturned?(ok: boolean, id: string, reason: string | null): void;
   /** How many letters wait unread: on entering the world, after reading one, and when one arrives. */
   onMailUnread?(count: number): void;
 
@@ -1092,6 +1093,8 @@ export interface GameConnection {
   sendMailClaim(id: string, take?: MailTake): void;
   /** Delete one message outright, even one still carrying unclaimed goods. */
   sendMailDelete(id: string): void;
+  /** Send a letter back to whoever wrote it. Answered by `onMailReturned`. */
+  sendMailReturn(id: string): void;
 
   // — party/group core ------------------------------------------------------
   // Requests only; the roster changes on the server's `party.roster`.
@@ -1354,6 +1357,7 @@ export class OfflineConnection implements GameConnection {
   sendMailRead(): void {}
   sendMailClaim(): void {}
   sendMailDelete(): void {}
+  sendMailReturn(): void {}
   // Every one of these needs a second player or a server-owned roster, and
   // offline has neither — inert rather than faked, the same as mail above.
   sendPartyInvite(): void {}

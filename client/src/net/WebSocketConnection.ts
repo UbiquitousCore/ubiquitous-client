@@ -1125,6 +1125,10 @@ export class WebSocketConnection implements GameConnection {
     this.send(OUTBOUND.mailDelete, { id });
   }
 
+  sendMailReturn(id: string): void {
+    this.send(OUTBOUND.mailReturn, { id });
+  }
+
   sendUpgradeStorage(area: StorageArea, slots: number): void {
     this.send(OUTBOUND.inventoryUpgrade, { area, slots });
   }
@@ -2129,6 +2133,14 @@ export class WebSocketConnection implements GameConnection {
 
       case INBOUND.mailDeleted:
         this.events.onMailDeleted?.(
+          payload.ok === true,
+          typeof payload.id === 'string' ? payload.id : '',
+          optionalString(payload.reason),
+        );
+        return;
+
+      case INBOUND.mailReturned:
+        this.events.onMailReturned?.(
           payload.ok === true,
           typeof payload.id === 'string' ? payload.id : '',
           optionalString(payload.reason),

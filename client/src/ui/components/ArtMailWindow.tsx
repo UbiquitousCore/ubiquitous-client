@@ -35,6 +35,7 @@ export interface ArtMailWindowProps {
   onSelect(id: string): void;
   onClaim(id: string, take?: MailTake): void;
   onDelete(id: string): void;
+  onSendBack(id: string): void;
   /** Put the letter away, leaving the box open. */
   onCloseLetter(): void;
   /** Start a letter of the player's own, which the box's own control does. */
@@ -252,6 +253,7 @@ function Letter({
   onReply,
   onClaim,
   onDelete,
+  onSendBack,
   onCloseLetter,
   spec,
 }: Omit<ArtMailWindowProps, 'message'> & {
@@ -291,6 +293,7 @@ function Letter({
     if (what === 'claim') onClaim(message.id);
     else if (what === 'claimMoney') onClaim(message.id, { moneyOnly: true });
     else if (what === 'delete') onDelete(message.id);
+    else if (what === 'sendBack') onSendBack(message.id);
     else if (what === 'reply') onReply?.(message);
   };
 

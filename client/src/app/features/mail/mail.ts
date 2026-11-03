@@ -4,6 +4,7 @@ import type { ConnectionEvents, GameConnection } from '../../../net/GameConnecti
 import {
   applyMailClaimed,
   applyMailDeleted,
+  applyMailReturned,
   applyMailSent,
   mailDraft,
   mailWaiting,
@@ -96,6 +97,11 @@ export function mailHandlers(art: UiArt): Partial<ConnectionEvents> {
       if (!ok) reportToPlayer(reason ?? 'Delete refused.');
       log.info(mailLogLine({ kind: 'deleted', ok, id, reason }));
     },
+
+    onMailReturned: (ok, id, reason) => {
+      applyMailReturned(ok, id, reason);
+      if (!ok) reportToPlayer(reason ?? 'Return refused.');
+    },
   };
 }
 
@@ -108,5 +114,6 @@ export function installMailActions(connection: GameConnection): void {
     read: id => connection.sendMailRead(id),
     claim: (id, take) => connection.sendMailClaim(id, take),
     remove: id => connection.sendMailDelete(id),
+    sendBack: id => connection.sendMailReturn(id),
   });
 }

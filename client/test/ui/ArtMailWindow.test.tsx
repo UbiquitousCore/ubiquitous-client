@@ -120,6 +120,7 @@ const nothing = {
   onSelect: vi.fn(),
   onClaim: vi.fn(),
   onDelete: vi.fn(),
+  onSendBack: vi.fn(),
   onCloseLetter: vi.fn(),
   onWrite: vi.fn(),
   onClose: vi.fn(),
@@ -396,6 +397,23 @@ describe('ArtMailWindow', () => {
     );
     fireEvent.click(getByLabelText('reply'));
     expect(onReply).toHaveBeenCalledWith(read);
+  });
+
+  it('sends a letter back with its own Return control', () => {
+    uiSpec.value = {
+      screens: {
+        ...spec.screens,
+        mailRead: { dialog: 'theBox', frame: 'back', close: 'shut', actions: { up: 'sendBack' } },
+      },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    const onSendBack = vi.fn();
+    const read: MailMessage = { ...letter('a', true), body: '', items: [] };
+    const { getByLabelText } = render(
+      <ArtMailWindow {...nothing} onSendBack={onSendBack} inbox={[letter('a')]} message={read} />,
+    );
+    fireEvent.click(getByLabelText('sendBack'));
+    expect(onSendBack).toHaveBeenCalledWith('a');
   });
 
   it('puts a letter away without shutting the box it came from', () => {
