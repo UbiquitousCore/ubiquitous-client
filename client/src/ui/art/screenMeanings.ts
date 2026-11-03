@@ -604,7 +604,18 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       emote: { part: 'btnExpand', without: ['text'] },
     },
     calls: CHANNEL_CALLS,
-    words: { more: 'More', again: '@1533?~d99ba82a5f610c76~6' },
+    words: {
+      more: 'More',
+      hello: '@1526?~e1931d3e6b77f4a2~6',
+      thanks: '@1527?~92b85d7b8c2e23ff~10',
+      help: '@1528?~b9a283995e3ff345~15',
+      congratulations: '@1529?~4148386f3f83c1f3~16',
+      bye: '@1530?~80a20f5ed449122a~8',
+      again: '@1533?~d99ba82a5f610c76~6',
+      lastWhisper: '@1534?~11665e16b6841282~15',
+      nothingToRepeat: '@1540?~4d83c34897fad6bc~37',
+      nobodyWhispered: '@1541?~09c75d031a832c2f~28',
+    },
     // The strip of channel shortcuts is the build's; this client offers
     // its channels from the one control.
     hidden: [

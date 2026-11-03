@@ -16,13 +16,14 @@ import {
   chatAsking,
   chatChannel,
   chatDraft,
-  chatLastSaid,
   chatLines,
   chatOpen,
   shutChatAfterSaying,
   chatTyping,
   chatWhisperTarget,
+  answerLastWhisper,
   emote,
+  repeatLastSaid,
   say,
   stopWhispering,
   whisper,
@@ -75,6 +76,9 @@ function Piece({
   );
 }
 
+/** The ready-made lines behind the More control, by their word in the spec, in its order. */
+const PHRASES = ['hello', 'thanks', 'help', 'congratulations', 'bye'] as const;
+
 /** What a control offers, by our own name for each choice and its word. */
 function offered(
   which: 'channel' | 'emote' | 'more',
@@ -84,10 +88,12 @@ function offered(
     return CHANNELS.map(one => ({ id: one.id, name: spec.calls?.[one.id] ?? one.name }));
   }
   if (which === 'emote') return EMOTES.map(one => ({ id: one, name: one }));
-  // The build keeps three things behind this control. This client reaches
-  // whispering from a target's own plus-menu instead, so this offers only
-  // the last thing said again.
-  return [{ id: 'again', name: spec.words?.again ?? 'Again' }];
+  // Edit and Custom, the player's own lines, are not offered yet.
+  return [
+    ...PHRASES.flatMap(id => (spec.words?.[id] ? [{ id, name: spec.words[id] }] : [])),
+    { id: 'again', name: spec.words?.again ?? 'Repeat' },
+    { id: 'lastWhisper', name: spec.words?.lastWhisper ?? 'To last whisper' },
+  ];
 }
 
 function Worn({ spec }: { spec: ScreenSpec }): JSX.Element {
@@ -244,7 +250,10 @@ function OpenBar({ spec }: { spec: ScreenSpec }): JSX.Element | null {
               onPress={() => {
                 if (offering === 'channel') chatChannel.value = one.id as ChannelId;
                 else if (offering === 'emote') emote(one.id);
-                else chatDraft.value = chatLastSaid.peek();
+                else if (one.id === 'again') repeatLastSaid(spec.words?.nothingToRepeat ?? '');
+                else if (one.id === 'lastWhisper')
+                  answerLastWhisper(spec.words?.nobodyWhispered ?? '');
+                else say(one.name);
                 setOffering('none');
               }}
             />
@@ -395,7 +404,8 @@ function ArtChatSay(): JSX.Element {
         ref={box}
         aria-label={target ? `Whisper to ${target.name}` : 'Say something'}
         value={typed}
-        maxLength={255}
+        // A whisper's box is the shorter one.
+        maxLength={target ? 100 : 255}
         onInput={event => (chatDraft.value = (event.currentTarget as HTMLInputElement).value)}
         // While the box has the keyboard, the game must not take the
         // keys as movement — that is what this says, and the game asks
