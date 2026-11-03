@@ -6,7 +6,7 @@ vi.mock('../../src/ui/art/pieceCanvas', () => ({
   drawPiece: () => ({ url: 'blob:team', width: 240, height: 320 }),
 }));
 
-import { ArtTeamWindow, kickChoice } from '../../src/ui/components/ArtTeamWindow';
+import { ArtTeamWindow, exhaustionFrame, kickChoice } from '../../src/ui/components/ArtTeamWindow';
 import { setMovie } from '../../src/ui/art/pieceStore';
 import { uiSpec } from '../../src/ui/art/uiSpec';
 import { player } from '../../src/ui/hudStore';
@@ -14,7 +14,7 @@ import { resetParty, setPartyActions, setPartyRoster } from '../../src/ui/partyS
 import type { PartyActions } from '../../src/ui/partyStore';
 import type { UiSkinData, UiSkinPlaced } from '../../src/assets/types';
 import { clearMovies } from '../helpers/stores';
-import { dungeonMode, setInstanceActions } from '../../src/ui/instanceStore';
+import { dungeonMode, exhaustion, setInstanceActions } from '../../src/ui/instanceStore';
 
 afterEach(() => {
   cleanup();
@@ -268,8 +268,14 @@ describe('the dungeon page', () => {
           place(13, 0, 100, 'btndungeonreset'),
           place(13, 30, 100, 'btndungeonmoderight'),
           place(13, 60, 100, 'btndungeonsave'),
+          place(31, 0, 140, 'exhausting'),
         ],
       ],
+    });
+    base.sprites.push({
+      id: 31,
+      frameCount: 1,
+      frames: [[place(12, 0, 0, 'txt'), place(12, 0, 20, 'bar')]],
     });
     base.sprites[4]!.frames[0]!.push(
       place(13, 0, 0, 'btnteamsetting'),
@@ -291,6 +297,11 @@ describe('the dungeon page', () => {
         },
         words: { normal: 'Normal', legend: 'Legend' },
         panels: { team: 'teamsetting', dungeon: 'dungeonsetting' },
+        values: {
+          exhaustion: 'dungeonsetting/exhausting/txt',
+          exhaustionBar: 'dungeonsetting/exhausting/bar',
+        },
+        formats: { exhaustion: 'Exhaustion: %d / %d' },
       },
     },
   };
@@ -306,6 +317,22 @@ describe('the dungeon page', () => {
     setPartyRoster({ partyId: roster.length ? 'p1' : null, members: roster });
     return { resetDungeons, chooseDungeonMode, ...render(<ArtTeamWindow onClose={() => {}} />) };
   }
+
+  it('says how worn down Legend copies have left the player, out of the cap', () => {
+    exhaustion.value = 12;
+    const { container, getByRole } = mountDungeon('Me');
+    expect(container.querySelector('[data-exhaustion]')).toBeNull();
+    fireEvent.click(getByRole('tab', { name: 'Dungeon' }));
+    expect(container.querySelector('[data-exhaustion]')?.textContent).toBe('Exhaustion: 12 / 100');
+    exhaustion.value = 0;
+  });
+
+  it('fills the bar from its first frame, empty, to its last, full', () => {
+    expect(exhaustionFrame(0)).toBe(0);
+    expect(exhaustionFrame(50)).toBe(25);
+    expect(exhaustionFrame(100)).toBe(50);
+    expect(exhaustionFrame(140)).toBe(50);
+  });
 
   it('offers the reset only on the dungeon page', () => {
     const { queryByRole, getByRole } = mountDungeon('Me');

@@ -262,6 +262,7 @@ import { resetPvp } from '../ui/pvpStore';
 import {
   applyWorldEntered as applyInstanceWorldEntered,
   dungeonMode,
+  exhaustion,
   noteInstanceRequested,
   resetInstance,
   setInstanceActions,
@@ -1889,6 +1890,8 @@ export class Game {
             shopInteraction.value = { ...shopInteraction.value, balance: money };
           }
         }
+        const worn = values[FIELD_IDS.exhaustion];
+        if (worn !== undefined) exhaustion.value = worn;
         // Fold, never rebuild (`applyPlayerValues`): a rebuilt hero loses
         // `dead`, and the death's gold penalty arrives in the same batch.
         applyPlayerValues(values, {

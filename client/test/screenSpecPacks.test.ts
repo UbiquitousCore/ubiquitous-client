@@ -222,7 +222,7 @@ const OURS = new Set(['words', 'formats', 'conditions', 'options', 'optionsBy', 
  * Values a screen shows by turning a part to one of its faces rather than
  * by writing into it: a bar that empties frame by frame.
  */
-const STEPPED = new Set(['expBar']);
+const STEPPED = new Set(['expBar', 'exhaustionBar']);
 /**
  * Tabs that change what one panel shows rather than opening a panel of
  * their own: buying or selling, and which of a class's trees is up.

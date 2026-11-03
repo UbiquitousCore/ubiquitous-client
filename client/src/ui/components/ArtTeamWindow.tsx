@@ -17,7 +17,7 @@ import { listSlice, rowsIn } from '../art/wornList';
 import { unavailableFaces } from '../art/wornState';
 import { player, target } from '../hudStore';
 import { partyActions, partyRoster, removalBy } from '../partyStore';
-import { dungeonMode, instanceActions } from '../instanceStore';
+import { EXHAUSTION_MAX, dungeonMode, exhaustion, instanceActions } from '../instanceStore';
 import { ArtAskBox } from './ArtAskBox';
 import { WornPiece } from '../art/WornPiece';
 
@@ -120,6 +120,9 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
     spec.frame,
     whole => ({
       shown: [...(spec.shown ?? []), ...faces.shown],
+      ...(spec.values?.exhaustionBar
+        ? { frames: { [spec.values.exhaustionBar]: exhaustionFrame(exhaustion.value) } }
+        : {}),
       hidden: [
         ...(spec.hidden ?? []),
         ...faces.hidden,
@@ -153,6 +156,10 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
   };
   const modeField = worn.fieldOf(worn.find(spec.values?.dungeonMode));
   const modeWord = spec.words?.[stepped] ?? '';
+  const wornField = worn.fieldOf(worn.find(spec.values?.exhaustion));
+  const wornWords = spec.formats?.exhaustion
+    ?.replace('%d', String(exhaustion.value))
+    .replace('%d', String(EXHAUSTION_MAX));
 
   return (
     <div
@@ -184,6 +191,12 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
 
       {page === 'dungeon' && modeField && modeWord ? (
         <span style={worn.words(modeField, LIGHT)}>{modeWord}</span>
+      ) : null}
+
+      {page === 'dungeon' && wornField && wornWords ? (
+        <span data-exhaustion style={worn.words(wornField, LIGHT)}>
+          {wornWords}
+        </span>
       ) : null}
 
       {/* The dropdown that lists whom the leader can put out. */}
@@ -404,4 +417,13 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
       })()}
     </div>
   );
+}
+
+/** The frames along the exhaustion bar's run, which the movie fills from empty at the first to full at the last. */
+const EXHAUSTION_FRAMES = 50;
+
+/** The frame of the dungeon page's bar that shows `amount` out of the cap. */
+export function exhaustionFrame(amount: number): number {
+  const share = Math.max(0, Math.min(1, amount / EXHAUSTION_MAX));
+  return Math.round(share * EXHAUSTION_FRAMES);
 }
