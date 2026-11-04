@@ -1045,6 +1045,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     formats: { range: '@352?~d06851381e20e8d4~6' },
     ...CARD_RUNS_ON,
     actions: { btnUse: 'use' },
+    // The grey layer over every face: left on, the held face is only a red rim.
+    hidden: ['btnUse/disable'],
     captions: { textUse: '@294?~5791c4f4ce83e388~3' },
   },
 
