@@ -10,6 +10,7 @@ import { spellCardLines } from '../spellCard';
 import type { ScreenSpec } from '../art/uiSpec';
 import { INK, LIGHT, useWorn, useWornScreen } from '../art/useWorn';
 import { WornCaptions } from '../art/WornCaptions';
+import { WornHit, useHeld } from '../frontend/wornBits';
 import { standBeside } from './ArtTalentCard';
 import type { WhereOnPage } from './ArtTalentCard';
 
@@ -48,13 +49,14 @@ function Worn({
 
   /** Whether what it does runs past the card, which is when it says so. */
   const [over, setOver] = useState(false);
+  const { held: pressing, hold, faces } = useHeld();
   const runOn = [spec.marks?.above, spec.marks?.below, spec.panels?.bar].filter(
     (name): name is string => Boolean(name),
   );
   const worn = useWorn(
     spec.dialog,
     spec.frame,
-    { hidden: [...(spec.hidden ?? []), ...(over ? [] : runOn)] },
+    { hidden: [...(spec.hidden ?? []), ...(over ? [] : runOn)], frames: faces },
     { floats: true, spills: true },
   );
 
@@ -93,7 +95,8 @@ function Worn({
   const holder = worn.find('group/groupIcon');
   const icon = getSpellIcon(spellId);
   const shut = worn.find(spec.close);
-  const use = worn.find(Object.entries(spec.actions ?? {}).find(([, does]) => does === 'use')?.[0]);
+  const usePath = Object.entries(spec.actions ?? {}).find(([, does]) => does === 'use')?.[0];
+  const use = worn.find(usePath);
 
   return (
     <div
@@ -123,17 +126,14 @@ function Worn({
         />
       ) : null}
 
-      {use ? (
-        <button
-          type="button"
-          aria-label="Use"
-          data-spell-card-use
-          onClick={onUse}
-          style={worn.box(use)}
-          className={HIT}
-        />
-      ) : null}
-      <WornCaptions worn={worn} spec={spec} tone={LIGHT} />
+      <WornHit worn={worn} part={use} label="Use" onHold={hold(usePath)} onPress={onUse} />
+      <WornCaptions
+        worn={worn}
+        spec={spec}
+        tone={LIGHT}
+        // Its one caption is Use's word, whose ink is lost on the held red face.
+        styleOf={() => (pressing ? { color: LIGHT } : undefined)}
+      />
 
       {title ? <span style={worn.words(title, LIGHT, true)}>{getSpellName(spellId)}</span> : null}
 

@@ -321,6 +321,7 @@ import {
   setClassTrees,
   setMountSpells,
   mountSpells,
+  knownSpells,
   riddenMountAmong,
   castSummonsMount,
   setRiddenMount,
@@ -2501,7 +2502,7 @@ export class Game {
   private castSpell(spellId: number): void {
     const targetNetworkId = castTargetFromBar({
       spellId,
-      bar: spellBarSignal.value,
+      castable: [...spellBarSignal.value, ...knownSpells.value, ...mountSpells.value],
       mayStartCast: mayStartCast(),
       hudTargetId: hudTargetId.value,
       networkIdOf: localId => this.bodies.networkIdOf(localId),

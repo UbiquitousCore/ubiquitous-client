@@ -83,7 +83,7 @@ describe('a friend row', () => {
     expect(actions.map(action => action.label)).toEqual(['Ignore', 'Delete']);
   });
 
-  it('ignores the friend by the id their row carries', () => {
+  it('ignores the friend by name, online or not', () => {
     const social = lists();
     friendActions(
       { id: 9, name: 'Mira', away: true },
@@ -91,7 +91,8 @@ describe('a friend row', () => {
       () => {},
       () => {},
     )[0]!.onPick();
-    expect(networkIdOfWhisperTarget(social.addIgnore.mock.calls[0]![0])).toBe(9);
+    expect(social.addIgnoreNamed).toHaveBeenCalledWith('Mira');
+    expect(social.addIgnore).not.toHaveBeenCalled();
   });
 
   it('deletes the friend only once the question is answered yes', () => {

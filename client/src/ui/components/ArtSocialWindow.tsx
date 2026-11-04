@@ -420,7 +420,8 @@ export function friendActions(
   const always = [
     {
       label: spec.words?.ignore ?? 'Ignore',
-      onPick: then(() => addIgnore(whisperTargetOfNetworkId(friend.id))),
+      // By name, as the ignored tab's own field does: the server finds them online or not.
+      onPick: then(() => addIgnoreNamed(friend.name)),
     },
     {
       label: spec.words?.delete ?? spec.words?.remove ?? 'Delete',

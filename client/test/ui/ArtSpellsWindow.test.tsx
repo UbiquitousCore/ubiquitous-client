@@ -258,7 +258,7 @@ describe("a spell's card", () => {
 
     const card = getByRole('dialog', { name: 'Brown Horse' });
     expect(card.textContent).toContain('Use');
-    fireEvent.click(card.querySelector('[data-spell-card-use]')!);
+    fireEvent.click(card.querySelector('button[aria-label="Use"]')!);
     expect(cast).toHaveBeenCalledWith(7);
   });
 
