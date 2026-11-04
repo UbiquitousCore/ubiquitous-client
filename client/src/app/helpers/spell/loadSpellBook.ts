@@ -48,21 +48,24 @@ export async function loadSpellBook(
   tables: SpellBookTables,
   sinks: SpellBookSinks,
 ): Promise<number[]> {
-  const [castable, stats] = await Promise.all([
+  const [castable, stats, names] = await Promise.all([
     Promise.all(spells.map(spellId => tables.spellCastable(spellId))),
     Promise.all(spells.map(spellId => tables.spellStats(spellId).catch(() => UNREAD))),
+    Promise.all(spells.map(spellId => tables.spellName(spellId).catch(() => null))),
   ]);
   const listed = spells.filter(
     (_, at) =>
-      castable[at] || (!stats[at]!.mount && listedThoughNotCastable(stats[at]!.skillSet)),
+      castable[at] ||
+      (!stats[at]!.mount && listedThoughNotCastable(stats[at]!.skillSet, names[at] ?? '')),
   );
-  spells.forEach((spellId, at) => sinks.stats(spellId, stats[at]!));
+  spells.forEach((spellId, at) => {
+    sinks.stats(spellId, stats[at]!);
+    const name = names[at];
+    if (name) sinks.name(spellId, name);
+  });
   sinks.install(spells, actionBar, listed);
   sinks.mountSpells(spells.filter((_, at) => stats[at]!.mount));
   for (const spellId of spells) {
-    void tables.spellName(spellId).then(name => {
-      if (name) sinks.name(spellId, name);
-    });
     // Asked here, not when a card opens: a card asks only for figures it lacks, and these are in.
     void tables
       .spellText(spellId)

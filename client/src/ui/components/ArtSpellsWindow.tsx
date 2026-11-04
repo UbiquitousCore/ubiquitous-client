@@ -84,18 +84,18 @@ export const SPELLS_SCREEN = 'spells';
 
 /** What each side tab of the spell list is called, for anyone who cannot see its mark. */
 const PAGE_NAMES: Readonly<Record<SpellBookPage, string>> = {
-  basic: 'Basic',
+  lifeSkills: 'Life skills',
   treeOne: 'First tree',
   treeTwo: 'Second tree',
-  treeThree: 'Third tree',
-  crafts: 'Life skills',
+  crafting: 'Crafting',
   gm: 'GM',
   mounts: 'Mounts',
+  none: '',
 };
 
-/** Which side tab a known spell is under; one whose row has not come in yet is a basic. */
+/** Which side tab a known spell is under; one whose row has not come in yet is a life skill. */
 function pageOf(spellId: number): SpellBookPage {
-  return spellBookPage(spellStats.value.get(spellId)?.skillSet ?? 1);
+  return spellBookPage(spellStats.value.get(spellId)?.skillSet ?? 1, getSpellName(spellId));
 }
 
 /** The book stands in a row beside the bar, not at a place on a stage. */
@@ -136,9 +136,9 @@ function Worn({
   const showing = open === 'mounts' ? (sides[side]?.panel ?? '') : '';
   /**
    * A book that keeps no pages of its own sorts the spells under the tabs
-   * down the side by kind: the basics, each class tree, the crafts, and the
-   * spells with no class a GM is taught. Only a kind the player has is given
-   * a tab.
+   * down the side by kind: the life skills, each class tree, the crafts, and
+   * a GM's own spells. Only a kind the player has is given a tab, and a spell
+   * of no kind (gathering) is on none.
    */
   const kinds =
     perPage > 0
@@ -159,7 +159,7 @@ function Worn({
       : open === 'spells'
         ? kinds.length > 0
           ? knownSpells.value.filter(id => pageOf(id) === kind)
-          : knownSpells.value
+          : knownSpells.value.filter(id => pageOf(id) !== 'none')
         : [];
   const listed = open === 'spells' || showing === 'mounts';
   const known = !listed
@@ -269,6 +269,20 @@ function Worn({
 
   const slice = sliceOf(worn.whole);
   const rows = rowsIn(worn.parts, slice);
+  /**
+   * Each side tab and its mark's point as at rest, from the whole screen,
+   * which is planned on first faces. That plan keeps its parked parts too and
+   * so stands at its own origin; a part both plans draw alike puts it back.
+   */
+  const anchor = spec.close ?? 'btnclose';
+  const drawnAnchor = worn.find(anchor);
+  const wholeAnchor = worn.whole.find(one => one.path === drawnAnchor?.path);
+  const dx = drawnAnchor && wholeAnchor ? drawnAnchor.box.x - wholeAnchor.box.x : 0;
+  const dy = drawnAnchor && wholeAnchor ? drawnAnchor.box.y - wholeAnchor.box.y : 0;
+  const atRest = (path: string): PiecePart | undefined => {
+    const found = worn.whole.find(one => one.path === path);
+    return found && { ...found, box: { ...found.box, x: found.box.x + dx, y: found.box.y + dy } };
+  };
 
   if (!worn.image || !worn.frame) return null;
 
@@ -334,22 +348,14 @@ function Worn({
         const part = worn.find(control);
         const mine = open === 'mounts';
         if (!part) return null;
-        // The picture the tab wears, at the point the tab keeps for it.
-        // The point is drawn on the resting face only; on the face showing, the mark keeps to the tab.
-        const inside = worn.find(`${control}/displayCallback`) ?? part;
-        const inset = inside !== part ? inside.box.x - part.box.x : part.box.w * 0.1;
+        const inside = markBox(atRest(control) ?? part, atRest(`${control}/displayCallback`));
         const icon = mine ? sides[at]?.icon : markOf(kinds[at]);
         // No set has a mark for the spells with no class; the tab says what it is.
         const word = !mine && kinds[at] === 'gm' ? PAGE_NAMES.gm : undefined;
         return (
           <div key={control}>
             {inside && icon ? (
-              <WornEmblem
-                worn={worn}
-                at={inside}
-                icon={icon}
-                size={Math.max(1, part.box.w - inset * 2)}
-              />
+              <WornEmblem worn={worn} at={inside} icon={icon} size={inside.box.w} />
             ) : null}
             {word ? (
               <span
@@ -503,4 +509,24 @@ function Worn({
       })()}
     </div>
   );
+}
+
+/**
+ * The slot a side tab's mark stands in, as shares of the tab at rest: the
+ * movie's `displayCallback` clip spans 25 by 40.9 units of the tab's 34.7 by
+ * 51.5 unit hit area, from the point it is placed at.
+ */
+const MARK_SLOT = { w: 25 / 34.7, h: 40.9 / 51.5 };
+
+/**
+ * Where a side tab's mark stands: a square as wide as the slot, centred down
+ * it. Measured on the tab at rest, so the lit tab, which reaches out over the
+ * page, wears its mark in the same place.
+ */
+export function markBox(tab: PiecePart, point: PiecePart | undefined): PiecePart {
+  const size = tab.box.w * MARK_SLOT.w;
+  const slot = tab.box.h * MARK_SLOT.h;
+  const x = point?.box.x ?? tab.box.x + (tab.box.w - size) / 2;
+  const y = point ? point.box.y + (slot - size) / 2 : tab.box.y + (tab.box.h - size) / 2;
+  return { ...tab, box: { x, y, w: size, h: size } };
 }

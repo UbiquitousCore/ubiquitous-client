@@ -6,7 +6,7 @@ vi.mock('../../src/ui/art/pieceCanvas', () => ({
   drawPiece: () => ({ url: 'blob:spells', width: 240, height: 320 }),
 }));
 
-import { ArtSpellsWindow } from '../../src/ui/components/ArtSpellsWindow';
+import { ArtSpellsWindow, markBox } from '../../src/ui/components/ArtSpellsWindow';
 import { setMovie } from '../../src/ui/art/pieceStore';
 import { uiSpec } from '../../src/ui/art/uiSpec';
 import {
@@ -329,5 +329,22 @@ describe("a spell's card", () => {
     const { getByLabelText } = render(<ArtSpellsWindow onClose={() => {}} onCast={() => {}} />);
     fireEvent.click(getByLabelText('Strike'));
     expect(wantedSpellStats.value).toContain(1);
+  });
+});
+
+describe('the mark on a side tab', () => {
+  const part = (x: number, y: number, w: number, h: number) =>
+    ({ path: 'btnPage01', name: 'btnPage01', box: { x, y, w, h } }) as never;
+
+  it('stands in the slot the movie marks, as wide as the slot and centred down it', () => {
+    const at = markBox(part(190, 60, 34.7, 51.5), part(193, 64, 0, 0)).box;
+    expect(at.x).toBeCloseTo(193);
+    expect(at.w).toBeCloseTo(25);
+    expect(at.y + at.h / 2).toBeCloseTo(64 + 40.9 / 2);
+  });
+
+  it('is centred on the tab where the movie marks no point', () => {
+    const at = markBox(part(190, 60, 34.7, 51.5), undefined).box;
+    expect(at.x + at.w / 2).toBeCloseTo(190 + 34.7 / 2);
   });
 });

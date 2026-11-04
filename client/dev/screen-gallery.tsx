@@ -223,8 +223,8 @@ function stageOne(): void {
  * the build is read.
  */
 let auraSpells: number[] = [];
-/** A mage's book of every kind, so each side tab shows: basics, two trees and GM spells. */
-const BOOK_SAMPLES = [108, 58, 1, 6, 7, 2, 40, 41, 462];
+/** A mage's book of every kind, so each side tab shows: life skills, a tree, GM spells, and gathering, which shows nowhere. */
+const BOOK_SAMPLES = [108, 58, 111, 1, 6, 7, 2, 40, 41, 462, 23];
 
 /** Whose sample auras these are, as the aura store keys them. */
 const AURA_UNIT = 'gallery';

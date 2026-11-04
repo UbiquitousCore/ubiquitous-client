@@ -15,7 +15,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
       skillSet: id === 4 ? 0 : 11,
       skillSetIcon: null,
     }),
-    spellName: async (id: number) => (id === 1 ? 'Bolt' : null),
+    spellName: async (id: number) => (id === 1 ? 'Bolt' : id === 4 ? 'Test Stun' : null),
     spellText: async (id: number) => (id === 1 ? 'Hits hard.' : null),
     spellIcon: async () => null,
     spellCastingTime: async (id: number) => id * 100,
@@ -44,7 +44,7 @@ describe('loadSpellBook', () => {
     expect(sinks.install).toHaveBeenCalledWith([1, 2, 3], bar, [1, 3]);
   });
 
-  it('lists a spell with no class, a GM or test spell, though the bar would not take it', async () => {
+  it('lists a GM or test spell though the bar would not take it', async () => {
     const { tables, sinks } = fixture({ spellCastable: async (id: number) => id === 1 });
     const listed = await loadSpellBook([1, 4], [], tables, sinks);
     expect(listed).toEqual([1, 4]);
