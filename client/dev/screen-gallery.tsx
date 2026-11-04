@@ -223,6 +223,8 @@ function stageOne(): void {
  * the build is read.
  */
 let auraSpells: number[] = [];
+/** A mage's book of every kind, so each side tab shows: basics, two trees and GM spells. */
+const BOOK_SAMPLES = [108, 58, 1, 6, 7, 2, 40, 41, 462];
 
 /** Whose sample auras these are, as the aura store keys them. */
 const AURA_UNIT = 'gallery';
@@ -1086,10 +1088,7 @@ const SHOWN: Shown[] = [
     draw: () => (
       <Seeded
         seed={() => {
-          // More than the window holds, so the list scrolls.
-          const spells = Array.from({ length: 9 }, (_, at) => at + 1);
-          for (const id of spells) setSpellName(id, `Sample spell ${id}`);
-          initSpells(spells, []);
+          initSpells(BOOK_SAMPLES, []);
           setSpellName(20, 'Sample mount');
           setMountSpells([20]);
         }}
@@ -1429,7 +1428,7 @@ function Page(): JSX.Element {
         setTalentPlaces(talents.places);
         setClassTrees(new Map(talents.trees.map(row => [row.classId, row.trees])));
         auraSpells = talents.places.slice(0, 4).map(place => place.spells[0] ?? 0);
-        for (const id of auraSpells) {
+        for (const id of [...auraSpells, ...BOOK_SAMPLES]) {
           const name = await provider.load({ kind: 'spellName', id } as const).catch(() => null);
           if (name) setSpellName(id, name);
           const text = await provider.load({ kind: 'spellText', id } as const).catch(() => null);

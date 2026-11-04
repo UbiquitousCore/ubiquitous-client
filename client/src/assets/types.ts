@@ -761,6 +761,10 @@ export interface SpellStats {
   range: number;
   /** Casting it seats the caster on a mount; the book lists it on the mount page. */
   mount: boolean;
+  /** Its `spell_skillset` row: the class tree, the basics, a craft, or 0 for none. */
+  skillSet: number;
+  /** That set's mark under `class/`, which the book's side tab wears; null for none. */
+  skillSetIcon: string | null;
 }
 
 /**

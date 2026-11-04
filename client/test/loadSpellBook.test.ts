@@ -6,8 +6,17 @@ const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0
 function fixture(overrides: Record<string, unknown> = {}) {
   const tables = {
     spellCastable: async (id: number) => id !== 2,
-    spellStats: async (id: number) => ({ mount: id === 3 }),
+    spellStats: async (id: number) => ({
+      powerCost: 0,
+      castMs: 0,
+      cooldownMs: 0,
+      range: 0,
+      mount: id === 3,
+      skillSet: id === 4 ? 0 : 11,
+      skillSetIcon: null,
+    }),
     spellName: async (id: number) => (id === 1 ? 'Bolt' : null),
+    spellText: async (id: number) => (id === 1 ? 'Hits hard.' : null),
     spellIcon: async () => null,
     spellCastingTime: async (id: number) => id * 100,
     spellRank: async () => 1,
@@ -17,9 +26,11 @@ function fixture(overrides: Record<string, unknown> = {}) {
     install: vi.fn(),
     mountSpells: vi.fn(),
     name: vi.fn(),
+    text: vi.fn(),
     icon: vi.fn(),
     castTime: vi.fn(),
     rank: vi.fn(),
+    stats: vi.fn(),
   };
   return { tables, sinks };
 }
@@ -31,6 +42,13 @@ describe('loadSpellBook', () => {
     const castable = await loadSpellBook([1, 2, 3], bar, tables, sinks);
     expect(castable).toEqual([1, 3]);
     expect(sinks.install).toHaveBeenCalledWith([1, 2, 3], bar, [1, 3]);
+  });
+
+  it('lists a spell with no class, a GM or test spell, though the bar would not take it', async () => {
+    const { tables, sinks } = fixture({ spellCastable: async (id: number) => id === 1 });
+    const listed = await loadSpellBook([1, 4], [], tables, sinks);
+    expect(listed).toEqual([1, 4]);
+    expect(sinks.stats).toHaveBeenCalledWith(4, expect.objectContaining({ skillSet: 0 }));
   });
 
   it('hands the mount page the known spells the tables call mounts', async () => {
@@ -46,6 +64,8 @@ describe('loadSpellBook', () => {
     await settle();
     expect(sinks.name).toHaveBeenCalledTimes(1);
     expect(sinks.name).toHaveBeenCalledWith(1, 'Bolt');
+    expect(sinks.text).toHaveBeenCalledWith(1, 'Hits hard.');
+    expect(sinks.text).toHaveBeenCalledTimes(1);
     expect(sinks.icon).not.toHaveBeenCalled();
     expect(sinks.castTime).toHaveBeenCalledWith(2, 200);
     expect(sinks.rank).toHaveBeenCalledTimes(2);
@@ -56,6 +76,6 @@ describe('loadSpellBook', () => {
     await loadSpellBook([1], [], tables, sinks);
     await settle();
     expect(sinks.install).toHaveBeenCalled();
-    expect(sinks.mountSpells).not.toHaveBeenCalled();
+    expect(sinks.mountSpells).toHaveBeenCalledWith([]);
   });
 });

@@ -126,8 +126,24 @@ describe('ArtSpellBar', () => {
 
   it('tints a slot blue whose spell costs more than the hero has, and not one it can pay for', () => {
     wear();
-    setSpellStats(101, { powerCost: 500, castMs: 0, cooldownMs: 0, range: 0, mount: false });
-    setSpellStats(102, { powerCost: 5, castMs: 0, cooldownMs: 0, range: 0, mount: false });
+    setSpellStats(101, {
+      powerCost: 500,
+      castMs: 0,
+      cooldownMs: 0,
+      range: 0,
+      mount: false,
+      skillSet: 11,
+      skillSetIcon: null,
+    });
+    setSpellStats(102, {
+      powerCost: 5,
+      castMs: 0,
+      cooldownMs: 0,
+      range: 0,
+      mount: false,
+      skillSet: 11,
+      skillSetIcon: null,
+    });
     const { container } = render(<ArtSpellBar {...props({ power: 10 })} />);
     expect(container.querySelector('[data-spell-slot="0"]')!.getAttribute('data-use')).toBe(
       'short',

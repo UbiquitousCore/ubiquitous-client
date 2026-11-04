@@ -79,6 +79,8 @@ const spells = buildTable(
   ],
   [100, 101, 102],
 );
+// 0 id, 1 name string, 2 the mark under `class/`.
+const skillSets = buildTable('uus', [[3, 21, 'ui_class_mage_01.png']], [3]);
 const mounts = buildTable(
   'uussuuuus',
   // 0 id, 2 model, 3 texture, 8 effect.
@@ -92,6 +94,7 @@ const EXTRA = [
   { name: 'tables/c_spellvisualeffect.tbl', data: effect },
   { name: 'tables/c_animationdata.tbl', data: animation },
   { name: 'tables/spell_new.tbl', data: spells },
+  { name: 'tables/spell_skillset.tbl', data: skillSets },
   { name: 'tables/mountprototype.tbl', data: mounts },
 ];
 
@@ -150,10 +153,27 @@ describe('spell_new', () => {
       cooldownMs: 8000,
       range: 30,
       mount: false,
+      skillSet: 3,
+      skillSetIcon: 'ui_class_mage_01.png',
     });
-    const none = { powerCost: 0, castMs: 0, cooldownMs: 0, range: 0, mount: false };
-    expect(tables.spellStats(101)).toEqual(none);
-    expect(tables.spellStats(999)).toEqual(none);
+    expect(tables.spellStats(101)).toEqual({
+      powerCost: 0,
+      castMs: 0,
+      cooldownMs: 0,
+      range: 0,
+      mount: false,
+      skillSet: 3,
+      skillSetIcon: 'ui_class_mage_01.png',
+    });
+    expect(tables.spellStats(999)).toEqual({
+      powerCost: 0,
+      castMs: 0,
+      cooldownMs: 0,
+      range: 0,
+      mount: false,
+      skillSet: 0,
+      skillSetIcon: null,
+    });
     expect(tables.spellStats(102).mount).toBe(true);
   });
 

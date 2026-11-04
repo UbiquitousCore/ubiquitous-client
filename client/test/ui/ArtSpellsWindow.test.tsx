@@ -84,6 +84,48 @@ function skin(): UiSkinData {
 }
 
 describe('ArtSpellsWindow', () => {
+  it('sorts the spells under the side tabs by kind, with GM spells on a tab of their own', () => {
+    const book = skin();
+    book.sprites[2]!.frames[0]!.push(
+      place(12, 200, 0, 'btnPage01'),
+      place(12, 200, 40, 'btnPage02'),
+    );
+    uiSpec.value = {
+      screens: {
+        spells: {
+          dialog: 'dlgBook',
+          frame: 'btnempty',
+          faces: { btnPage01: 1, btnPage02: 1 },
+          lists: { spells: { view: 'group', row: 'group/item', fields: { name: 'text01' } } },
+        },
+      },
+    };
+    setMovie({ skin: book, art: new Map() });
+    const stats = (skillSet: number) => ({
+      powerCost: 0,
+      castMs: 0,
+      cooldownMs: 0,
+      range: 0,
+      mount: false,
+      skillSet,
+      skillSetIcon: null,
+    });
+    setSpellName(1, 'Fireball');
+    setSpellName(40, 'Test Stun');
+    setSpellStats(1, stats(11));
+    setSpellStats(40, stats(0));
+    initSpells([1, 40], []);
+    const { getByLabelText, queryByLabelText } = render(
+      <ArtSpellsWindow onClose={() => {}} onCast={() => {}} />,
+    );
+
+    expect(getByLabelText('Fireball')).toBeTruthy();
+    expect(queryByLabelText('Test Stun')).toBeNull();
+    fireEvent.click(getByLabelText('GM'));
+    expect(getByLabelText('Test Stun')).toBeTruthy();
+    expect(queryByLabelText('Fireball')).toBeNull();
+  });
+
   it('lists every spell on one page where the book keeps no pages of its own', () => {
     uiSpec.value = {
       screens: {
@@ -213,7 +255,15 @@ describe("a spell's card", () => {
     expect(queryByRole('dialog', { name: 'Strike' })).toBeNull();
 
     // What the game has read for the spell by the time the card is opened.
-    setSpellStats(1, { powerCost: 40, castMs: 2000, cooldownMs: 60_000, range: 30, mount: false });
+    setSpellStats(1, {
+      powerCost: 40,
+      castMs: 2000,
+      cooldownMs: 60_000,
+      range: 30,
+      mount: false,
+      skillSet: 11,
+      skillSetIcon: null,
+    });
     setSpellText(1, 'Hits hard.');
     fireEvent.click(getByLabelText('Strike'));
 

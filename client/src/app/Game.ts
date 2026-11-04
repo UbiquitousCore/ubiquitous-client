@@ -220,6 +220,7 @@ import {
   setStorageUpgrades,
   equippedSlots,
   itemFacts,
+  setSpellText,
 } from '../ui/inventoryStore';
 import { equipmentHomesFor, ITEM_CLASS } from '../ui/items';
 import type { MapDirection, MapPlace, MapMarker, MapRegion, MapRouteLeg } from '../ui/mapModel';
@@ -318,6 +319,7 @@ import {
   floatingNumbers as floatingNumbersSignal,
   reportToPlayer,
   setSpellCastTime,
+  setSpellStats,
   setTalentPlaces,
   setClassTrees,
   setMountSpells,
@@ -2030,10 +2032,12 @@ export class Game {
           install: initSpells,
           mountSpells: setMountSpells,
           name: setSpellName,
+          text: setSpellText,
           icon: setSpellIcon,
           castTime: setSpellCastTime,
           rank: setSpellRank,
-        }).then(castable => log.info(`spells: ${castable.length} castable of ${spells.length}`));
+          stats: setSpellStats,
+        }).then(listed => log.info(`spells: ${listed.length} in the book of ${spells.length}`));
       },
 
       onActionBarAssigned: record => {

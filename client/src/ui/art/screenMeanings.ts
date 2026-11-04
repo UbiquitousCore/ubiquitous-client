@@ -1173,6 +1173,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // rows the spells wear. That page's riding and pet pages are not drawn.
     sides: [{ control: '', panel: 'mounts', caption: '@1603?~6c166aba16129096~5' }],
     panels: { spells: 'panelSpell', mounts: 'panelSpell', talents: 'panelTalent' },
+    // The five tabs down the side, one per kind of spell; the second face is the one showing.
+    faces: { btnPage01: 1, btnPage02: 1, btnPage03: 1, btnPage04: 1, btnPage05: 1 },
     captions: {
       textSpell: '@626?~74f5d6ce7806cf72~6',
       textMount: '@1603?~6c166aba16129096~5',

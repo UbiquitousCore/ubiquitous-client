@@ -29,10 +29,13 @@ import {
   spellCastTimes,
   mountSpells,
   spellIcons,
+  spellStats,
   talentPlaces,
   wantSpellDetails,
 } from '../../gameplay/SpellBook';
 import { startSpellDrag } from './spellDrag';
+import { SPELL_BOOK_PAGES, spellBookPage } from '../../gameplay/spellBookPages';
+import type { SpellBookPage } from '../../gameplay/spellBookPages';
 import { ArtSpellCard } from './ArtSpellCard';
 import type { WhereOnPage } from './ArtTalentCard';
 
@@ -79,6 +82,22 @@ function ridingHides(
 
 export const SPELLS_SCREEN = 'spells';
 
+/** What each side tab of the spell list is called, for anyone who cannot see its mark. */
+const PAGE_NAMES: Readonly<Record<SpellBookPage, string>> = {
+  basic: 'Basic',
+  treeOne: 'First tree',
+  treeTwo: 'Second tree',
+  treeThree: 'Third tree',
+  crafts: 'Life skills',
+  gm: 'GM',
+  mounts: 'Mounts',
+};
+
+/** Which side tab a known spell is under; one whose row has not come in yet is a basic. */
+function pageOf(spellId: number): SpellBookPage {
+  return spellBookPage(spellStats.value.get(spellId)?.skillSet ?? 1);
+}
+
 /** The book stands in a row beside the bar, not at a place on a stage. */
 const ROW = { unplaced: true } as const;
 
@@ -108,7 +127,7 @@ function Worn({
   const [reading, setReading] = useState<{ spellId: number; at: WhereOnPage } | null>(null);
   const [page, setPage] = useState(0);
   const list = spec.lists?.spells;
-  /** The right-edge tabs page the one list, since the wire gives spells no kind. */
+  /** A build whose book keeps pages of its own has the side tabs page the one list instead. */
   const perPage = spec.paging?.perPage ?? 0;
   const pageTabs = Object.keys(spec.faces ?? {}).filter(control => control.startsWith('btnPage'));
   /** Which of the mount page's own pages: mounts, riding skills, pets. */
@@ -116,20 +135,48 @@ function Worn({
   const sides = spec.sides ?? [];
   const showing = open === 'mounts' ? (sides[side]?.panel ?? '') : '';
   /**
-   * What the list is showing: the spells the player knows, or, on the
-   * mount page's first tab, the mounts — which are spells too, and wear
+   * A book that keeps no pages of its own sorts the spells under the tabs
+   * down the side by kind: the basics, each class tree, the crafts, and the
+   * spells with no class a GM is taught. Only a kind the player has is given
+   * a tab.
+   */
+  const kinds =
+    perPage > 0
+      ? []
+      : SPELL_BOOK_PAGES.filter(kind => knownSpells.value.some(id => pageOf(id) === kind)).slice(
+          0,
+          Math.max(1, pageTabs.length),
+        );
+  const kind = kinds[page] ?? kinds[0];
+  /**
+   * What the list is showing: the known spells of the kind picked, or, on
+   * the mount page's first tab, the mounts — which are spells too, and wear
    * the same rows.
    */
-  const all = showing === 'mounts' ? mountSpells.value : open === 'spells' ? knownSpells.value : [];
+  const all =
+    showing === 'mounts'
+      ? mountSpells.value
+      : open === 'spells'
+        ? kinds.length > 0
+          ? knownSpells.value.filter(id => pageOf(id) === kind)
+          : knownSpells.value
+        : [];
   const listed = open === 'spells' || showing === 'mounts';
-  // A book that keeps no pages of its own lists everything on the one
-  // page, and the list scrolls.
   const known = !listed
     ? []
     : perPage > 0
       ? all.slice(page * perPage, page * perPage + perPage)
       : all;
-  const pages = perPage > 0 ? Math.max(1, Math.ceil(all.length / perPage)) : 1;
+  const pages =
+    perPage > 0 ? Math.max(1, Math.ceil(all.length / perPage)) : Math.max(1, kinds.length);
+  /** The mark a kind's tab wears: its set's own, from the first of its spells that names one. */
+  const markOf = (which: SpellBookPage | undefined): string | undefined => {
+    const icon = knownSpells.value
+      .filter(id => pageOf(id) === which)
+      .map(id => spellStats.value.get(id)?.skillSetIcon)
+      .find(Boolean);
+    return icon ? `class/${icon}` : undefined;
+  };
   const onBar = spellBar.value;
 
   /** What each row reads: the spell's name, and how long it takes to cast. */
@@ -288,9 +335,12 @@ function Worn({
         const mine = open === 'mounts';
         if (!part) return null;
         // The picture the tab wears, at the point the tab keeps for it.
-        const inside = worn.find(`${control}/displayCallback`);
-        const inset = inside ? inside.box.x - part.box.x : 0;
-        const icon = mine ? sides[at]?.icon : undefined;
+        // The point is drawn on the resting face only; on the face showing, the mark keeps to the tab.
+        const inside = worn.find(`${control}/displayCallback`) ?? part;
+        const inset = inside !== part ? inside.box.x - part.box.x : part.box.w * 0.1;
+        const icon = mine ? sides[at]?.icon : markOf(kinds[at]);
+        // No set has a mark for the spells with no class; the tab says what it is.
+        const word = !mine && kinds[at] === 'gm' ? PAGE_NAMES.gm : undefined;
         return (
           <div key={control}>
             {inside && icon ? (
@@ -301,10 +351,24 @@ function Worn({
                 size={Math.max(1, part.box.w - inset * 2)}
               />
             ) : null}
+            {word ? (
+              <span
+                className={`pointer-events-none absolute flex items-center justify-center font-chrome text-xs font-bold ${at === page ? 'text-ink-900' : 'text-parchment-100'}`}
+                style={worn.box(part)}
+              >
+                {word}
+              </span>
+            ) : null}
             <button
               type="button"
               aria-current={(mine ? at === side : at === page) ? 'true' : undefined}
-              aria-label={mine ? (sides[at]?.caption ?? sides[at]?.panel ?? '') : `Page ${at + 1}`}
+              aria-label={
+                mine
+                  ? (sides[at]?.caption ?? sides[at]?.panel ?? '')
+                  : kinds[at]
+                    ? PAGE_NAMES[kinds[at]]
+                    : `Page ${at + 1}`
+              }
               onClick={() => {
                 if (mine) {
                   setSide(at);

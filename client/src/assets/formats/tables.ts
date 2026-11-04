@@ -270,6 +270,8 @@ const MAX_RANGE_COLUMN = 21;
 const POWER_COST_COLUMN = 41;
 const SPELL_VISUAL_COLUMN = 26;
 const SPELL_SKILL_GROUP = 1;
+/** `spell_skillset`'s mark, a file under `ui/icons/class/`. */
+const SKILL_SET_ICON = 2;
 const MOUNT_KIND_COLUMN = 25;
 const SPELL_FLAGS_COLUMN = 43;
 /** The spell's name string id; the spell id itself lands on the wrong string for many spells (`realPacks.test.ts`). */
@@ -361,6 +363,7 @@ export const OPTIONAL_TABLE_NAMES = [
   't_bus_route',
   'storage_upgrade',
   'spell_talent',
+  'spell_skillset',
   'character_class',
   'character_race',
   'c_sound',
@@ -1333,13 +1336,27 @@ export class WorldTables {
   /** What the spell book's card shows of a spell: its cost, cast time, cooldown and reach. */
   spellStats(spellId: number): SpellStats {
     const row = this.keyedRows('spell_new').get(spellId);
-    if (!row) return { powerCost: 0, castMs: 0, cooldownMs: 0, range: 0, mount: false };
+    if (!row) {
+      return {
+        powerCost: 0,
+        castMs: 0,
+        cooldownMs: 0,
+        range: 0,
+        mount: false,
+        skillSet: 0,
+        skillSetIcon: null,
+      };
+    }
+    const skillSet = num(row[SPELL_SKILL_GROUP]);
+    const icon = str(this.keyedRows('spell_skillset').get(skillSet)?.[SKILL_SET_ICON] ?? '');
     return {
       powerCost: num(row[POWER_COST_COLUMN]),
       castMs: num(row[CAST_TIME_COLUMN]),
       cooldownMs: num(row[COOLDOWN_COLUMN]),
       range: num(row[MAX_RANGE_COLUMN]),
       mount: num(row[MOUNT_KIND_COLUMN]) > 0,
+      skillSet,
+      skillSetIcon: icon && icon !== '0' ? icon : null,
     };
   }
 
