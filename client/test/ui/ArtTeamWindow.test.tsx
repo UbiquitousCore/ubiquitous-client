@@ -14,7 +14,12 @@ import { resetParty, setPartyActions, setPartyRoster } from '../../src/ui/partyS
 import type { PartyActions } from '../../src/ui/partyStore';
 import type { UiSkinData, UiSkinPlaced } from '../../src/assets/types';
 import { clearMovies } from '../helpers/stores';
-import { dungeonMode, exhaustion, setInstanceActions } from '../../src/ui/instanceStore';
+import {
+  dungeonMode,
+  exhaustion,
+  exhaustionMax,
+  setInstanceActions,
+} from '../../src/ui/instanceStore';
 
 afterEach(() => {
   cleanup();
@@ -327,11 +332,22 @@ describe('the dungeon page', () => {
     exhaustion.value = 0;
   });
 
+  it('counts out of the cap the server says, when its operator raised it', () => {
+    exhaustion.value = 120;
+    exhaustionMax.value = 150;
+    const { container, getByRole } = mountDungeon('Me');
+    fireEvent.click(getByRole('tab', { name: 'Dungeon' }));
+    expect(container.querySelector('[data-exhaustion]')?.textContent).toBe('Exhaustion: 120 / 150');
+    exhaustion.value = 0;
+    exhaustionMax.value = 100;
+  });
+
   it('fills the bar from its first frame, empty, to its last, full', () => {
-    expect(exhaustionFrame(0)).toBe(0);
-    expect(exhaustionFrame(50)).toBe(25);
-    expect(exhaustionFrame(100)).toBe(50);
-    expect(exhaustionFrame(140)).toBe(50);
+    expect(exhaustionFrame(0, 100)).toBe(0);
+    expect(exhaustionFrame(50, 100)).toBe(25);
+    expect(exhaustionFrame(100, 100)).toBe(50);
+    expect(exhaustionFrame(140, 100)).toBe(50);
+    expect(exhaustionFrame(75, 150)).toBe(25);
   });
 
   it('offers the reset only on the dungeon page', () => {

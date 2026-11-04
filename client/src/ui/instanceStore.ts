@@ -16,8 +16,11 @@ export const inInstance = computed(() => instanceMapId.value !== null);
  */
 export const dungeonMode = signal<DungeonMode>('normal');
 
-/** The cap the server holds exhaustion to. */
-export const EXHAUSTION_MAX = 100;
+/** The cap a server holds exhaustion to unless it says otherwise. */
+export const NORMAL_EXHAUSTION_MAX = 100;
+
+/** The cap this server holds exhaustion to, as it last said. */
+export const exhaustionMax = signal(NORMAL_EXHAUSTION_MAX);
 
 /** How worn down Legend copies have left the player, as the server last said. */
 export const exhaustion = signal(0);
@@ -45,6 +48,7 @@ export function resetInstance(): void {
   instanceMapId.value = null;
   dungeonMode.value = 'normal';
   exhaustion.value = 0;
+  exhaustionMax.value = NORMAL_EXHAUSTION_MAX;
 }
 
 // ---------------------------------------------------------------------------

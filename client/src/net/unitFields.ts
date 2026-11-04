@@ -21,8 +21,10 @@ export const FIELD_IDS = {
   xpToLevel: 'xpToNextLevel',
   /** The player's own purse, in copper. */
   gold: 'gold',
-  /** Out of 100: rises inside Legend copies, empties at the daily reset. */
+  /** Out of `maxExhaustion`: rises inside Legend copies, empties at the daily reset. */
   exhaustion: 'exhaustion',
+  /** The cap the server holds exhaustion to; 100 unless its operator raised it. Sent on entering the world. */
+  maxExhaustion: 'maxExhaustion',
   /**
    * The player's own four attributes with everything worn and active, and
    * the same four with nothing added. Only the player's own client is sent
