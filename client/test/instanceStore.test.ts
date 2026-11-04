@@ -14,9 +14,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   applyWorldEntered,
   dungeonMode,
+  exhaustionMax,
   inInstance,
   instanceActions,
   instanceMapId,
+  NORMAL_EXHAUSTION_MAX,
   noteInstanceRequested,
   resetInstance,
   setInstanceActions,
@@ -85,6 +87,12 @@ describe('resetting', () => {
     dungeonMode.value = 'legend';
     resetInstance();
     expect(dungeonMode.value).toBe('normal');
+  });
+
+  it('forgets a raised exhaustion cap, which belongs to the server it came from', () => {
+    exhaustionMax.value = 150;
+    resetInstance();
+    expect(exhaustionMax.value).toBe(NORMAL_EXHAUSTION_MAX);
   });
 
   it('forgets the instance, the notice, the window and the pending request', () => {

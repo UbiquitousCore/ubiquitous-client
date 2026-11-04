@@ -17,7 +17,7 @@ import { listSlice, rowsIn } from '../art/wornList';
 import { unavailableFaces } from '../art/wornState';
 import { player, target } from '../hudStore';
 import { partyActions, partyRoster, removalBy } from '../partyStore';
-import { EXHAUSTION_MAX, dungeonMode, exhaustion, instanceActions } from '../instanceStore';
+import { dungeonMode, exhaustion, exhaustionMax, instanceActions } from '../instanceStore';
 import { ArtAskBox } from './ArtAskBox';
 import { WornPiece } from '../art/WornPiece';
 
@@ -121,7 +121,11 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
     whole => ({
       shown: [...(spec.shown ?? []), ...faces.shown],
       ...(spec.values?.exhaustionBar
-        ? { frames: { [spec.values.exhaustionBar]: exhaustionFrame(exhaustion.value) } }
+        ? {
+            frames: {
+              [spec.values.exhaustionBar]: exhaustionFrame(exhaustion.value, exhaustionMax.value),
+            },
+          }
         : {}),
       hidden: [
         ...(spec.hidden ?? []),
@@ -159,7 +163,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
   const wornField = worn.fieldOf(worn.find(spec.values?.exhaustion));
   const wornWords = spec.formats?.exhaustion
     ?.replace('%d', String(exhaustion.value))
-    .replace('%d', String(EXHAUSTION_MAX));
+    .replace('%d', String(exhaustionMax.value));
 
   return (
     <div
@@ -423,7 +427,7 @@ function Worn({ onClose, spec }: ArtTeamWindowProps & { spec: ScreenSpec }): JSX
 const EXHAUSTION_FRAMES = 50;
 
 /** The frame of the dungeon page's bar that shows `amount` out of the cap. */
-export function exhaustionFrame(amount: number): number {
-  const share = Math.max(0, Math.min(1, amount / EXHAUSTION_MAX));
+export function exhaustionFrame(amount: number, max: number): number {
+  const share = Math.max(0, Math.min(1, amount / max));
   return Math.round(share * EXHAUSTION_FRAMES);
 }

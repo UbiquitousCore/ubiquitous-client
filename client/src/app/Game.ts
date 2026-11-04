@@ -263,6 +263,7 @@ import {
   applyWorldEntered as applyInstanceWorldEntered,
   dungeonMode,
   exhaustion,
+  exhaustionMax,
   noteInstanceRequested,
   resetInstance,
   setInstanceActions,
@@ -1893,6 +1894,8 @@ export class Game {
         }
         const worn = values[FIELD_IDS.exhaustion];
         if (worn !== undefined) exhaustion.value = worn;
+        const wornCap = values[FIELD_IDS.maxExhaustion];
+        if (wornCap !== undefined && wornCap > 0) exhaustionMax.value = wornCap;
         // Fold, never rebuild (`applyPlayerValues`): a rebuilt hero loses
         // `dead`, and the death's gold penalty arrives in the same batch.
         applyPlayerValues(values, {

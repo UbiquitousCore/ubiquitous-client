@@ -329,6 +329,7 @@
     "health",
     "hitChance",
     "level",
+    "maxExhaustion",
     "maxHealth",
     "maxPower",
     "mount",
