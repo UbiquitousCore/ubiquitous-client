@@ -1423,6 +1423,7 @@ export class WebSocketConnection implements GameConnection {
         this.events.onDungeonModeChosen?.(
           payload.mode === 'legend' ? 'legend' : 'normal',
           readNumber(payload, 'count', type),
+          payload.changed !== false,
         );
         return;
 

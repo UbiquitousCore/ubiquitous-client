@@ -474,7 +474,13 @@ describe('getting into the world', () => {
     expect(socket.ofType('dungeon.chooseMode')[0]).toMatchObject({ payload: { mode: 'legend' } });
 
     socket.emit('dungeon.modeChosen', { mode: 'legend', count: 1 });
-    expect(events.onDungeonModeChosen).toHaveBeenCalledWith('legend', 1);
+    expect(events.onDungeonModeChosen).toHaveBeenCalledWith('legend', 1, true);
+  });
+
+  it('reads the mode in force on entering, marked as no change', async () => {
+    await connected();
+    socket.emit('dungeon.modeChosen', { mode: 'legend', count: 0, changed: false });
+    expect(events.onDungeonModeChosen).toHaveBeenCalledWith('legend', 0, false);
   });
 
   it('requests the character list', async () => {

@@ -936,7 +936,8 @@ export interface ConnectionEvents {
   /** The dungeons were reset; `count` is how many live copies ended. */
   onDungeonsRestarted?(count: number): void;
   /** The dungeon mode now in force; `count` is how many live copies the change ended. */
-  onDungeonModeChosen?(mode: DungeonMode, count: number): void;
+  /** `changed` is false when the server only says which mode is in force, on entering the world or a copy. */
+  onDungeonModeChosen?(mode: DungeonMode, count: number, changed: boolean): void;
   /**
    * A gated way is passable: walls in the ground-plane box `area` stop
    * blocking. `announce` is false for a run already under way.

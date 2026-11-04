@@ -2293,8 +2293,9 @@ export class Game {
       },
 
       onDungeonsRestarted: () => reportToPlayer(sayLine(LINES.dungeonsReset)),
-      onDungeonModeChosen: (mode, count) => {
+      onDungeonModeChosen: (mode, count, changed) => {
         dungeonMode.value = mode;
+        if (!changed) return;
         reportToPlayer(mode === 'legend' ? 'Dungeons set to Legend.' : 'Dungeons set to Normal.');
         if (count > 0) reportToPlayer(sayLine(LINES.dungeonsReset));
       },
