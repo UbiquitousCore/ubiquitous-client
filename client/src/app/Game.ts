@@ -80,6 +80,7 @@ import {
   stageProgress,
 } from './helpers/world/zoneLoading';
 import { castTargetFromBar } from './helpers/combat/castSpellFromBar';
+import { SWITCH_TARGET_SPELL, switchTargetPick } from '../gameplay/switchTarget';
 import {
   canAttackEntity,
   hasRangedWeaponEquipped,
@@ -331,6 +332,8 @@ import {
   wantedSpellDetails,
   wantedSpellStats,
   wantedTalentWords,
+  spellStats,
+  wantSpellStats,
 } from '../gameplay/SpellBook';
 import { bodyCasts, endBodyCast, forgetBodyCasts, startBodyCast } from '../gameplay/bodyCasts';
 
@@ -2508,6 +2511,10 @@ export class Game {
 
   /** Cast from the bar. Ranks are deduplicated, so an overtaken lower rank is refused here. */
   private castSpell(spellId: number): void {
+    if (spellId === SWITCH_TARGET_SPELL) {
+      this.switchTarget();
+      return;
+    }
     const targetNetworkId = castTargetFromBar({
       spellId,
       castable: [...spellBarSignal.value, ...knownSpells.value, ...mountSpells.value],
@@ -3032,6 +3039,32 @@ export class Game {
     const networkId = this.bodies.networkIdOf(id);
     if (networkId === undefined) return;
     this.connection.sendAttackStart(networkId);
+  }
+
+  /** Switch Target is the client's own: it picks a target and the server is told only of that. */
+  private switchTarget(): void {
+    const hero = this.world.player;
+    if (!hero) return;
+    const reach = spellStats.value.get(SWITCH_TARGET_SPELL)?.range;
+    if (reach === undefined) {
+      wantSpellStats([SWITCH_TARGET_SPELL]);
+      return;
+    }
+    const picked = switchTargetPick(
+      [...this.world.movers]
+        .filter(entity => entity.id !== hero.id)
+        .map(entity => ({
+          id: entity.id,
+          position: entity.position,
+          attackable: this.canAttack(entity),
+        })),
+      hero.position,
+      reach,
+      this.targetId,
+    );
+    if (picked === null || picked === this.targetId) return;
+    this.lastTapped = picked;
+    this.selectTarget(String(picked));
   }
 
   /** Let go of the target; the next tap on it only selects. */
