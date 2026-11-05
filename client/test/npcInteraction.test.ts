@@ -299,6 +299,19 @@ describe('which screen talking to a body opens', () => {
     expect(serviceFor({ npcFlags: GOSSIP, offersQuests: true })).toBe('quests');
   });
 
+  it('keeps the conversation and the shop reachable while a quest from the giver is under way', () => {
+    expect(serviceFor({ npcFlags: GOSSIP, offersQuests: true, questMark: 'incomplete' })).toBe(
+      'talk',
+    );
+    expect(serviceFor({ npcFlags: bit(2), offersQuests: true, questMark: 'incomplete' })).toBe(
+      'shop',
+    );
+    expect(serviceFor({ npcFlags: 0, offersQuests: true, questMark: 'incomplete' })).toBe('quests');
+    expect(serviceFor({ npcFlags: GOSSIP, offersQuests: true, questMark: 'finished' })).toBe(
+      'quests',
+    );
+  });
+
   it('opens the shop before the conversation, and the auction house after the shop', () => {
     expect(serviceFor({ npcFlags: GOSSIP | bit(2), questMark: 'none' })).toBe('shop');
     expect(serviceFor({ npcFlags: GOSSIP | bit(21), questMark: 'none' })).toBe('auction');

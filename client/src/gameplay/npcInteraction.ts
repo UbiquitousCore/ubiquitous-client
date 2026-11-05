@@ -79,7 +79,8 @@ export type Service =
 /**
  * What talking to a body opens, in order: the teleport map (local), storage,
  * mailbox and summon stone by head icon, quests, shop, auction, conversation; a placed
- * object with none is used (the server decides), a creature does nothing.
+ * object with none is used (the server decides), a creature does nothing. A
+ * quest under way yields to every other service the body offers.
  */
 export function serviceFor(entity: Interactable): Service | null {
   const flags = entity.npcFlags ?? 0;
@@ -88,10 +89,12 @@ export function serviceFor(entity: Interactable): Service | null {
   if (icon.endsWith('ui_head_storage.png')) return 'storage';
   if (icon.endsWith('ui_head_mail.png')) return 'mail';
   if (icon.endsWith('ui_head_summon.png')) return 'summon';
-  if (hasQuestForPlayer(entity)) return 'quests';
+  const underway = entity.questMark === 'incomplete';
+  if (hasQuestForPlayer(entity) && !underway) return 'quests';
   if ((flags & VENDOR) !== 0) return 'shop';
   if ((flags & AUCTIONEER) !== 0) return 'auction';
   if ((flags & GOSSIP) !== 0 || icon.endsWith('ui_head_chat.png')) return 'talk';
+  if (underway) return 'quests';
   return entity.kind === 'static' ? 'use' : null;
 }
 
