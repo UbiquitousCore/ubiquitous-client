@@ -33,6 +33,12 @@ const HIT =
  */
 const SIDE_ROOM = 12;
 
+/**
+ * The face of the choice group's `bluehot` glow drawn round the picked
+ * reward. Own choice: the movie pulses it; held still on its brightest face.
+ */
+const PICKED_GLOW_FACE = 7;
+
 /** One thing this screen offers to do about the quest it is showing. */
 export interface QuestOffer {
   /** Our own name for it, which the spec maps to a word in the user's interface strings. */
@@ -192,22 +198,25 @@ function Worn({
             <WornPiece
               dialog={spec.dialog}
               part={`${group}/btnitem1`}
-              // The plinth alone; the picked one keeps the mark the screen
-              // lights a chosen slot with.
-              without={[
-                ...[
-                  'redmask',
-                  'hot',
-                  'rectcooldown',
-                  'cntback',
-                  'cnt',
-                  ...(picked ? [] : ['bluemask']),
-                ].map(state => `${group}/btnitem1/${state}`),
-              ]}
+              // The plinth alone.
+              without={['redmask', 'bluemask', 'hot', 'rectcooldown', 'cntback', 'cnt'].map(
+                state => `${group}/btnitem1/${state}`,
+              )}
               // Only the slot: the rest of the middle is drawn at the same
               // spot in the movie, and would come along with it.
               alone
               box={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            />
+          ) : null}
+          {picked && slot && group ? (
+            // Laid where the movie lays it on the first slot, which every slot is drawn as.
+            <WornPiece
+              dialog={spec.dialog}
+              part={`${group}/bluehot`}
+              alone
+              driven
+              face={PICKED_GLOW_FACE}
+              within={slot.box}
             />
           ) : null}
           {icon ? (

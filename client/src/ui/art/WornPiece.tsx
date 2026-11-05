@@ -41,6 +41,8 @@ export interface WornPieceProps {
   movie?: UiMovie;
   /** The face it wears, where it has more than one; its first otherwise. */
   face?: number;
+  /** True to draw a part the movie would show only at run time, such as a selection glow. */
+  driven?: boolean;
 }
 
 export function WornPiece({
@@ -53,6 +55,7 @@ export function WornPiece({
   alone,
   movie,
   face,
+  driven,
 }: WornPieceProps): JSX.Element | null {
   const worn = useWorn(
     dialog,
@@ -61,6 +64,7 @@ export function WornPiece({
       hidden: [...(without ?? []), ...besides(whole, part)],
       ...(alone ? { only: part } : {}),
       ...(face !== undefined ? { frames: { [part]: face } } : {}),
+      ...(driven ? { driven: [part] } : {}),
     }),
     { floats: true, movie },
   );

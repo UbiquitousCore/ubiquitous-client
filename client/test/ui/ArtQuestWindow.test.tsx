@@ -190,6 +190,32 @@ describe('ArtQuestWindow', () => {
     expect(onPick).toHaveBeenCalledWith(1);
   });
 
+  it("rings the picked reward with the choice group's own glow, and moves it to the next one picked", () => {
+    uiSpec.value = spec;
+    const glowing = skin();
+    glowing.sprites = glowing.sprites.map(sprite =>
+      sprite.id === 41
+        ? { ...sprite, frames: [[...sprite.frames[0]!, place(11, 0, 20, 'bluehot')]] }
+        : sprite,
+    );
+    setMovie({ skin: glowing, art: new Map() });
+    setItemName(101, 'Golden Hood');
+    setItemName(102, 'Leather Cap');
+    const { getByRole } = render(
+      <ArtQuestWindow
+        quest={quest}
+        offers={[{ key: 'handIn', onPick: () => {} }]}
+        onClose={() => {}}
+      />,
+    );
+    const first = getByRole('button', { name: 'Golden Hood' });
+    const second = getByRole('button', { name: 'Leather Cap' });
+    const pictures = (slot: HTMLElement): number => slot.querySelectorAll('img').length;
+    expect(pictures(first)).toBe(pictures(second) + 1);
+    fireEvent.click(second);
+    expect(pictures(second)).toBe(pictures(first) + 1);
+  });
+
   it('writes the title across the band at the top, not below it', () => {
     uiSpec.value = spec;
     setMovie({ skin: skin(), art: new Map() });
