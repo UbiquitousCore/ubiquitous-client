@@ -141,6 +141,27 @@ describe('ArtItemCard', () => {
     expect(container.querySelectorAll('img')).toHaveLength(2);
   });
 
+  it('keeps a wheel, a press and a drag on the card from the list it stands over', () => {
+    uiSpec.value = {
+      screens: {
+        goods: { dialog: 'theCard', frame: ['panel'], card: { title: 'panel', body: 'panel' } },
+      },
+    };
+    setMovie({ skin: skin(), art: new Map() });
+    const behind = vi.fn();
+    const { getByRole } = render(
+      <div onWheel={behind} onPointerDown={behind} onPointerMove={behind} onPointerUp={behind}>
+        <ArtItemCard listing={listing} actions={[]} onClose={() => undefined} />
+      </div>,
+    );
+    const card = getByRole('dialog');
+    fireEvent.wheel(card, { deltaY: 40 });
+    fireEvent.pointerDown(card, { clientY: 10, buttons: 1 });
+    fireEvent.pointerMove(card, { clientY: 40, buttons: 1 });
+    fireEvent.pointerUp(card);
+    expect(behind).not.toHaveBeenCalled();
+  });
+
   it('writes a price on its control in only the coins it has', () => {
     const priced = skin();
     // The strip gains a figure field for each coin, as a shop's does.

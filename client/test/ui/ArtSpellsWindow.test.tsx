@@ -278,6 +278,40 @@ describe("a spell's card", () => {
     expect(card.textContent).toContain('Hits hard.');
   });
 
+  it("keeps a wheel, a press and a drag on the card to the card, so the book's list behind it holds still", () => {
+    uiSpec.value = {
+      screens: {
+        spells: {
+          dialog: 'dlgBook',
+          frame: 'btnempty',
+          lists: { spells: { view: 'group', row: 'group/item', fields: { name: 'text01' } } },
+        },
+        spellCard: SCREEN_MEANINGS.spellCard as ScreenSpec,
+      },
+    };
+    setMovie({ skin: withCard(), art: new Map() });
+    setSpellName(1, 'Strike');
+    setSpellText(1, 'Hits hard.');
+    initSpells([1], []);
+    const behind = vi.fn();
+    const { getByLabelText, getByRole } = render(
+      <div onWheel={behind} onPointerDown={behind} onPointerMove={behind} onPointerUp={behind}>
+        <ArtSpellsWindow onClose={() => {}} onCast={() => {}} />
+      </div>,
+    );
+    fireEvent.click(getByLabelText('Strike'));
+    const words = [...getByRole('dialog', { name: 'Strike' }).querySelectorAll('span')].find(
+      span => span.textContent === 'Hits hard.',
+    )!;
+
+    fireEvent.wheel(words, { deltaY: 40 });
+    fireEvent.pointerDown(words, { clientY: 10, buttons: 1 });
+    fireEvent.pointerMove(words, { clientY: 40, buttons: 1 });
+    fireEvent.pointerUp(words);
+
+    expect(behind).not.toHaveBeenCalled();
+  });
+
   it('summons a mount from its card, the same cast its bar slot sends', () => {
     uiSpec.value = {
       screens: {

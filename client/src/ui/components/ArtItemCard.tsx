@@ -628,9 +628,13 @@ export function ArtItemCard({
     <div
       ref={standing}
       className="pointer-events-none fixed inset-0 z-dialog"
-      // Whatever is under the pointer takes the wheel. Inside a card that
-      // is the card; the screen behind stays where it was put.
+      // Whatever is under the pointer takes the wheel, and a press or a
+      // drag. Inside a card that is the card; a list behind it, whose
+      // screen the card stands in, stays where it was put.
       onWheel={event => event.stopPropagation()}
+      onPointerDown={event => event.stopPropagation()}
+      onPointerMove={event => event.stopPropagation()}
+      onPointerUp={event => event.stopPropagation()}
     >
       {held.map((other, at) => (
         <ArtWornCard

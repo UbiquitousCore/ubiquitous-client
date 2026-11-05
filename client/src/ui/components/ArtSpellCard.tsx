@@ -38,6 +38,8 @@ export function ArtSpellCard(props: ArtSpellCardProps): JSX.Element | null {
   return spec ? <Worn {...props} spec={spec} /> : null;
 }
 
+const keepToCard = (event: Event): void => event.stopPropagation();
+
 function Worn({
   spellId,
   beside,
@@ -105,6 +107,12 @@ function Worn({
       aria-label={getSpellName(spellId) || 'Spell'}
       className="pointer-events-auto fixed z-dialog motion-safe:animate-[scale-in_var(--opening,160ms)_ease-out]"
       style={{ left: `${stands.x}px`, top: `${stands.y}px` }}
+      // The card stands inside the spell book, whose list takes the wheel
+      // and drags from under it: what is done on the card stays on it.
+      onWheel={keepToCard}
+      onPointerDown={keepToCard}
+      onPointerMove={keepToCard}
+      onPointerUp={keepToCard}
     >
       <img
         ref={worn.pictureRef}
@@ -176,7 +184,14 @@ function Worn({
             ...worn.words(body, INK, true),
             alignItems: 'flex-start',
             // Scrolled by hand only once there is more than fits.
-            ...(over ? { overflowY: 'auto', pointerEvents: 'auto' } : {}),
+            ...(over
+              ? {
+                  overflowY: 'auto',
+                  pointerEvents: 'auto',
+                  touchAction: 'pan-y',
+                  overscrollBehavior: 'contain',
+                }
+              : {}),
           }}
         >
           {does}
