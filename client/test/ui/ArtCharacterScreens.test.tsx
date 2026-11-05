@@ -13,7 +13,7 @@ vi.mock('../../src/ui/art/pieceCanvas', () => ({
 
 import { ArtChooseCharacter } from '../../src/ui/frontend/ArtChooseCharacter';
 import { HOLD_TO_DELETE } from '../../src/ui/frontend/ArtConfirmDelete';
-import { ArtMakeCharacter } from '../../src/ui/frontend/ArtMakeCharacter';
+import { ArtMakeCharacter, emptyRacePlaces } from '../../src/ui/frontend/ArtMakeCharacter';
 import {
   EMPTY_DRAFT,
   characters,
@@ -275,6 +275,24 @@ describe('making a character', () => {
     expect(actions.create).toHaveBeenCalledWith(
       expect.objectContaining({ race: 2, gender: 1, playerClass: 8, skin: 2, name: 'Wren' }),
     );
+  });
+
+  it('leaves a place no offered race fills off the screen, ring and portrait', () => {
+    const parts = [
+      'raceslot01',
+      'raceslot04',
+      'raceslot05',
+      'displaycallback01',
+      'displaycallback05',
+      'raceslotback',
+      'btnNext',
+    ].map(name => ({ name }));
+
+    expect(emptyRacePlaces(parts, 'raceslot', 4).sort()).toEqual([
+      'displaycallback05',
+      'raceslot05',
+    ]);
+    expect(emptyRacePlaces(parts, 'raceslot', 5)).toEqual([]);
   });
 
   it('will not send a character with no name', () => {

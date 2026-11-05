@@ -11,7 +11,8 @@
  * and the body on it can be looked at on their own. `?stage=race` opens
  * straight at a step, and `&race=2&gender=1` on a body other than the
  * first; `?characters=0` starts an account with nobody on
- * it.
+ * it; `?races=0,1,2,3` offers only those races, as a server that has
+ * closed the rest does.
  *
  * Dev only. Nothing here ships.
  */
@@ -85,6 +86,7 @@ const MAP = params.get('map') ?? 'human_selection';
 const BENCH_MAGE_KIT = [0, 0, 0, 0, 1109, 1234, 3068, 0, 0, 0, 0, 0, 0, 5007, 0, 0];
 /** How many characters this account is pretending to hold. */
 const HELD = Number(params.get('characters') ?? 1);
+const OFFERED = params.get('races')?.split(',').map(Number) ?? null;
 
 /** A character to show in the list, made up on the spot. */
 function someone(name: string, race: number, gender: number): CharacterSummary {
@@ -305,7 +307,12 @@ function Bench(): JSX.Element {
       // came out wrong.
       (globalThis as Record<string, unknown>).__resources = resources;
 
-      setKinds(await resources.playableKinds().catch(() => ({ races: [], classes: [] })));
+      const carried = await resources.playableKinds().catch(() => ({ races: [], classes: [] }));
+      setKinds(
+        OFFERED
+          ? { ...carried, races: carried.races.filter(one => OFFERED.includes(one.race)) }
+          : carried,
+      );
       setCharacters(HELD > 0 ? [someone('Ayla', 0, 0), someone('Yrsa', 3, 1)].slice(0, HELD) : []);
 
       let scene: SelectionScene | null = null;

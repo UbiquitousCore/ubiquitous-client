@@ -148,6 +148,33 @@ function Steps({
   );
 }
 
+/**
+ * The movie's race places past the races the server offers, ring and
+ * portrait both: a race the server has closed is not on the screen at all.
+ */
+export function emptyRacePlaces(
+  parts: readonly { name: string }[],
+  slot: string | undefined,
+  offered: number,
+): string[] {
+  const placed = (name: string, stem: string): number | null =>
+    name.startsWith(stem) && /^\d+$/.test(name.slice(stem.length))
+      ? Number(name.slice(stem.length))
+      : null;
+  const names = new Set<string>();
+  for (const part of parts) {
+    for (const stem of [slot, PORTRAIT]) {
+      if (!stem) continue;
+      const at = placed(part.name, stem);
+      if (at !== null && at > offered) names.add(part.name);
+    }
+  }
+  return [...names];
+}
+
+/** Where the movie puts each race's portrait, numbered as its places are. */
+const PORTRAIT = 'displaycallback';
+
 function Race({ spec }: { spec: ScreenSpec }): JSX.Element | null {
   const picked = draft.value;
   const races = kinds.value.races;
@@ -178,9 +205,9 @@ function Race({ spec }: { spec: ScreenSpec }): JSX.Element | null {
   const worn = useWorn(
     spec.dialog,
     spec.frame,
-    {
+    whole => ({
       shown: spec.shown ?? [],
-      hidden: spec.hidden ?? [],
+      hidden: [...(spec.hidden ?? []), ...emptyRacePlaces(whole, slot, races.length)],
       frames: {
         ...faces,
         ...(chosenIndex >= 0 ? { [slotOf(chosenIndex)]: PRESSED } : {}),
@@ -188,7 +215,7 @@ function Race({ spec }: { spec: ScreenSpec }): JSX.Element | null {
           ? { [on(picked.gender === MALE ? 'male' : 'female')!]: PRESSED }
           : {}),
       },
-    },
+    }),
     { movie: spec.movie },
   );
 
@@ -202,7 +229,7 @@ function Race({ spec }: { spec: ScreenSpec }): JSX.Element | null {
         <WornFace
           key={`face.${one.race}`}
           worn={worn}
-          at={worn.find(`displaycallback${String(index + 1).padStart(2, '0')}`)}
+          at={worn.find(`${PORTRAIT}${String(index + 1).padStart(2, '0')}`)}
           within={plainRing}
           url={portraits.value.get(lookKey(faceOf(one, picked.gender)))}
           name={one.name ?? undefined}
