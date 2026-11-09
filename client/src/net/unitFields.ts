@@ -12,6 +12,10 @@ export const FIELD_IDS = {
   stunned: 'stunned',
   /** The `mountprototype` row the body rides, 0 on foot. */
   mount: 'mount',
+  /** The `creature_proto` entry of the pet at this body's heel, 0 for none. */
+  pet: 'pet',
+  /** 1 while the body sits at a meal, 0 once it does not. */
+  eating: 'eating',
   /**
    * How fast the player may move, as a percent of normal speed: lower while
    * slowed, 0 while stunned. The server refuses a longer step.

@@ -132,6 +132,7 @@ describe('ArtSpellBar', () => {
       cooldownMs: 0,
       range: 0,
       mount: false,
+      pet: false,
       skillSet: 11,
       skillSetIcon: null,
     });
@@ -141,6 +142,7 @@ describe('ArtSpellBar', () => {
       cooldownMs: 0,
       range: 0,
       mount: false,
+      pet: false,
       skillSet: 11,
       skillSetIcon: null,
     });

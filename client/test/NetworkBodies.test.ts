@@ -1203,6 +1203,23 @@ describe('putting bodies down on the ground', () => {
     expect(entity.position[1]).toBeCloseTo(12, 5);
   });
 
+  it('puts a body back on the ground when its route ends at another height', async () => {
+    const { w, bodies, entity } = await standingAt(10, 10);
+    bodies.settle();
+    bodies.take({
+      kind: 'moved',
+      move: { networkId: 1, target: [1, 8, 0], moving: true, speed: 100 },
+    });
+    bodies.updateClips(0.01);
+    w.updateNetwork(1);
+    expect(entity.position[1]).toBeCloseTo(8, 5);
+
+    bodies.updateClips(0.01);
+    bodies.settle();
+
+    expect(entity.position[1]).toBeCloseTo(10, 5);
+  });
+
   it('still puts a body down a real step', async () => {
     const { bodies, entity } = await standingAt(10, 1);
     bodies.settle();

@@ -67,6 +67,8 @@ export interface EntitySnapshot {
   staticObjectType?: number;
   canInteract?: boolean;
   kind?: string;
+  /** A pet at someone's heel: it can be selected, and the server has never heard of it. */
+  companion?: boolean;
   position: [number, number, number];
   /** Radians, as the server stores it. */
   orientation: number;

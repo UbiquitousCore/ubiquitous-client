@@ -1170,9 +1170,17 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       { control: 'btnTalents', panel: 'talents', text: 'textTalent' },
     ],
     // The mounts the player has are spells too, and are listed in the
-    // rows the spells wear. That page's riding and pet pages are not drawn.
-    sides: [{ control: '', panel: 'mounts', caption: '@1603?~6c166aba16129096~5' }],
-    panels: { spells: 'panelSpell', mounts: 'panelSpell', talents: 'panelTalent' },
+    // rows the spells wear, and so are the pets. That page's riding page is not drawn.
+    sides: [
+      { control: '', panel: 'mounts', caption: '@1603?~6c166aba16129096~5' },
+      { control: '', panel: 'pets', caption: 'Pets' },
+    ],
+    panels: {
+      spells: 'panelSpell',
+      mounts: 'panelSpell',
+      pets: 'panelSpell',
+      talents: 'panelTalent',
+    },
     // The five tabs down the side, one per kind of spell; the second face is the one showing.
     faces: { btnPage01: 1, btnPage02: 1, btnPage03: 1, btnPage04: 1, btnPage05: 1 },
     captions: {

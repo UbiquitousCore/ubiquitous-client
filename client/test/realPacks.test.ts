@@ -2486,6 +2486,16 @@ describe.skipIf(!TABLES)('spell visuals, in the user tables', () => {
     expect(unnamed).toEqual([]);
   }, 60_000);
 
+  it('lists every pet item spell as a castable pet', async () => {
+    const tables = await load();
+    const pets = [...tables.keyedRows('items').values()]
+      .filter(row => row[1] === 12 && row[2] === 2)
+      .map(row => Number(row[58]))
+      .filter(spellId => tables.keyedRows('spell_new').has(spellId));
+    expect(pets.length).toBeGreaterThan(0);
+    expect(pets.filter(id => !tables.spellStats(id).pet || !tables.spellCastable(id))).toEqual([]);
+  }, 60_000);
+
   it('carries a cost, a cooldown and a reach for the spell book card', async () => {
     const tables = await load();
     let cooling = 0;

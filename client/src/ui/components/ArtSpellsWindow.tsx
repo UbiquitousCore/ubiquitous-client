@@ -28,6 +28,7 @@ import {
   spellBar,
   spellCastTimes,
   mountSpells,
+  petSpells,
   spellIcons,
   spellStats,
   talentPlaces,
@@ -156,12 +157,14 @@ function Worn({
   const all =
     showing === 'mounts'
       ? mountSpells.value
-      : open === 'spells'
-        ? kinds.length > 0
-          ? knownSpells.value.filter(id => pageOf(id) === kind)
-          : knownSpells.value.filter(id => pageOf(id) !== 'none')
-        : [];
-  const listed = open === 'spells' || showing === 'mounts';
+      : showing === 'pets'
+        ? petSpells.value
+        : open === 'spells'
+          ? kinds.length > 0
+            ? knownSpells.value.filter(id => pageOf(id) === kind)
+            : knownSpells.value.filter(id => pageOf(id) !== 'none')
+          : [];
+  const listed = open === 'spells' || showing === 'mounts' || showing === 'pets';
   const known = !listed
     ? []
     : perPage > 0
@@ -351,7 +354,7 @@ function Worn({
         const inside = markBox(atRest(control) ?? part, atRest(`${control}/displayCallback`));
         const icon = mine ? sides[at]?.icon : markOf(kinds[at]);
         // No set has a mark for the spells with no class; the tab says what it is.
-        const word = !mine && kinds[at] === 'gm' ? PAGE_NAMES.gm : undefined;
+        const word = mine ? sides[at]?.caption : kinds[at] === 'gm' ? PAGE_NAMES.gm : undefined;
         return (
           <div key={control}>
             {inside && icon ? (
@@ -359,7 +362,7 @@ function Worn({
             ) : null}
             {word ? (
               <span
-                className={`pointer-events-none absolute flex items-center justify-center font-chrome text-xs font-bold ${at === page ? 'text-ink-900' : 'text-parchment-100'}`}
+                className={`pointer-events-none absolute flex items-center justify-center font-chrome text-xs font-bold ${at === (mine ? side : page) ? 'text-ink-900' : 'text-parchment-100'}`}
                 style={worn.box(part)}
               >
                 {word}

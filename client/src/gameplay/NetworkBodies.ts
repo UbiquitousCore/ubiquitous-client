@@ -10,6 +10,7 @@ import { MOVED_ENOUGH_TO_FACE, gameYaw } from '../world/World';
 import type { Entity, EntityId, NetworkMotionKind, World } from '../world/World';
 import { EntityClips } from './EntityClips';
 import { IdleFidgets } from './idleFidgets';
+import { mealPosture } from './auraState';
 import { combatPosture, IDLE, stunnedPosture } from './ClipMachine';
 import type { CombatStance, Movement, Posture } from './ClipMachine';
 import { weaponsFromHands } from './weaponClips';
@@ -304,7 +305,9 @@ export class NetworkBodies {
     return this.networkReady;
   }
 
+  /** Undefined for a pet too: the server has never heard of one, so it cannot be named to it. */
   networkIdOf(local: EntityId): number | undefined {
+    if (this.world.entities.get(local)?.companion === true) return undefined;
     return this.networkEntities.network(local);
   }
 
@@ -786,6 +789,7 @@ export class NetworkBodies {
           networkFaction: snapshot.faction,
           networkBaseSpeed: snapshot.baseSpeed,
           networkDead: snapshot.dead,
+          companion: snapshot.companion,
           networkNeverFightsBack: snapshot.neverFightsBack,
           networkInCombat: snapshot.inCombat,
           networkLootable: snapshot.lootable,
@@ -1145,6 +1149,8 @@ export class NetworkBodies {
       const moving = entity.networkMoving === true;
       if (actor.wasMoving && !moving && entity.kind === 'creature' && !entity.networkInCombat) {
         this.stopped.push(networkId);
+        // A route's last step lands at its end height, which the ground pass has not seen.
+        actor.grounded = false;
       }
       actor.wasMoving = moving;
       const speed = entity.network?.speed ?? 0;
@@ -1161,7 +1167,7 @@ export class NetworkBodies {
           // those: a body in the air or in the water is not holding a guard.
           stunnedPosture(
             entity.networkStunned === true,
-            combatPosture(actor.stance, moving ? gait : 'stand'),
+            mealPosture(entity, !moving) ?? combatPosture(actor.stance, moving ? gait : 'stand'),
           )
         : actor.posture;
       /*

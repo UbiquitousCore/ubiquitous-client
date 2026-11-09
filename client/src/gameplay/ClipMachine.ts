@@ -80,7 +80,11 @@ export type Posture =
   /** A standing mount's in-place flourish: a mounted jump with movement stopped. */
   | 'flourish'
   /** Stunned: rooted where it stands, playing its stun loop. */
-  | 'stunned';
+  | 'stunned'
+  /** Sat down at a meal. */
+  | 'eating'
+  /** Getting up from a meal; the take runs on while the body stands. */
+  | 'rising';
 
 /**
  * Whether a body has a weapon up, and which kind. Null means weapon down.
@@ -116,6 +120,7 @@ export function stunnedPosture(stunned: boolean, ground: Posture): Posture {
 
 const STUN_TAKES_OVER: ReadonlySet<Posture> = new Set<Posture>([
   'stand',
+  'eating',
   'walk',
   'run',
   'guardMelee',
@@ -238,6 +243,8 @@ const ON_FOOT: Chart = {
   fly: { each: switchTo('jump_air') }, // Own choice: the game has no fly.
   flourish: { each: carryOn },
   stunned: { each: switchTo('stun') },
+  eating: { each: playThen('emote_eat_start', 'emote_eat_hold') },
+  rising: { each: playThen('emote_eat_stand', 'idle') },
 };
 
 /**
@@ -272,6 +279,8 @@ const MOUNTED: Chart = {
   // Seen in play: the player's standing mount told to jump.
   flourish: { each: playThen('jump_in_place', 'idle') },
   stunned: { each: carryOn },
+  eating: { each: carryOn },
+  rising: { each: carryOn },
 };
 
 const CHARTS: Readonly<Record<Rig, Chart>> = { foot: ON_FOOT, mount: MOUNTED };

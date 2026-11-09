@@ -690,6 +690,9 @@ export type ClipName =
   | 'combat_load'
   | 'combat_aim'
   | 'stun'
+  | 'emote_eat_start'
+  | 'emote_eat_hold'
+  | 'emote_eat_stand'
   // Fallback-only bare names some older models ship; nothing asks for them.
   | 'run'
   | 'walk';
@@ -761,6 +764,8 @@ export interface SpellStats {
   range: number;
   /** Casting it seats the caster on a mount; the book lists it on the mount page. */
   mount: boolean;
+  /** Casting it calls a pet; the book lists it on the pet page. */
+  pet: boolean;
   /** Its `spell_skillset` row: the class tree, the basics, a craft, or 0 for none. */
   skillSet: number;
   /** That set's mark under `class/`, which the book's side tab wears; null for none. */

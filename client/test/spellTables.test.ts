@@ -153,6 +153,7 @@ describe('spell_new', () => {
       cooldownMs: 8000,
       range: 30,
       mount: false,
+      pet: false,
       skillSet: 3,
       skillSetIcon: 'ui_class_mage_01.png',
     });
@@ -162,6 +163,7 @@ describe('spell_new', () => {
       cooldownMs: 0,
       range: 0,
       mount: false,
+      pet: false,
       skillSet: 3,
       skillSetIcon: 'ui_class_mage_01.png',
     });
@@ -171,6 +173,7 @@ describe('spell_new', () => {
       cooldownMs: 0,
       range: 0,
       mount: false,
+      pet: false,
       skillSet: 0,
       skillSetIcon: null,
     });

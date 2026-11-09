@@ -6,14 +6,37 @@ describe("the spell card's lines", () => {
   it('puts each figure on the line whose picture says what it is', () => {
     expect(
       spellCardLines(
-        { powerCost: 40, castMs: 1500, cooldownMs: 8000, range: 30, mount: false, skillSet: 11, skillSetIcon: null },
+        {
+          powerCost: 40,
+          castMs: 1500,
+          cooldownMs: 8000,
+          range: 30,
+          mount: false,
+          pet: false,
+          skillSet: 11,
+          skillSetIcon: null,
+        },
         { range: 'Range:' },
       ),
     ).toEqual({ cost: '40', range: 'Range: 30', cast: '1.5s cast', cooldown: '8s cooldown' });
   });
 
   it('leaves the line empty for what a spell has none of, and says an instant is one', () => {
-    expect(spellCardLines({ powerCost: 0, castMs: 0, cooldownMs: 0, range: 0, mount: false, skillSet: 11, skillSetIcon: null }, {})).toEqual({
+    expect(
+      spellCardLines(
+        {
+          powerCost: 0,
+          castMs: 0,
+          cooldownMs: 0,
+          range: 0,
+          mount: false,
+          pet: false,
+          skillSet: 11,
+          skillSetIcon: null,
+        },
+        {},
+      ),
+    ).toEqual({
       cost: '',
       range: '',
       cast: 'Instant',

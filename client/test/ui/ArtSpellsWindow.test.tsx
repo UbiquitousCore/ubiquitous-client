@@ -107,6 +107,7 @@ describe('ArtSpellsWindow', () => {
       cooldownMs: 0,
       range: 0,
       mount: false,
+      pet: false,
       skillSet,
       skillSetIcon: null,
     });
@@ -261,6 +262,7 @@ describe("a spell's card", () => {
       cooldownMs: 60_000,
       range: 30,
       mount: false,
+      pet: false,
       skillSet: 11,
       skillSetIcon: null,
     });

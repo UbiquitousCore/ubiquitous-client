@@ -12,6 +12,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
       cooldownMs: 0,
       range: 0,
       mount: id === 3,
+      pet: false,
       skillSet: id === 4 ? 0 : 11,
       skillSetIcon: null,
     }),
@@ -25,6 +26,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
   const sinks = {
     install: vi.fn(),
     mountSpells: vi.fn(),
+    petSpells: vi.fn(),
     name: vi.fn(),
     text: vi.fn(),
     icon: vi.fn(),

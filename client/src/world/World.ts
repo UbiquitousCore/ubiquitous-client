@@ -26,6 +26,9 @@ const log = logger('world');
 
 export type EntityId = number;
 
+/** Where a body is in a meal: sat at it, getting up from it, or neither. */
+export type MealState = 'eating' | 'rising' | null;
+
 /** A thing in the world, local or replicated. `model` is a resource path. */
 export interface Entity {
   id: EntityId;
@@ -67,6 +70,9 @@ export interface Entity {
   /** Its own animation timing speed; a wolf and a townsfolk do not share one. */
   networkBaseSpeed?: number;
   networkDead?: boolean;
+  networkMeal?: MealState;
+  /** A pet at someone's heel: it can be selected, and the server has never heard of it. */
+  companion?: boolean;
   /** A training dummy: blows never make it hostile. */
   networkNeverFightsBack?: boolean;
   networkInCombat?: boolean;

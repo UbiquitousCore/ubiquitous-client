@@ -83,6 +83,13 @@ export function setMountSpells(ids: readonly number[]): void {
   mountSpells.value = [...ids];
 }
 
+/** Pet spells: a spell of no class, so only the pet page lists them. */
+export const petSpells = signal<readonly number[]>([]);
+
+export function setPetSpells(ids: readonly number[]): void {
+  petSpells.value = [...ids];
+}
+
 /** Spell-string lines by number: a talent place names its own line; the next says what it does. */
 export const talentWords = signal<ReadonlyMap<number, string>>(new Map());
 export const wantedTalentWords = signal<readonly number[]>([]);

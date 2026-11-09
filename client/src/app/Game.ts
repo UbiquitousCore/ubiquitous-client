@@ -148,6 +148,7 @@ import { combatPosture, movementOf, stunnedPosture } from '../gameplay/ClipMachi
 import type { CombatStance, Posture } from '../gameplay/ClipMachine';
 import { EntityClips } from '../gameplay/EntityClips';
 import { NetworkBodies } from '../gameplay/NetworkBodies';
+import { PetFollowers } from '../gameplay/PetFollowers';
 import { describeCombatEvent } from '../gameplay/combatLog';
 import { UNARMED, WEAPON_SLOT, weaponsFromHands } from '../gameplay/weaponClips';
 import type { PlayClipOptions } from '../gameplay/CombatVisuals';
@@ -280,7 +281,14 @@ import {
   questConversation,
 } from '../ui/questStore';
 import { classWord } from '../ui/npcGossip';
-import { isGhosted, isStunned, speedShare, stealthSight } from '../gameplay/auraState';
+import {
+  isGhosted,
+  isStunned,
+  mealAfter,
+  mealPosture,
+  speedShare,
+  stealthSight,
+} from '../gameplay/auraState';
 import { FIELD_IDS } from '../net/unitFields';
 import { spellErrorMessage } from '../net/spellErrors';
 import { talentErrorMessage } from '../net/talentErrors';
@@ -324,6 +332,7 @@ import {
   setTalentPlaces,
   setClassTrees,
   setMountSpells,
+  setPetSpells,
   mountSpells,
   knownSpells,
   riddenMountAmong,
@@ -514,6 +523,7 @@ export class Game {
   private readonly movement: PlayerMovement;
   /** Everything in the world the server owns, as opposed to the player. */
   private readonly bodies: NetworkBodies;
+  private readonly pets: PetFollowers;
   private readonly whoIs: WhoIs;
   private readonly quests: Quests;
   private readonly questMarks: QuestMarks;
@@ -714,6 +724,11 @@ export class Game {
       id => this.wireIdFor(id),
       (_networkId, equipment, weapons) => this.changePlayerEquipment(equipment, weapons),
     );
+    this.pets = new PetFollowers(this.world, this.bodies, networkId => {
+      if (this.whoIs.isSelf(networkId)) return this.world.player ?? undefined;
+      const local = this.bodies.localIdOf(networkId);
+      return local === undefined ? undefined : this.world.entities.get(local);
+    });
     this.whoIs = new WhoIs(this.bodies, this.world, {
       selfNetworkId: () => this.selfNetworkId,
       playerFaction: () => this.playerFaction,
@@ -1823,6 +1838,7 @@ export class Game {
     clearQuestMessages();
     if (this.heroDeath.isDown) this.heroDeath.revive();
     this.bodies.close();
+    this.pets.clear();
     this.combat.clear();
     forgetBodyCasts();
   }
@@ -1874,6 +1890,8 @@ export class Game {
         const mountId = update.values[FIELD_IDS.mount];
         if (mountId !== undefined && !this.whoIs.isSelf(update.networkId))
           this.bodies.setMount(update.networkId, mountId);
+        const petEntry = update.values[FIELD_IDS.pet];
+        if (petEntry !== undefined) this.pets.setPet(update.networkId, petEntry);
         const local = this.bodies.localIdOf(update.networkId);
         if (local !== undefined) this.applyAuraState(local, update.values);
       },
@@ -2034,6 +2052,7 @@ export class Game {
         void loadSpellBook(spells, actionBar, this.resources, {
           install: initSpells,
           mountSpells: setMountSpells,
+          petSpells: setPetSpells,
           name: setSpellName,
           text: setSpellText,
           icon: setSpellIcon,
@@ -2324,6 +2343,10 @@ export class Game {
         // The dead test outranks the grudge, but the id will be reused.
         this.forgetFightingMe(networkId);
         this.noteDeath(networkId);
+        const fallen = this.whoIs.isSelf(networkId)
+          ? this.world.player
+          : this.world.entities.get(this.bodies.localIdOf(networkId) ?? -1);
+        if (fallen) fallen.networkMeal = null;
         // Nobody rides on dead; the server sends no value to a corpse.
         if (!this.whoIs.isSelf(networkId)) this.bodies.setMount(networkId, 0);
         else if (this.movement.isMounted()) void this.applyHeroMount(0);
@@ -2435,6 +2458,7 @@ export class Game {
       if (drawn) this.renderer.render(dt);
       this.updatePlayerClip(dt);
       mark = performance.now();
+      this.pets.update(dt);
       this.bodies.updateClips(dt);
       this.debug.frameMs.clips = performance.now() - mark;
       this.combat.update(dt);
@@ -3025,6 +3049,7 @@ export class Game {
   }
 
   private canAttack(entity: Entity): boolean {
+    if (entity.companion === true) return false;
     return canAttackEntity({
       kind: entity.kind,
       dead: entity.networkDead === true,
@@ -3270,6 +3295,8 @@ export class Game {
    */
   private posture(): Posture {
     const mode = this.movement.locomotion;
+    const hero = this.world.player;
+    if (hero && (mode === 'fly' || mode === 'swim' || mode === 'air')) hero.networkMeal = null;
     if (mode === 'fly') return 'fly';
     if (mode === 'swim') return 'swim';
     if (mode === 'air') {
@@ -3280,9 +3307,11 @@ export class Game {
     }
     if (this.movement.isFlourishing()) return 'flourish';
     // A guard replaces standing and running only; a stun replaces both.
+    const standing = this.movement.direction === 'idle';
     return stunnedPosture(
-      this.world.player?.networkStunned === true,
-      combatPosture(this.combatStance, this.movement.direction === 'idle' ? 'stand' : 'run'),
+      hero?.networkStunned === true,
+      (hero ? mealPosture(hero, standing) : null) ??
+        combatPosture(this.combatStance, standing ? 'stand' : 'run'),
     );
   }
 
@@ -3382,6 +3411,7 @@ export class Game {
 
     // `World.loadZone` resets the world; combat visuals point into it.
     this.bodies.close();
+    this.pets.clear();
     this.combat.clear();
     forgetBodyCasts();
 
@@ -4006,6 +4036,8 @@ export class Game {
   private applyAuraState(entityId: EntityId, values: Record<string, number>): void {
     const stunned = isStunned(values);
     const stunnedBody = this.world.entities.get(entityId);
+    const meal = mealAfter(stunnedBody?.networkMeal, values);
+    if (meal !== undefined && stunnedBody) stunnedBody.networkMeal = meal;
     if (stunned !== undefined && stunnedBody) stunnedBody.networkStunned = stunned;
     const ghosted = isGhosted(values);
     if (ghosted === undefined) return;

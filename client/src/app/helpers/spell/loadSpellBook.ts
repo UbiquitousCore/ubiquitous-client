@@ -18,6 +18,7 @@ export interface SpellBookTables {
 export interface SpellBookSinks {
   install(spells: number[], actionBar: ActionBarRecord[], listed: number[]): void;
   mountSpells(ids: number[]): void;
+  petSpells(ids: number[]): void;
   stats(spellId: number, stats: SpellStats): void;
   name(spellId: number, name: string): void;
   text(spellId: number, text: string): void;
@@ -33,6 +34,7 @@ const UNREAD: SpellStats = {
   cooldownMs: 0,
   range: 0,
   mount: false,
+  pet: false,
   skillSet: 0,
   skillSetIcon: null,
 };
@@ -65,6 +67,7 @@ export async function loadSpellBook(
   });
   sinks.install(spells, actionBar, listed);
   sinks.mountSpells(spells.filter((_, at) => stats[at]!.mount));
+  sinks.petSpells(spells.filter((_, at) => stats[at]!.pet));
   for (const spellId of spells) {
     // Asked here, not when a card opens: a card asks only for figures it lacks, and these are in.
     void tables

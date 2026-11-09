@@ -632,6 +632,9 @@ const SPELL_EFFECT_KIND = 6;
 const SPELL_EFFECT_DETAIL = 7;
 const AURA_EFFECT = 1;
 const MOUNT_DETAIL = 50;
+/** An instant effect (0) of detail 8 calls the creature its argument names; pet spells are what carry one. */
+const INSTANT_EFFECT = 0;
+const SUMMON_DETAIL = 8;
 
 /** Every table the client reads, decoded once per source (6 MB, cheap to hold). */
 export class WorldTables {
@@ -1343,6 +1346,7 @@ export class WorldTables {
         cooldownMs: 0,
         range: 0,
         mount: false,
+        pet: false,
         skillSet: 0,
         skillSetIcon: null,
       };
@@ -1355,6 +1359,7 @@ export class WorldTables {
       cooldownMs: num(row[COOLDOWN_COLUMN]),
       range: num(row[MAX_RANGE_COLUMN]),
       mount: num(row[MOUNT_KIND_COLUMN]) > 0,
+      pet: this.callsPet(row),
       skillSet,
       skillSetIcon: icon && icon !== '0' ? icon : null,
     };
@@ -1509,8 +1514,20 @@ export class WorldTables {
     if (num(row[MOUNT_KIND_COLUMN]) > 0) return false;
     if (num(row[SPELL_FLAGS_COLUMN]) & SPELL_NEVER_CAST_FLAG) return false;
     const skillGroup = num(row[SPELL_SKILL_GROUP]);
+    if (skillGroup === 0 && this.callsPet(row)) return true;
     if (skillGroup === 0 || (skillGroup >= 23 && skillGroup <= 26)) return false;
     return true;
+  }
+
+  private callsPet(row: Row): boolean {
+    return SPELL_EFFECT_SLOTS.some(slot => {
+      const effect = this.keyedRows('spell_effect').get(num(row[slot]));
+      return (
+        effect !== undefined &&
+        num(effect[SPELL_EFFECT_KIND]) === INSTANT_EFFECT &&
+        num(effect[SPELL_EFFECT_DETAIL]) === SUMMON_DETAIL
+      );
+    });
   }
 }
 
