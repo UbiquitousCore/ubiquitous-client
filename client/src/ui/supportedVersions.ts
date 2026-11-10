@@ -20,4 +20,4 @@ export const SUPPORTED_VERSIONS: readonly SupportedVersion[] = [
 ];
 
 export const UNSUPPORTED_VERSIONS_NOTE =
-  'Other builds may work, but are not yet supported and may show missing or wrong data. Builds from 2.5.0 on pack their tables in a way this client cannot open yet.';
+  'Other builds may work, but are not yet supported and may show missing or wrong data. The tables of 1.1.5, 2.5.0 and 4.2.21 read as well; the rest of those builds is not yet checked.';

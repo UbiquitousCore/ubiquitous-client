@@ -1,8 +1,9 @@
 /** Pack reader (GBMP-stamped ZIP + plain-ZIP .ipas) over ByteSource;
- * central directory up front only; methods 0 (store) and 8 (deflate). */
+ * central directory up front only; methods 0 (store), 8 (deflate) and 14 (LZMA). */
 
 import { type ByteSource, bytesSource, view } from './ByteSource';
 import { inflateRaw } from './inflate';
+import { decodeLzmaEntry } from './lzma';
 
 export const SIG_LFH_PK = 0x04034b50; // "PK\x03\x04"
 export const SIG_LFH_GBMP = 0x504d4247; // "GBMP"
@@ -18,6 +19,7 @@ const SIZES_AFTER_DATA = 0x0008;
 
 export const METHOD_STORE = 0;
 export const METHOD_DEFLATE = 8;
+export const METHOD_LZMA = 14;
 
 export interface PackEntry {
   name: string;
@@ -93,6 +95,7 @@ export class PackReader {
     const blob = await this.source.read(at, comp);
     if (entry.method === METHOD_STORE) return size ? blob.subarray(0, size) : blob;
     if (entry.method === METHOD_DEFLATE) return inflateRaw(blob, size);
+    if (entry.method === METHOD_LZMA) return decodeLzmaEntry(blob, size);
     throw new PackError(
       `${this.name}: unsupported compression method ${entry.method} for ${entry.name}`,
     );
@@ -132,6 +135,11 @@ export class PackReader {
       },
     });
 
+    if (entry.method === METHOD_LZMA) {
+      // Decoded whole: an LZMA entry sits inside a pack, and none is large.
+      const whole = await this.read(entry);
+      return new Blob([whole as BlobPart]).stream() as ReadableStream<Uint8Array>;
+    }
     if (entry.method === METHOD_STORE) return raw;
     if (entry.method === METHOD_DEFLATE) {
       // `DecompressionStream` declares its writable side as `BufferSource`,
