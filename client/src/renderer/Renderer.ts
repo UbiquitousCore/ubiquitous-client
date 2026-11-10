@@ -172,6 +172,9 @@ const SHADOW_MAP_SIZE = 4096;
 const SHADOW_REACH = 80;
 const SHADOW_SUN_DISTANCE = 150;
 const SHADOW_SOFTNESS = 3;
+/** A missile effect points down its own -Z. */
+const MISSILE_NOSE = new THREE.Vector3(0, 0, -1);
+const scratchHeading = new THREE.Vector3();
 /** Scratch for `followSunShadow`, once per frame. */
 const scratchShadowCentre = new THREE.Vector3();
 const scratchShadowRight = new THREE.Vector3();
@@ -2860,16 +2863,24 @@ export class Renderer {
     instance.land();
   }
 
-  /** Move a free-standing effect (a projectile); a no-op on a bone-parented one. */
+  /**
+   * Move a free-standing effect (a projectile); a no-op on a bone-parented
+   * one. `heading`, a unit direction, is where its nose turns to.
+   */
   moveTempEffect(
     instance: EffectInstance,
     pos: [number, number, number],
-    rotation?: THREE.Quaternion,
+    heading?: readonly [number, number, number],
   ): void {
     const entry = this.effects.find(e => e.instance === instance);
     if (!entry || entry.attached) return;
     entry.object.position.set(pos[0], pos[1], pos[2]);
-    if (rotation) entry.object.quaternion.copy(rotation);
+    if (heading) {
+      entry.object.quaternion.setFromUnitVectors(
+        MISSILE_NOSE,
+        scratchHeading.set(heading[0], heading[1], heading[2]),
+      );
+    }
     refreshWorldMatrix(entry.object);
   }
 

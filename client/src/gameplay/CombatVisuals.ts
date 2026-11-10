@@ -5,7 +5,6 @@
  * each moment shows, and this puts it in the scene, with the sound each
  * moment names. Camera shake is read and ignored.
  */
-import * as THREE from 'three';
 
 import { logger } from '../core/log';
 import type { MissileFlight, SpellVisualData, SpellVisualEffect } from '../assets/types';
@@ -41,7 +40,8 @@ export interface VisualScene {
     nodeId: string,
     scale?: number,
   ): Promise<EffectInstance | null>;
-  moveTempEffect(instance: EffectInstance, pos: Vec3, rotation?: THREE.Quaternion): void;
+  /** `heading` is the unit direction of travel; the scene turns the effect's nose onto it. */
+  moveTempEffect(instance: EffectInstance, pos: Vec3, heading?: Readonly<Vec3>): void;
   setEffectPaused(instance: EffectInstance, paused: boolean): void;
   /** Stop an effect's endless emitters and let what they made live out its life. */
   windDownEffect(instance: EffectInstance): void;
@@ -50,7 +50,9 @@ export interface VisualScene {
   removeTempEffect(instance: EffectInstance): void;
   spawnWeaponStripe(entityId: EntityId, stripeIndex: number): void;
   entityNodePosition(entityId: EntityId, nodeId: string): Vec3 | null;
-  entityBounds(entityId: EntityId): { size: THREE.Vector3; centreY: number } | null;
+  entityBounds(
+    entityId: EntityId,
+  ): { size: { readonly x: number; readonly y: number; readonly z: number }; centreY: number } | null;
   cameraPosition(): Vec3;
 }
 
@@ -396,11 +398,9 @@ function bodyScale(scene: VisualScene, local: EntityId): number {
  * the victim when it reaches the caster.
  */
 class Missile {
-  private readonly pos: THREE.Vector3;
-  private readonly aim = new THREE.Vector3();
-  private readonly step = new THREE.Vector3();
-  private readonly facing = new THREE.Quaternion();
-  private readonly forward = new THREE.Vector3(0, 0, -1);
+  private readonly pos: Vec3;
+  /** The last move made, then its direction once normalised. */
+  private readonly step: Vec3 = [0, 0, 0];
   /** The body it flies to: the target, or the caster for a drain. */
   private readonly destinationId: number;
   /** Set once the projectile reaches its destination, or gives up on it. */
@@ -411,7 +411,7 @@ class Missile {
   private swirl: {
     shape: DrainSwirl;
     /** The victim's chest when the swirl began. The swirl stays put. */
-    anchor: THREE.Vector3;
+    anchor: Vec3;
     /** Seconds into the swirl. */
     age: number;
     /** Starting angle, so a volley fans out rather than flying as one. */
@@ -432,7 +432,7 @@ class Missile {
     private readonly bodies: VisualBodies,
     private instance: EffectInstance | null,
   ) {
-    this.pos = new THREE.Vector3(start[0], start[1], start[2]);
+    this.pos = [start[0], start[1], start[2]];
     this.holdMs = holdMs;
     this.destinationId = targetId;
 
@@ -440,7 +440,7 @@ class Missile {
     const victim = shape ? this.centreOf(targetId) : null;
     if (shape && victim) {
       this.destinationId = casterId;
-      this.pos.copy(victim);
+      this.pos = [victim[0], victim[1], victim[2]];
       this.swirl = {
         shape,
         anchor: victim,
@@ -458,7 +458,7 @@ class Missile {
 
   /** Where the missile is now. */
   get position(): Vec3 {
-    return [this.pos.x, this.pos.y, this.pos.z];
+    return [this.pos[0], this.pos[1], this.pos[2]];
   }
 
   adopt(instance: EffectInstance): void {
@@ -470,16 +470,16 @@ class Missile {
   }
 
   /** The point on a body a projectile aims at, or null if it is gone. */
-  private centreOf(networkId: number): THREE.Vector3 | null {
+  private centreOf(networkId: number): Vec3 | null {
     const feet = this.bodies.worldPosition(networkId);
     if (!feet) return null;
     const local = this.bodies.localIdOf(networkId);
     const bounds = local === undefined ? null : this.scene.entityBounds(local);
-    if (!bounds) return new THREE.Vector3(feet[0], feet[1] + 1, feet[2]);
+    if (!bounds) return [feet[0], feet[1] + 1, feet[2]];
     const { size, centreY } = bounds;
     const upright = size.y > Math.max(size.x, size.z);
     const share = upright ? STRIKE_SHARE.upright : STRIKE_SHARE.squat;
-    return new THREE.Vector3(feet[0], centreY + (share - 0.5) * size.y, feet[2]);
+    return [feet[0], centreY + (share - 0.5) * size.y, feet[2]];
   }
 
   update(dt: number): void {
@@ -499,37 +499,45 @@ class Missile {
       if (this.instance) this.scene.setEffectPaused(this.instance, false);
     }
 
-    if (this.swirl) {
-      // Aim at the next point on the swirl; the move below faces along it.
-      this.swirlPoint(dt, this.aim);
-      this.step.subVectors(this.aim, this.pos);
-      this.pos.copy(this.aim);
+    const { pos, step } = this;
+    // The next point on the swirl, or the destination itself.
+    const aim = this.swirl ? this.swirlPoint(dt) : destination;
+    step[0] = aim[0] - pos[0];
+    step[1] = aim[1] - pos[1];
+    step[2] = aim[2] - pos[2];
+    const distance = Math.hypot(step[0], step[1], step[2]);
+    const travel = this.speed * dt;
+    // A swirl is flown point to point; a straight flight covers `travel` a frame.
+    if (aim !== destination || distance <= travel || distance < 1e-4) {
+      pos[0] = aim[0];
+      pos[1] = aim[1];
+      pos[2] = aim[2];
+      if (aim === destination) this.landed = true;
     } else {
-      this.step.subVectors(destination, this.pos);
-      const distance = this.step.length();
-      const travel = this.speed * dt;
-      if (distance <= travel || distance < 1e-4) {
-        this.pos.copy(destination);
-        this.landed = true;
-      } else {
-        this.step.multiplyScalar(travel / distance);
-        this.pos.add(this.step);
-      }
+      const share = travel / distance;
+      step[0] *= share;
+      step[1] *= share;
+      step[2] *= share;
+      pos[0] += step[0];
+      pos[1] += step[1];
+      pos[2] += step[2];
     }
 
     if (!this.instance) return;
-    // A missile effect points down its own -Z; turn that onto the direction
-    // of travel so an arrow points where it is going.
-    if (this.step.lengthSq() > 1e-8) {
-      this.facing.setFromUnitVectors(this.forward, this.step.normalize());
-      this.scene.moveTempEffect(this.instance, this.position, this.facing);
+    // Faced along the move just made, so an arrow points where it is going.
+    const moved = Math.hypot(step[0], step[1], step[2]);
+    if (moved * moved > 1e-8) {
+      step[0] /= moved;
+      step[1] /= moved;
+      step[2] /= moved;
+      this.scene.moveTempEffect(this.instance, this.position, step);
     } else {
       this.scene.moveTempEffect(this.instance, this.position);
     }
   }
 
   /** Advance the swirl, easing out in height and width, then fly straight at the spell's speed. */
-  private swirlPoint(dt: number, out: THREE.Vector3): void {
+  private swirlPoint(dt: number): Vec3 {
     const swirl = this.swirl!;
     swirl.age += dt;
     const { shape } = swirl;
@@ -537,12 +545,12 @@ class Missile {
     const eased = 1 - (1 - progress) * (1 - progress);
     const angle = swirl.phase + swirl.age * shape.turnsPerSecond * Math.PI * 2;
     const width = shape.width * swirl.widthScale * eased;
-    out.set(
-      swirl.anchor.x + width * Math.cos(angle),
-      swirl.anchor.y + shape.rise * eased,
-      swirl.anchor.z + width * Math.sin(angle),
-    );
     if (progress >= 1) this.swirl = null;
+    return [
+      swirl.anchor[0] + width * Math.cos(angle),
+      swirl.anchor[1] + shape.rise * eased,
+      swirl.anchor[2] + width * Math.sin(angle),
+    ];
   }
 
   /** Arrived or gave up; hands back its effect, trail still fading, for the caller to remove. */
