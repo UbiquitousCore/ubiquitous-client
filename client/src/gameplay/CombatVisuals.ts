@@ -52,7 +52,10 @@ export interface VisualScene {
   entityNodePosition(entityId: EntityId, nodeId: string): Vec3 | null;
   entityBounds(
     entityId: EntityId,
-  ): { size: { readonly x: number; readonly y: number; readonly z: number }; centreY: number } | null;
+  ): {
+    size: { readonly x: number; readonly y: number; readonly z: number };
+    centreY: number;
+  } | null;
   cameraPosition(): Vec3;
 }
 

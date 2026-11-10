@@ -131,7 +131,6 @@ export interface SwfShape {
   paths: SwfPath[];
 }
 
-
 export interface SwfPlaced {
   depth: number;
   characterId: number | null;
