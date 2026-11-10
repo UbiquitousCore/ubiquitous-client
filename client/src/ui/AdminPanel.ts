@@ -5,7 +5,6 @@
  * admin=true in config.txt.
  */
 
-import type { DebugTools } from '../app/DebugTools';
 import type { ZoneInfo } from '../assets/types';
 import { SHORTEST_ITEM_SEARCH } from './itemSearch';
 import type { ItemHit } from './itemSearch';
@@ -47,7 +46,11 @@ export const ADMIN_SPEEDS = [6, 20, 100, 300] as const;
 
 /** Everything the panel asks of the running game. */
 export interface AdminControls {
-  debug: Pick<DebugTools, 'collisionVisible' | 'toggleCollision' | 'toggleFog'>;
+  debug: {
+    collisionVisible(): boolean;
+    toggleCollision(on: boolean): boolean;
+    toggleFog(on: boolean): boolean;
+  };
   flying(): boolean;
   toggleFly(on: boolean): boolean;
   getWalkSpeed(): number;
