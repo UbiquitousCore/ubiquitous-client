@@ -196,6 +196,9 @@ export interface UiSkinShape {
   paths: Array<{ fill: number; d: string }>;
 }
 
+/** The `characterId` of a placement that removes a depth: later frames record only changes. */
+export const REMOVED = -1;
+
 export interface UiSkinPlaced {
   depth: number;
   characterId: number | null;

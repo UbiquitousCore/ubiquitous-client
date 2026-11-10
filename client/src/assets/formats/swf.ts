@@ -5,6 +5,8 @@
  * in CSS pixels (twips / 20).
  */
 
+import { REMOVED } from '../types';
+
 export class SwfError extends Error {}
 
 /** Null-terminated byte string, the SWF string encoding. */
@@ -129,8 +131,6 @@ export interface SwfShape {
   paths: SwfPath[];
 }
 
-/** A placement that removes a depth: later frames record only changes. */
-export const REMOVED = -1;
 
 export interface SwfPlaced {
   depth: number;

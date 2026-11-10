@@ -9,7 +9,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { parseSwf, REMOVED, SwfError, swfPathToSvg } from '../src/assets/formats/swf';
+import { parseSwf, SwfError, swfPathToSvg } from '../src/assets/formats/swf';
+import { REMOVED } from '../src/assets/types';
 
 /** 1x1px frame: nbits=6, bounds 0..20 twips on both axes. */
 const FRAME_RECT = [0x30, 0x0a, 0x00, 0xa0];
