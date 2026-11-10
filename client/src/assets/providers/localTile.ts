@@ -16,7 +16,7 @@ import type {
 import { TILE_SIZE, type WorldTables } from '../formats/tables';
 import { TRN_SIDE, parseItm, parseTrn, tileName } from '../formats/terrain';
 import type { ItmTile, TrnTile } from '../formats/terrain';
-import { lookFromRow, visibleMeshes } from '../formats/avatar';
+import { lookFromCells, visibleMeshes } from '../formats/avatar';
 import { npcServiceIcon, objectServiceIcon } from '../serviceIcons';
 import type { Library } from '../vfs/Library';
 import type { PackReader } from '../vfs/zip';
@@ -583,19 +583,11 @@ function appearanceFor(
   entry: number,
   meshNames: string[],
 ): Appearance | undefined {
-  const appearance = tables.keyedRows('creature_appearance').get(entry);
-  if (!appearance) return undefined;
-  const display = tables
-    .keyedRows('creaturedisplayinfo')
-    .get(num(appearance[tables.columns.creatureAppearance.display]));
-  if (!display) return undefined;
-  const extra = tables
-    .keyedRows('creaturedisplayinfoextra')
-    .get(num(display[tables.columns.creatureDisplay.extra]));
+  const extra = tables.creatureLook(tables.creatureLookId(tables.creatureDisplayId(entry)));
   if (!extra) return undefined;
 
-  const look = lookFromRow(extra);
-  const items = (id: number) => tables.keyedRows('itemdisplayinfo').get(id);
+  const look = lookFromCells(extra);
+  const items = (id: number) => tables.shownItem(id);
   const { visible, meshTextures } = visibleMeshes(meshNames, look, items);
   return {
     // Resolved by the provider into a composited atlas.
@@ -604,7 +596,7 @@ function appearanceFor(
     meshTextures,
     skinReplacesAll: false,
     // Hair is one texture per colour, not a tint, so the colour has to travel
-    // as far as the material. `lookFromRow` has already read it out of
+    // as far as the material. `lookFromCells` has already read it out of
     // `creaturedisplayinfoextra`; without it every NPC would wear colour 1,
     // which is indigo on human hair.
     hairColor: look.hairColor,

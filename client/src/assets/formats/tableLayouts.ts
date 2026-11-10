@@ -408,8 +408,28 @@ export const itemLayout = defineLayout(
 );
 
 export const itemDisplayLayout = defineLayout('itemdisplayinfo', 'uuussssuuu', {
-  /** After the two models and their textures. */
+  /** A limb-mesh variant, or an `itemmodeldata` row worn as its own mesh. */
+  model: may(1, 'u'),
+  secondModel: may(2, 'u'),
+  texture: may(3, 's'),
+  secondTexture: may(4, 's'),
   icon: may(5, 's'),
+});
+
+export const itemModelLayout = defineLayout('itemmodeldata', 'uisssssssssssss', {
+  path: may(2, 's'),
+  /** Six nodes in the item's model, then the `.beff` that hangs off each. */
+  effectNodes: run([3, 4, 5, 6, 7, 8], 's'),
+  effectFiles: run([9, 10, 11, 12, 13, 14], 's'),
+});
+
+export const creatureLookLayout = defineLayout('creaturedisplayinfoextra', 'uiiiuuuuuuuuuuuu', {
+  /** Skin, ears and face packed into one number. */
+  features: may(1, 'iu'),
+  hairStyle: may(2, 'iu'),
+  hairColor: may(3, 'iu'),
+  /** The item in each slot, head to off hand. */
+  items: run([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'u'),
 });
 
 export const raceLayout = defineLayout('character_race', 'uuuuuuu', {
@@ -532,6 +552,8 @@ export const TABLE_LAYOUTS = {
   skillSets: skillSetLayout,
   items: itemLayout,
   itemDisplay: itemDisplayLayout,
+  itemModels: itemModelLayout,
+  creatureLooks: creatureLookLayout,
   races: raceLayout,
   classes: classLayout,
   talents: talentLayout,

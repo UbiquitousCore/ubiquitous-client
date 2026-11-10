@@ -16,7 +16,9 @@ import {
   hairColourFor,
   heldItemsOf,
   lookFrom,
-  lookFromRow,
+  lookFromCells,
+  type ItemModelFacts,
+  type ShownItem,
   modelStem,
   shippedHairColours,
   skinBelongsToModel,
@@ -26,7 +28,6 @@ import {
 import type { Look, SheetPiece, WornSlot } from '../src/assets/formats/avatar';
 import { type Footprints, type SheetMesh, footprints } from '../src/assets/formats/avatarSheet';
 import { allocPixels, type DecodedImage } from '../src/assets/formats/image';
-import type { Row } from '../src/assets/formats/ftable';
 
 /** A character model's mesh list, in the shape the reader produces. */
 const MESHES = [
@@ -47,21 +48,19 @@ const MESHES = [
   'ear_02-mesh',
 ];
 
-/** A display row: id, model, second model, texture, second texture. */
-const shown = (model: number, second = 0, texture = '', secondTexture = ''): Row => [
-  0,
+const shown = (model: number, secondModel = 0, texture = '', secondTexture = ''): ShownItem => ({
   model,
-  second,
+  secondModel,
   texture,
   secondTexture,
-];
+});
 
 /** A look wearing `worn`, with display rows by item id. */
-function dressed(worn: Partial<Record<WornSlot, Row>>, base: Look = lookFrom()) {
-  const rows = new Map<number, Row>();
+function dressed(worn: Partial<Record<WornSlot, ShownItem>>, base: Look = lookFrom()) {
+  const rows = new Map<number, ShownItem>();
   const look: Look = { ...base, worn: { ...base.worn } };
   let next = 100;
-  for (const [slot, row] of Object.entries(worn) as Array<[WornSlot, Row]>) {
+  for (const [slot, row] of Object.entries(worn) as Array<[WornSlot, ShownItem]>) {
     const id = next++;
     rows.set(id, row);
     look.worn[slot] = id;
@@ -69,17 +68,21 @@ function dressed(worn: Partial<Record<WornSlot, Row>>, base: Look = lookFrom()) 
   return { look, items: (id: number) => rows.get(id) };
 }
 
-const none = (): Row | undefined => undefined;
+const none = (): ShownItem | undefined => undefined;
 
 /** Items marked long in their second model column, by the mesh they wear. */
 const SKIRT = 99;
 const SPECIAL = 98;
 
-describe('lookFromRow', () => {
+describe('lookFromCells', () => {
   it('unpacks skin, ears and face from one number and reads each item by its column', () => {
     // Skin 3, ears 2, face 5; the hair columns carry a flag above the choice.
-    const row: Row = [7, 0x523, 0x103, 0x104, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
-    const look = lookFromRow(row);
+    const look = lookFromCells({
+      features: 0x523,
+      hairStyle: 0x103,
+      hairColor: 0x104,
+      items: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+    });
     expect([look.skin, look.ear, look.face]).toEqual([3, 2, 5]);
     expect([look.hairStyle, look.hairColor]).toEqual([3, 4]);
     expect(look.worn).toEqual({
@@ -98,8 +101,10 @@ describe('lookFromRow', () => {
     });
   });
 
-  it('wears nothing in a column the row stops short of', () => {
-    expect(lookFromRow([7, 0x11, 1, 1]).worn.offHand).toBe(0);
+  it('wears nothing in a slot the row stops short of', () => {
+    expect(
+      lookFromCells({ features: 0x11, hairStyle: 1, hairColor: 1, items: [] }).worn.offHand,
+    ).toBe(0);
   });
 });
 
@@ -123,23 +128,44 @@ describe('skinBelongsToModel', () => {
 
 describe('wearsNoArmour', () => {
   it('is true for a row with no item in an armour slot, hair and all', () => {
-    expect(wearsNoArmour(lookFromRow([7, 0x11, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))).toBe(
-      true,
-    );
+    expect(
+      wearsNoArmour(
+        lookFromCells({
+          features: 0x11,
+          hairStyle: 3,
+          hairColor: 4,
+          items: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        }),
+      ),
+    ).toBe(true);
   });
 
   it('is true when the only item is a weapon in the hands', () => {
     // twoHand is column 13.
-    expect(wearsNoArmour(lookFromRow([7, 0x11, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5451, 0, 0]))).toBe(
-      true,
-    );
+    expect(
+      wearsNoArmour(
+        lookFromCells({
+          features: 0x11,
+          hairStyle: 1,
+          hairColor: 1,
+          items: [0, 0, 0, 0, 0, 0, 0, 0, 0, 5451, 0, 0],
+        }),
+      ),
+    ).toBe(true);
   });
 
   it('is false once armour is worn', () => {
     // chest is column 7.
-    expect(wearsNoArmour(lookFromRow([7, 0x11, 1, 1, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0]))).toBe(
-      false,
-    );
+    expect(
+      wearsNoArmour(
+        lookFromCells({
+          features: 0x11,
+          hairStyle: 1,
+          hairColor: 1,
+          items: [0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0],
+        }),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -247,13 +273,13 @@ describe('visibleMeshes', () => {
 });
 
 describe('attachmentsFor', () => {
-  const MODELS: Record<number, Row> = {
-    201: [201, 0, 'model/item/axe.bdae'],
-    202: [202, 0, 'model/item/shield.bdae'],
-    203: [203, 0, 'model/item/staff.bdae'],
-    204: [204, 0, 'model/item/bow.bdae'],
-    205: [205, 0, 'model/item/pauldron_l.bdae'],
-    206: [206, 0, 'model/item/pauldron_r.bdae'],
+  const MODELS: Record<number, ItemModelFacts> = {
+    201: { path: 'model/item/axe.bdae', effects: [] },
+    202: { path: 'model/item/shield.bdae', effects: [] },
+    203: { path: 'model/item/staff.bdae', effects: [] },
+    204: { path: 'model/item/bow.bdae', effects: [] },
+    205: { path: 'model/item/pauldron_l.bdae', effects: [] },
+    206: { path: 'model/item/pauldron_r.bdae', effects: [] },
   };
   const models = (id: number) => MODELS[id];
 
@@ -399,7 +425,7 @@ describe('attachmentsFor', () => {
 
 describe('bodyLayers', () => {
   const model = 'model/npc/character/human/male/human_m_h.bdae';
-  const piecesOf = (look: Look, items: (id: number) => Row | undefined = none) =>
+  const piecesOf = (look: Look, items: (id: number) => ShownItem | undefined = none) =>
     bodyLayers(model, look, items).map(l => l.piece);
 
   it('starts from the chosen skin', () => {
@@ -638,7 +664,7 @@ describe('compositeSkin', () => {
   /** Composite over grey skin, every other layer from `art`. */
   const composite = (
     look: Look,
-    items: (id: number) => Row | undefined,
+    items: (id: number) => ShownItem | undefined,
     art: (ref: string) => DecodedImage | null = flatArt,
     sheet = 128,
     layout = LAYOUT,

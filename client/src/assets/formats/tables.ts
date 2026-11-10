@@ -4,6 +4,7 @@
 
 import { logger } from '../../core/log';
 import { type ColumnLayout, type ColumnSpec, LayoutError, resolveLayout } from './columnLayout';
+import type { ItemModelFacts, LookCells, ShownItem } from './avatar';
 import { FTable, type Row } from './ftable';
 import { TABLE_LAYOUTS, type TableColumns } from './tableLayouts';
 import type { BusLeg, GossipMenu, ItemFacts, SpellStats } from '../types';
@@ -1179,6 +1180,59 @@ export class WorldTables {
   spellRank(spellId: number): number {
     const row = this.keyedRows('spell_new').get(spellId);
     return row ? num(row[this.columns.spells.rank]) : 0;
+  }
+
+  /** One appearance row's packed features and the item in each slot, or undefined. */
+  creatureLook(lookId: number): LookCells | undefined {
+    const row = this.keyedRows('creaturedisplayinfoextra').get(lookId);
+    if (!row) return undefined;
+    const c = this.columns.creatureLooks;
+    return {
+      features: num(row[c.features]),
+      hairStyle: num(row[c.hairStyle]),
+      hairColor: num(row[c.hairColor]),
+      items: c.items.map(at => num(row[at])),
+    };
+  }
+
+  /** The appearance row a creature display wears, 0 for one drawn as its model alone. */
+  creatureLookId(displayInfoId: number): number {
+    const display = this.keyedRows('creaturedisplayinfo').get(displayInfoId);
+    return display ? num(display[this.columns.creatureDisplay.extra]) : 0;
+  }
+
+  /** The display row a creature entry wears, 0 where the tables name none. */
+  creatureDisplayId(entry: number): number {
+    return num(
+      this.keyedRows('creature_appearance').get(entry)?.[this.columns.creatureAppearance.display],
+    );
+  }
+
+  /** How an item is shown, by item id. */
+  shownItem(itemId: number): ShownItem | undefined {
+    const row = this.keyedRows('itemdisplayinfo').get(itemId);
+    if (!row) return undefined;
+    const c = this.columns.itemDisplay;
+    return {
+      model: num(row[c.model]),
+      secondModel: num(row[c.secondModel]),
+      texture: trim(row[c.texture]),
+      secondTexture: trim(row[c.secondTexture]),
+    };
+  }
+
+  /** An item's own mesh and the effects hung off it, by `itemmodeldata` row. */
+  itemModel(modelId: number): ItemModelFacts | undefined {
+    const row = this.keyedRows('itemmodeldata').get(modelId);
+    if (!row) return undefined;
+    const c = this.columns.itemModels;
+    const effects: Array<{ node: string; effect: string }> = [];
+    c.effectNodes.forEach((nodeAt, i) => {
+      const node = trim(row[nodeAt]);
+      const effect = trim(row[c.effectFiles[i]!]);
+      if (node && effect) effects.push({ node, effect });
+    });
+    return { path: trim(row[c.path]), effects };
   }
 
   /** Item icon file name: by entry first, by display id for the shared-look minority. */

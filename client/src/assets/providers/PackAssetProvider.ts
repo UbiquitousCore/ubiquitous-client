@@ -36,11 +36,10 @@ import {
   bodyLayers,
   compositeSkin,
   shippedHairColours,
-  LOOK_ROW_FIRST_ITEM,
-  LOOK_ROW_ITEMS,
+  LOOK_ITEM_ORDER,
   lookFrom,
   heldItemsOf,
-  lookFromRow,
+  lookFromCells,
   skinBelongsToModel,
   wearsNoArmour,
   modelStem,
@@ -137,7 +136,7 @@ const INVENTORY_POSITION: Readonly<Partial<Record<WornSlot, number>>> = {
 const INVENTORY_LENGTH = 15;
 
 /** How many item columns the appearance table carries. */
-const LOOK_ROW_ITEM_COUNT = Object.keys(LOOK_ROW_ITEMS).length;
+const LOOK_ROW_ITEM_COUNT = LOOK_ITEM_ORDER.length;
 
 /**
  * The server's inventory or the appearance table's item columns, told apart
@@ -154,8 +153,9 @@ export function appearanceEquipment(values: readonly number[]): Partial<Record<W
   if (values.length >= INVENTORY_LENGTH) {
     byInventory();
   } else if (values.length >= LOOK_ROW_ITEM_COUNT) {
-    for (const [slot, column] of Object.entries(LOOK_ROW_ITEMS) as Array<[WornSlot, number]>)
-      out[slot] = values[column - LOOK_ROW_FIRST_ITEM] ?? 0;
+    LOOK_ITEM_ORDER.forEach((slot, at) => {
+      out[slot] = values[at] ?? 0;
+    });
   } else {
     // Still dressed, but flagged: this shape is a caller bug.
     log.once(
@@ -983,8 +983,8 @@ export class PackAssetProvider implements AssetProvider {
     look.worn.mainHand = entry;
     return attachmentsFor(
       look,
-      itemId => tables.keyedRows('itemdisplayinfo').get(itemId),
-      modelId => tables.keyedRows('itemmodeldata').get(modelId),
+      itemId => tables.shownItem(itemId),
+      modelId => tables.itemModel(modelId),
       true,
       itemId => tables.itemWeaponClass(itemId),
     );
@@ -1438,8 +1438,8 @@ export class PackAssetProvider implements AssetProvider {
       hairStyle: id.hairStyle,
       hairColor: id.hairColor,
     });
-    const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
-    const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
+    const items = (itemId: number) => tables.shownItem(itemId);
+    const itemModels = (modelId: number) => tables.itemModel(modelId);
     const { visible, meshTextures } = visibleMeshes(await this.meshNames(id.model), look, items);
     const key = `avatar:${id.model}|${id.skin}|${id.face}|${id.hairStyle}|${id.hairColor}`;
     return {
@@ -1494,18 +1494,12 @@ export class PackAssetProvider implements AssetProvider {
 
     if (id.entry || shape) {
       const stem = shape ? `display:${shape}` : `creature:${id.entry}`;
-      const appearanceRow = shape
-        ? undefined
-        : tables.keyedRows('creature_appearance').get(id.entry);
-      const displayId = shape || (appearanceRow ? Number(appearanceRow[5]) : id.displayInfoId);
-      const display = tables.keyedRows('creaturedisplayinfo').get(displayId);
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[tables.columns.creatureDisplay.extra]))
-        : undefined;
+      const displayId = shape || tables.creatureDisplayId(id.entry) || id.displayInfoId;
+      const extra = tables.creatureLook(tables.creatureLookId(displayId));
       if (extra) {
-        const look = lookFromRow(extra);
-        const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
-        const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
+        const look = lookFromCells(extra);
+        const items = (itemId: number) => tables.shownItem(itemId);
+        const itemModels = (modelId: number) => tables.itemModel(modelId);
         const heldItems = heldItemsOf(look, itemId => tables.itemWeaponClass(itemId));
         const attachments = attachmentsFor(look, items, itemModels, true, itemId =>
           tables.itemWeaponClass(itemId),
@@ -1573,8 +1567,8 @@ export class PackAssetProvider implements AssetProvider {
       hairColor: id.hairColor,
     });
     Object.assign(look.worn, appearanceEquipment(id.equipment));
-    const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
-    const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
+    const items = (itemId: number) => tables.shownItem(itemId);
+    const itemModels = (modelId: number) => tables.itemModel(modelId);
     const { visible, meshTextures } = visibleMeshes(
       await this.meshNames(resolved.path),
       look,
@@ -1780,33 +1774,24 @@ export class PackAssetProvider implements AssetProvider {
   private async loadAvatarSkin(ref: string): Promise<TextureData> {
     const tables = await this.worldTables();
     const parts = ref.split(':');
-    const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
+    const items = (itemId: number) => tables.shownItem(itemId);
 
     let modelPath: string;
     let look: Look;
     if (parts[1] === 'display') {
-      const display = tables.keyedRows('creaturedisplayinfo').get(Number(parts[2]));
       const { path } = tables.creatureDisplayModel(Number(parts[2]));
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[tables.columns.creatureDisplay.extra]))
-        : undefined;
+      const extra = tables.creatureLook(tables.creatureLookId(Number(parts[2])));
       if (!path || !extra) throw new ResourceNotFoundError(`texture:${ref}`);
       modelPath = path;
-      look = lookFromRow(extra);
+      look = lookFromCells(extra);
     } else if (parts[1] === 'creature') {
       const entry = Number(parts[2]);
       const { path } = tables.creatureModel(entry);
       if (!path) throw new ResourceNotFoundError(`texture:${ref}`);
       modelPath = path;
-      const appearance = tables.keyedRows('creature_appearance').get(entry);
-      const display = appearance
-        ? tables.keyedRows('creaturedisplayinfo').get(Number(appearance[tables.columns.creatureAppearance.display]))
-        : undefined;
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[tables.columns.creatureDisplay.extra]))
-        : undefined;
+      const extra = tables.creatureLook(tables.creatureLookId(tables.creatureDisplayId(entry)));
       if (!extra) throw new ResourceNotFoundError(`texture:${ref}`);
-      look = lookFromRow(extra);
+      look = lookFromCells(extra);
     } else {
       modelPath = decodeURIComponent(parts[2]);
       look = lookFrom({
