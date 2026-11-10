@@ -161,7 +161,7 @@ import { impactSound, parrySound, swingSound, weaponFamily } from '../gameplay/w
 import type { WeaponFamily } from '../gameplay/weaponSounds';
 import { clickOf } from './uiClicks';
 import type { ItemKind } from '../gameplay/itemSounds';
-import type { UnitSoundState, UnitSounds } from '../assets/formats/tables';
+import type { UnitSoundState, UnitSounds } from '../assets/types';
 import { EntityMovementState, OfflineConnection } from '../net/GameConnection';
 import type {
   CharacterSummary,

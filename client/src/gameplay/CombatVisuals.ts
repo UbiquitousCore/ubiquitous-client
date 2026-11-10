@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 
 import { logger } from '../core/log';
-import type { MissileFlight, SpellVisualData, SpellVisualEffect } from '../assets/formats/tables';
+import type { MissileFlight, SpellVisualData, SpellVisualEffect } from '../assets/types';
 import type { EffectInstance } from '../renderer/EffectFactory';
 import type { EntityId } from '../world/World';
 import { LOOT_GLOW_EFFECT } from './loot';

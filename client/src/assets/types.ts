@@ -7,6 +7,21 @@
 import type { HeldItems } from './formats/avatar';
 import type { SoundCatalogue, SpellVisualData, UnitSounds } from './formats/tables';
 
+/** Rows the table reader produces, handed on here so nothing above the boundary names a reader. */
+export type {
+  EffectAnchor,
+  MissileFlight,
+  SoundBankRow,
+  SoundCatalogue,
+  SoundCue,
+  SpellPhase,
+  SpellPhaseData,
+  SpellVisualData,
+  SpellVisualEffect,
+  UnitSoundState,
+  UnitSounds,
+} from './formats/tables';
+
 /** How a surface composites, from the shader name in the shipped data. */
 export type BlendMode = 'opaque' | 'cutout' | 'blend' | 'additive';
 

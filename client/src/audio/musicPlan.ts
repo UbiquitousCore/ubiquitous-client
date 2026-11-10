@@ -4,7 +4,7 @@
  * eases across; the same music again changes nothing. `AudioEngine` plays it.
  */
 
-import type { SoundCue } from '../assets/formats/tables';
+import type { SoundCue } from '../assets/types';
 import { cueFile } from './cues';
 
 /** Easing a piece in, out, or across to another, in ms. **Own choice.** */
