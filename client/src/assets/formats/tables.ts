@@ -3,7 +3,9 @@
  * one read is checked against the format letter it should have. */
 
 import { logger } from '../../core/log';
+import { type ColumnLayout, type ColumnSpec, LayoutError, resolveLayout } from './columnLayout';
 import { FTable, type Row } from './ftable';
+import { TABLE_LAYOUTS, type TableColumns } from './tableLayouts';
 import type { BusLeg, GossipMenu, ItemFacts, SpellStats } from '../types';
 import type {
   MountRow,
@@ -18,141 +20,19 @@ const log = logger('tables');
 /** World units per terrain tile on both axes. */
 export const TILE_SIZE = 64.0;
 
-// --- staticobject_spawns: "uuuffffffuufuf" at 1.0.2, "uuuffffffuufffuf" from
-// 1.1.4 on. The one 'scale' float at column 11 became scaleX/Y/Z at 11..13.
-// Everything ahead of it — entry, map, xyz, rotation — is unmoved.
-const SO_SPAWN_ENTRY = 1;
-const SO_SPAWN_MAP = 2;
-const SO_SPAWN_XYZ = [3, 4, 5] as const;
-const SO_SPAWN_ROT = [6, 7, 8] as const;
-const SO_SPAWN_SCALE = 11;
-
-// --- staticobject_proto: type, display row, scale and festival.
-const SO_PROTO_TYPE = 1;
-const SO_PROTO_DISPLAY = 3;
-const SO_PROTO_SCALE = 7;
-/** 0 always present, else a `festival.tbl` id; only the active festival's objects show. */
-const SO_PROTO_FESTIVAL = 19;
-
-// --- staticobject_displayinfo: column 1 is the model path, and the row ends
-// in twelve strings, six node names followed by six effect paths — the
-// object's attached effects, a node in its model and the `.beff` that hangs
-// off it.
-const SO_DISPLAY_PATH = 1;
-/** Six (node, effect) pairs per object — the row has room for no more. */
-const SO_DISPLAY_EFFECTS = 6;
-
-// --- creature_spawns
-const CR_SPAWN_ENTRY = 1;
-const CR_SPAWN_MAP = 2;
-const CR_SPAWN_XYZ = [3, 4, 5] as const;
-const CR_SPAWN_O = 6;
-
-// --- creature_appearance: the name string and the display row it wears.
-const CR_APPEARANCE_NAME = 1;
-const CR_APPEARANCE_DISPLAY = 5;
-
-// --- creaturedisplayinfo: the model row, the scale it is drawn at, and
-//     the skin it wears.
-const CR_DISPLAY_MODEL = 1;
-const CR_DISPLAY_SCALE = 3;
-const CR_DISPLAY_SKIN = 5;
-
-// --- creaturemodeldata: the model path.
-const CR_MODEL_PATH = 2;
-
-// --- creature_proto: the scale multiplier and the NPC's service flags, one
-//     bit per thing it offers.
-const CR_PROTO_SCALE = 10;
-const CR_PROTO_FLAGS = 11;
-/** The `chat_menu` row a creature greets a player with; 0 for none. */
-const CR_PROTO_GREETING_MENU = 56;
-/** `chat_menu`: column 1 names the page's string, 2-7 its scripts, 8-13 the pages under it. */
-const CHAT_MENU_STRING = 1;
-const CHAT_MENU_SCRIPTS = 2;
-const CHAT_MENU_SUB_MENUS = 8;
-const CHAT_MENU_SLOTS = 6;
-
-// --- mountprototype: the key, the model path, a texture that replaces the
-//     model's own, and an effect path.
-const MOUNT_ID = 0;
-const MOUNT_MODEL = 2;
-const MOUNT_TEXTURE = 3;
-const MOUNT_EFFECT = 8;
-
-// --- zones: "iiiuffffffffuuffffuuuussssssfffffusiiiu" (2.2.0). The zone's own
-// id indexes String_Zones_<lang> directly, so player-facing names come
-// straight out of the table.
-const ZONE_PARENT = 2;
-const ZONE_MAP = 3;
-const ZONE_PRIORITY = 12;
-const ZONE_BOUNDS = [4, 6, 8, 10] as const; // x1, z1, x2, z2
-const ZONE_FOG_COLOR = 13;
-const ZONE_FOG_NEAR = 14;
-const ZONE_FOG_FAR = 15;
-/**
- * Offsets into the zone's six-string sky block: dome, horizon hill, sun,
- * halo. Found by shape (column 22 in 2.2.0, 20 in 1.1.4).
- */
-const ZONE_SKY_DOME = 0;
-const ZONE_SKY_HILL = 1;
-const ZONE_SKY_SUN = 2;
-const ZONE_SKY_HALO = 4;
-const ZONE_SKY_BLOCK = 6;
-/** 2 friendly, 1 neutral, 0 hostile; the third int after the icon string, moving with it. */
-const ZONE_FRIENDLY_AFTER_ICON = 3;
-/** Music and ambience `c_sound` ids (0 none): the last two numbers before the first string column. */
-const ZONE_MUSIC_FROM_STRINGS = -2;
-/**
- * The ground's light, packed like the fog colour: the sun's colour four
- * numbers before the first string column, the shade's three before.
- */
-const ZONE_SUN_FROM_STRINGS = -4;
-const ZONE_SHADE_FROM_STRINGS = -3;
-const ZONE_AMBIENCE_FROM_STRINGS = -1;
-
-// --- c_sound: "uuusfffuuuuuuuuuuu". Column 1 the numbered-file count, 3 the
-// file, 4 a volume (0.2-1), 6 how far it carries (own reading), 7 a
-// `c_sound_bank` key.
-const SOUND_VARIANTS = 1;
-const SOUND_FLAGS = 2;
-const SOUND_PATH = 3;
-const SOUND_VOLUME = 4;
-const SOUND_REACH = 6;
-const SOUND_BANK = 7;
 /*
- * Column 2's bits, by which rows set them. Bit 1 is set on exactly the `m_`
- * music rows. Bit 2 is set on the sounds that happen somewhere — creatures,
- * spells, weapons, objects — and on no interface, music or ambience row.
- * Bit 4 is set on music, ambience, the running objects (a fountain, a
- * volcano) and the files named `…_loop`. Bit 8 is set mostly on creature,
- * weapon and footstep sounds, the ones heard over and over; taking it as
- * "vary each play" is **own choice**.
+ * `c_sound` flag bits, by which rows set them. Bit 1 is set on exactly the
+ * `m_` music rows. Bit 2 is set on the sounds that happen somewhere
+ * (creatures, spells, weapons, objects) and on no interface, music or
+ * ambience row. Bit 4 is set on music, ambience, the running objects (a
+ * fountain, a volcano) and the files named `…_loop`. Bit 8 is set mostly on
+ * creature, weapon and footstep sounds, the ones heard over and over; taking
+ * it as "vary each play" is **own choice**.
  */
 const SOUND_FLAG_MUSIC = 1;
 const SOUND_FLAG_POSITIONAL = 2;
 const SOUND_FLAG_LOOP = 4;
 const SOUND_FLAG_PITCHED = 8;
-/**
- * c_sound_bank: the key, a name (`NPC_HURT`, `MC_MOVE`, `INTERFACE`), then a
- * number whose low 16 bits are 1 to 8 and read as how many of the bank's
- * sounds play at once (**own reading**). Bit 16 is set on some banks; what it
- * means is not settled by the data, and it is not read.
- */
-const SOUND_BANK_CAPACITY = 2;
-/**
- * ZoneSpecialMusic: a zone id and a `c_sound` id. The music named is an
- * arena's or a region's `…_combat` piece, so it is taken as the zone's fight
- * music.
- */
-const BATTLE_MUSIC_ZONE = 0;
-const BATTLE_MUSIC_CUE = 1;
-/**
- * creaturemodeldata: the model's sound set, the row's last column. Its
- * values are `sound_solution` keys, and the set's own description matches
- * the model row's (the male human model's set is "Male Human").
- */
-const CR_MODEL_SOUNDS_FROM_END = -1;
 
 export const TABLE_NAMES = [
   'map_info',
@@ -233,52 +113,11 @@ function flightOf(value: number): MissileFlight {
   return 'straight';
 }
 
-/** `c_spellvisual` columns after the phases. */
-const VISUAL_MISSILE = 1 + PHASE_COLUMNS.length;
-const VISUAL_STREAK = VISUAL_MISSILE + 1;
-const VISUAL_IMPACT_DELAY = VISUAL_MISSILE + 2;
-
-/** `c_spellvisualstate` columns. */
-const PHASE_CLIP = 1;
-const PHASE_FIRST_EFFECT = 2;
-const PHASE_SOUND = 8;
-const PHASE_SHAKE = 9;
-const PHASE_CLIP_BLEND = 10;
 /** The blend value for a clip that takes the whole body. */
 const CLIP_BLEND_WHOLE_BODY = 2;
 
-/** `c_spellvisualeffect` columns. */
-const EFFECT_NAME = 1;
-const EFFECT_PATH = 2;
-const EFFECT_SCALE = 6;
-const EFFECT_PLACEMENT = 7;
-const EFFECT_FLIGHT = 8;
-const EFFECT_PROJECTILES = 9;
-
 /** The effect's scale column is a percentage, like `creaturedisplayinfo`'s. */
 const EFFECT_SCALE_PERCENT = 100;
-
-/** `c_animationdata` columns. */
-const C_ANIM_NAME = 1;
-const C_ANIM_LOOP = 2;
-
-/** `spell_new` columns. */
-const SPELL_ICON = 10;
-const CAST_TIME_COLUMN = 16;
-const COOLDOWN_COLUMN = 17;
-const MAX_RANGE_COLUMN = 21;
-const POWER_COST_COLUMN = 41;
-const SPELL_VISUAL_COLUMN = 26;
-const SPELL_SKILL_GROUP = 1;
-/** `spell_skillset`'s mark, a file under `ui/icons/class/`. */
-const SKILL_SET_ICON = 2;
-const MOUNT_KIND_COLUMN = 25;
-const SPELL_FLAGS_COLUMN = 43;
-/** The spell's name string id; the spell id itself lands on the wrong string for many spells (`realPacks.test.ts`). */
-const SPELL_NAME_STRING = 5;
-/** The spell's rank in its chain, `1..N` like the name's numeral; column 2 is the class tree, not a chain. */
-const SPELL_RANK = 6;
-const SPELL_DESCRIPTION_STRING = 7;
 
 /** Bit in the spell's flags column for a spell that is never cast. */
 const SPELL_NEVER_CAST_FLAG = 0x4;
@@ -395,49 +234,13 @@ export const UNIT_SOUND_STATES = [
 
 export type UnitSoundState = (typeof UNIT_SOUND_STATES)[number];
 
-/**
- * `character_race`: the body per sex, then the name id. Checked against the
- * five shipped rows.
- */
-const RACE_MALE_DISPLAY = 3;
-const RACE_FEMALE_DISPLAY = 4;
-const RACE_NAME_STRING = 5;
-
-/** `items.tbl` columns. The look column is a fallback; equipment dresses from the appearance tables. */
-const ITEM_CLASS = 1;
-const ITEM_SUBCLASS = 2;
-const ITEM_NAME_STRING = 3;
-const ITEM_QUALITY = 5;
-const ITEM_WORN_ON_COLUMN = 11;
-const ITEM_LEVEL_NEEDED_COLUMN = 16;
-// The item's own words sit right after how it binds.
-const ITEM_DESCRIPTION_STRING = 71;
-const ITEM_CLASS_COL = 1;
-
-const ITEM_SUBCLASS_COL = 2;
-const ITEM_ARMOUR = 54;
-const ITEM_BINDING = 70;
-const ITEM_LOOK_COLUMN = 4;
-const ITEM_WEARER_CLASSES_COLUMN = 13;
 /** Nine (kind, amount) pairs after their count. */
-const ITEM_STATS_FIRST = 28;
 const ITEM_STAT_PAIRS = 9;
-/** Two runs of least, most and kind, one per sort of damage it deals. */
-const ITEM_DAMAGE_FIRST = 48;
 const ITEM_DAMAGE_COUNT = 2;
-const ITEM_DELAY = 55;
-const ITEM_BLOCK = 81;
-/** Two spell slots six columns apart; only the id is read. */
-const ITEM_SPELLS_FIRST = 58;
 const ITEM_SPELLS_COUNT = 2;
 const ITEM_SPELL_STRIDE = 6;
 /** Where in a spell slot its trigger sits: the column after the spell's id. */
 const ITEM_SLOT_WHEN = 1;
-/** The quest using the item offers, 0 for none; always a `quests.tbl` key. */
-const ITEM_STARTS_QUEST = 75;
-
-/** `itemdisplayinfo`'s icon column, after the two models and their textures. */
-const ITEM_DISPLAY_ICON = 5;
 
 export type { MountRow, StorageUpgradeRow, TeleportStop };
 
@@ -523,84 +326,45 @@ export interface ZoneRow {
   ambience: number;
 }
 
+/** How a zone with no friendliness column is taken: 2 friendly, 1 neutral, 0 hostile. */
+const ZONE_NEUTRAL = 1;
+
 /** A sky field as a path, or ''; the column holds '0', bare directories and backslashes too. */
 function skyPath(value: unknown, extensions: RegExp): string {
   const path = trim(value).replace(/\\/g, '/');
   return extensions.test(path) ? path : '';
 }
 
-/** How many consecutive `ch` start at `at`. */
-function runLength(fmt: string, at: number, ch: string): number {
-  let n = 0;
-  while (at + n < fmt.length && fmt[at + n] === ch) n++;
-  return n;
-}
-
-/** Start and length of the longest run of `ch`, or `{ at: -1, length: 0 }`. */
-function longestRun(fmt: string, ch: string): { at: number; length: number } {
-  let best = { at: -1, length: 0 };
-  for (let i = 0; i < fmt.length; i++) {
-    if (fmt[i] !== ch) continue;
-    const length = runLength(fmt, i, ch);
-    if (length > best.length) best = { at: i, length };
-    i += length - 1;
-  }
-  return best;
-}
-
-/** The first place two `ch` sit side by side, for columns that move but keep their neighbours. */
-function adjacentPair(fmt: string, ch: string): number {
-  for (let i = 0; i < fmt.length - 1; i++) {
-    if (fmt[i] === ch && fmt[i + 1] === ch) return i;
-  }
-  return -1;
-}
-
-/** Guard each column index against the table's own format string. */
-function expect(table: FTable, name: string, checks: [number, string][]): void {
-  for (const [index, want] of checks) {
-    if (index >= table.format.length) {
-      throw new SchemaError(
-        `${name}: column ${index} beyond format ${JSON.stringify(table.format)}`,
-      );
-    }
-    const got = table.format[index];
-    if (!want.includes(got)) {
-      throw new SchemaError(
-        `${name}: column ${index} is ${JSON.stringify(got)}, expected one of ` +
-          `${JSON.stringify(want)} (format ${JSON.stringify(table.format)})`,
-      );
-    }
-  }
-}
-
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 /** Nine stat pairs are reserved; an amount of zero is an empty slot, not a +0. */
-function itemStats(row: readonly unknown[]): Array<{ kind: number; value: number }> {
+function itemStats(row: readonly unknown[], first: number): Array<{ kind: number; value: number }> {
   const out: Array<{ kind: number; value: number }> = [];
   for (let i = 0; i < ITEM_STAT_PAIRS; i += 1) {
-    const kind = num(row[ITEM_STATS_FIRST + i * 2]);
-    const value = num(row[ITEM_STATS_FIRST + i * 2 + 1]);
+    const kind = num(row[first + i * 2]);
+    const value = num(row[first + i * 2 + 1]);
     if (kind > 0 && value > 0) out.push({ kind, value });
   }
   return out;
 }
 
 /** The spells an item carries. A slot holding no spell is not one. */
-function itemSpells(row: readonly unknown[]): number[] {
+function itemSpells(row: readonly unknown[], first: number): number[] {
   const out: number[] = [];
   for (let i = 0; i < ITEM_SPELLS_COUNT; i += 1) {
-    const id = num(row[ITEM_SPELLS_FIRST + i * ITEM_SPELL_STRIDE]);
+    const id = num(row[first + i * ITEM_SPELL_STRIDE]);
     if (id > 0) out.push(id);
   }
   return out;
 }
 
 /** Each spell slot holding a spell, with the trigger that says when it fires. */
-function itemSpellSlots(row: readonly unknown[]): Array<{ id: number; trigger: number }> {
+function itemSpellSlots(
+  row: readonly unknown[],
+  first: number,
+): Array<{ id: number; trigger: number }> {
   const out: Array<{ id: number; trigger: number }> = [];
   for (let i = 0; i < ITEM_SPELLS_COUNT; i += 1) {
-    const at = ITEM_SPELLS_FIRST + i * ITEM_SPELL_STRIDE;
+    const at = first + i * ITEM_SPELL_STRIDE;
     const id = num(row[at]);
     if (id > 0) out.push({ id, trigger: num(row[at + ITEM_SLOT_WHEN]) });
   }
@@ -608,10 +372,13 @@ function itemSpellSlots(row: readonly unknown[]): Array<{ id: number; trigger: n
 }
 
 /** What a weapon hits for. An entry that tops out at nothing is not one. */
-function itemDamage(row: readonly unknown[]): Array<{ min: number; max: number; kind: number }> {
+function itemDamage(
+  row: readonly unknown[],
+  first: number,
+): Array<{ min: number; max: number; kind: number }> {
   const out: Array<{ min: number; max: number; kind: number }> = [];
   for (let i = 0; i < ITEM_DAMAGE_COUNT; i += 1) {
-    const at = ITEM_DAMAGE_FIRST + i * 3;
+    const at = first + i * 3;
     const max = num(row[at + 1]);
     if (max > 0) out.push({ min: num(row[at]), max, kind: num(row[at + 2]) });
   }
@@ -622,14 +389,7 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 /** Table strings are fixed-width and null-padded; the padding is not the name. */
 const trim = (v: unknown): string => str(v).replace(/\0+$/, '');
 
-/** The three columns of a spell row that hold the ids of its effect rows. */
-const SPELL_EFFECT_SLOTS = [33, 34, 35] as const;
-/** In an effect row: the written name of what it does, and the number it does it with. */
-const SPELL_EFFECT_LABEL = 22;
-const SPELL_EFFECT_ARGUMENT = 11;
-/** In an effect row: its kind and detail; an aura (1) of detail 50 seats its caster on a mount. */
-const SPELL_EFFECT_KIND = 6;
-const SPELL_EFFECT_DETAIL = 7;
+/** An aura (1) of detail 50 seats its caster on a mount. */
 const AURA_EFFECT = 1;
 const MOUNT_DETAIL = 50;
 /** An instant effect (0) of detail 8 calls the creature its argument names; pet spells are what carry one. */
@@ -643,18 +403,13 @@ export class WorldTables {
   private readonly keyed = new Map<string, Map<number, Row>>();
   private readonly strings = new Map<string, Map<number, string>>();
 
-  private mapNameCol = 0;
-  private mapWldCol = 0;
-  /** 1 at 1.0.2, 3 from 1.1.4 on. Recorded because callers must use the scalar. */
-  spawnScaleAxes = 1;
-  /** First of the twelve effect columns, or -1 if this build's shape is unknown. */
-  private soEffectFirst = -1;
-  /** First of the zone's six sky columns, or -1 if this build's shape is unknown. */
-  private zoneSkyFirst = -1;
-  /** The area map glyph column (`ui/icons/board/`): the first string after the sky. */
-  private zoneIconCol = -1;
-  /** The zones table's first string column; music and ambience sit just ahead of it. */
-  private zoneFirstString = -1;
+  /** Where each table's named columns sit in this build's formats. */
+  columns!: TableColumns;
+
+  /** One scale per placement in the oldest builds, one per axis since. Callers must use the scalar. */
+  get spawnScaleAxes(): number {
+    return this.columns.staticSpawns.scaleY >= 0 ? 3 : 1;
+  }
 
   private constructor() {}
 
@@ -677,7 +432,6 @@ export class WorldTables {
       w.keyed.set(name, table.byKey());
     }
     w.schema();
-    w.verify();
     log.info(
       `tables loaded: ${w.rows.get('zones')!.length} zones, ` +
         `${w.rows.get('staticobject_spawns')!.length} static spawns`,
@@ -686,108 +440,25 @@ export class WorldTables {
     return w;
   }
 
-  /** Locate the columns that move between builds by shape. */
+  /** Find every table's named columns in the formats this build ships. */
   private schema(): void {
-    const mapFmt = this.table('map_info').format;
-    const at = adjacentPair(mapFmt, 's');
-    if (at < 0) {
-      throw new SchemaError(
-        'map_info: no adjacent pair of string columns to carry the map name ' +
-          `and .wld path (format ${JSON.stringify(mapFmt)})`,
-      );
+    const found: Record<string, unknown> = {};
+    for (const [key, layout] of Object.entries(TABLE_LAYOUTS)) {
+      // A table the build does not ship has no rows to read a column of.
+      const format = this.tables.get(layout.table)?.format ?? layout.reference;
+      try {
+        const resolved = resolveLayout(layout as ColumnLayout<Record<string, ColumnSpec>>, format);
+        for (const note of resolved.notes) {
+          if (resolved.known) log.info(note);
+          else log.warn(note);
+        }
+        found[key] = resolved.columns;
+      } catch (error) {
+        if (error instanceof LayoutError) throw new SchemaError(error.message);
+        throw error;
+      }
     }
-    this.mapNameCol = at;
-    this.mapWldCol = at + 1;
-
-    const spawnFmt = this.table('staticobject_spawns').format;
-    const n = runLength(spawnFmt, SO_SPAWN_SCALE, 'f');
-    if (n !== 1 && n !== 3) {
-      throw new SchemaError(
-        `staticobject_spawns: expected 1 or 3 scale floats at column ` +
-          `${SO_SPAWN_SCALE}, found ${n} (format ${JSON.stringify(spawnFmt)})`,
-      );
-    }
-    this.spawnScaleAxes = n;
-
-    // The sky is the zone table's six-string run and the glyph the next
-    // string; 2.2.0 moved both. Not fatal: a zone without them still loads.
-    const zoneFmt = this.table('zones').format;
-    const sky = longestRun(zoneFmt, 's');
-    if (sky.length === ZONE_SKY_BLOCK) {
-      this.zoneSkyFirst = sky.at;
-      this.zoneIconCol = zoneFmt.indexOf('s', sky.at + sky.length);
-    } else {
-      log.warn(
-        `zones: no run of ${ZONE_SKY_BLOCK} string columns for the sky ` +
-          `(longest run is ${sky.length} at ${sky.at}, format ${JSON.stringify(zoneFmt)}) ` +
-          '-- zones will have no sky and no map glyph',
-      );
-    }
-
-    // The zone's music and ambience are the two uints ahead of its first
-    // string column; a table of another shape leaves the zones silent.
-    const firstString = zoneFmt.indexOf('s');
-    if (firstString >= 2 && zoneFmt.slice(firstString - 2, firstString) === 'uu') {
-      this.zoneFirstString = firstString;
-    } else {
-      log.warn(`zones: no music columns ahead of the strings (format ${JSON.stringify(zoneFmt)})`);
-    }
-
-    // The twelve effect strings are the table's only run of twelve. Not fatal
-    // either: effects are decoration, not worth failing a zone load over.
-    const displayFmt = this.table('staticobject_displayinfo').format;
-    const run = longestRun(displayFmt, 's');
-    if (run.length === SO_DISPLAY_EFFECTS * 2 && run.at > SO_DISPLAY_PATH) {
-      this.soEffectFirst = run.at;
-    } else {
-      log.warn(
-        'staticobject_displayinfo: no run of ' +
-          `${SO_DISPLAY_EFFECTS * 2} string columns for the attached effects ` +
-          `(longest run is ${run.length} at ${run.at}, format ` +
-          `${JSON.stringify(displayFmt)}) -- objects will draw without them`,
-      );
-    }
-  }
-
-  private verify(): void {
-    expect(this.table('staticobject_spawns'), 'staticobject_spawns', [
-      [SO_SPAWN_ENTRY, 'u'],
-      [SO_SPAWN_MAP, 'u'],
-      [SO_SPAWN_XYZ[0], 'f'],
-      [SO_SPAWN_XYZ[1], 'f'],
-      [SO_SPAWN_XYZ[2], 'f'],
-      [SO_SPAWN_ROT[1], 'f'],
-    ]);
-    expect(this.table('staticobject_proto'), 'staticobject_proto', [
-      [SO_PROTO_DISPLAY, 'u'],
-      [SO_PROTO_SCALE, 'f'],
-    ]);
-    expect(this.table('staticobject_displayinfo'), 'staticobject_displayinfo', [
-      [SO_DISPLAY_PATH, 's'],
-    ]);
-    expect(this.table('creature_spawns'), 'creature_spawns', [
-      [CR_SPAWN_ENTRY, 'u'],
-      [CR_SPAWN_MAP, 'u'],
-      [CR_SPAWN_XYZ[0], 'f'],
-      [CR_SPAWN_O, 'f'],
-    ]);
-    expect(this.table('creature_proto'), 'creature_proto', [
-      [CR_PROTO_SCALE, 'f'],
-      [CR_PROTO_FLAGS, 'u'],
-    ]);
-    expect(this.table('creature_appearance'), 'creature_appearance', [
-      [CR_APPEARANCE_NAME, 'uk'],
-      [CR_APPEARANCE_DISPLAY, 'uk'],
-    ]);
-    expect(this.table('creaturedisplayinfo'), 'creaturedisplayinfo', [
-      [CR_DISPLAY_MODEL, 'u'],
-      [CR_DISPLAY_SKIN, 's'],
-    ]);
-    expect(this.table('creaturemodeldata'), 'creaturemodeldata', [[CR_MODEL_PATH, 's']]);
-    expect(this.table('map_info'), 'map_info', [
-      [this.mapNameCol, 's'],
-      [this.mapWldCol, 's'],
-    ]);
+    this.columns = found as TableColumns;
   }
 
   table(name: string): FTable {
@@ -797,15 +468,15 @@ export class WorldTables {
   }
 
   /**
-   * The build fingerprint: every loaded table's shape (`name: rows cols
-   * format`), in load order. The client logs it at boot and the server
-   * compares it against its golden files; a new build shows up here first,
-   * as shape drift rather than a bare column error further down.
+   * Every loaded table's shape (`name: rows cols format`), in load order,
+   * for the boot log: the lines to compare when a build reads wrongly.
    */
   fingerprint(): string[] {
     const out: string[] = [];
     for (const [name, table] of this.tables) {
-      out.push(`${name}: ${table.rows} rows, ${table.cols} cols, format ${JSON.stringify(table.format)}`);
+      out.push(
+        `${name}: ${table.rows} rows, ${table.cols} cols, format ${JSON.stringify(table.format)}`,
+      );
     }
     return out;
   }
@@ -826,13 +497,12 @@ export class WorldTables {
   /** One conversation page; a missing row or string reads as a page with no words. */
   gossipMenu(id: number, strings: ReadonlyMap<number, string>): GossipMenu {
     const row = this.gossipMenuRow(id);
-    const columns = (first: number): number[] =>
-      Array.from({ length: CHAT_MENU_SLOTS }, (_, at) => num(row?.[first + at]));
+    const columns = (places: readonly number[]): number[] => places.map(at => num(row?.[at]));
     return {
       id,
-      text: row ? (strings.get(num(row[CHAT_MENU_STRING])) ?? '') : '',
-      scripts: columns(CHAT_MENU_SCRIPTS),
-      subMenus: columns(CHAT_MENU_SUB_MENUS),
+      text: row ? (strings.get(num(row[this.columns.chatMenu.text])) ?? '') : '',
+      scripts: columns(this.columns.chatMenu.scripts),
+      subMenus: columns(this.columns.chatMenu.subMenus),
     };
   }
 
@@ -840,56 +510,52 @@ export class WorldTables {
   mounts(): MountRow[] {
     const out: MountRow[] = [];
     for (const r of this.rowsOf('mountprototype')) {
-      const model = trim(r[MOUNT_MODEL]);
-      const texture = trim(r[MOUNT_TEXTURE]);
+      const model = trim(r[this.columns.mounts.model]);
+      const texture = trim(r[this.columns.mounts.texture]);
       if (!model) continue;
       out.push({
-        id: num(r[MOUNT_ID]),
+        id: num(r[this.columns.mounts.id]),
         // Some rows carry the artist's export path; the pack has only the tail.
         model: model.replace(/^(?:\.\.\/)+mid_data\//, ''),
         texture,
-        effect: trim(r[MOUNT_EFFECT]),
+        effect: trim(r[this.columns.mounts.effect]),
       });
     }
     return out;
   }
 
-  /**
-   * `storage_upgrade` ("uuuuuuu"): unread, storage, capacity granted,
-   * currency and amount, item cost, capacity required. Found by requirement.
-   */
+  /** What each step of bag or bank space gives, costs and needs first. */
   storageUpgrades(): StorageUpgradeRow[] {
+    const c = this.columns.storageUpgrades;
     return this.rowsOf('storage_upgrade').map(row => ({
-      storage: num(row[1]),
-      slots: num(row[2]),
-      currency: num(row[3]),
-      price: num(row[4]),
-      item: num(row[5]),
-      requires: num(row[6]),
+      storage: num(row[c.storage]),
+      slots: num(row[c.slots]),
+      currency: num(row[c.currency]),
+      price: num(row[c.price]),
+      item: num(row[c.item]),
+      requires: num(row[c.requires]),
     }));
   }
 
-  /**
-   * `spell_talent`: grid place, tree, requirements, ranks, the spell each rank
-   * teaches (unused rank columns are 0), picture and words.
-   */
+  /** Each talent's grid place, tree, requirements, ranks, picture and words, and each class's trees. */
   talents(): TalentData {
+    const c = this.columns.talents;
     const places = this.rowsOf('spell_talent').map(row => ({
-      id: num(row[0]),
-      tier: num(row[1]),
-      column: num(row[2]),
-      classId: num(row[3]),
-      requires: num(row[4]),
-      after: num(row[5]),
-      ranks: num(row[8]),
-      spells: [9, 10, 11, 12, 13].map(at => num(row[at])).filter(spell => spell > 0),
-      icon: trim(row[14]),
-      says: num(row[15]),
+      id: num(row[c.id]),
+      tier: num(row[c.tier]),
+      column: num(row[c.column]),
+      classId: num(row[c.tree]),
+      requires: num(row[c.requires]),
+      after: num(row[c.after]),
+      ranks: num(row[c.ranks]),
+      spells: c.spells.map(at => num(row[at])).filter(spell => spell > 0),
+      icon: trim(row[c.icon]),
+      says: num(row[c.says]),
     }));
-    // `character_class`: its three trees after its own numbers; 0 for none.
+    const classes = this.columns.classes;
     const trees = this.rowsOf('character_class').map(row => ({
-      classId: num(row[0]),
-      trees: [3, 4, 5].map(at => num(row[at])).filter(tree => tree > 0),
+      classId: num(row[classes.id]),
+      trees: classes.trees.map(at => num(row[at])).filter(tree => tree > 0),
     }));
     return { places, trees };
   }
@@ -900,24 +566,27 @@ export class WorldTables {
    */
   playableKinds(raceNames: Map<number, string>): PlayableKinds {
     const races = this.rowsOf('character_race').map(row => ({
-      race: num(row[0]),
-      maleDisplayInfoId: num(row[RACE_MALE_DISPLAY]),
-      femaleDisplayInfoId: num(row[RACE_FEMALE_DISPLAY]),
-      nameTextId: num(row[RACE_NAME_STRING]),
-      name: raceNames.get(num(row[RACE_NAME_STRING])) ?? null,
+      race: num(row[this.columns.races.id]),
+      maleDisplayInfoId: num(row[this.columns.races.maleDisplay]),
+      femaleDisplayInfoId: num(row[this.columns.races.femaleDisplay]),
+      nameTextId: num(row[this.columns.races.nameString]),
+      name: raceNames.get(num(row[this.columns.races.nameString])) ?? null,
     }));
-    const classes = this.rowsOf('character_class').map(row => ({ playerClass: num(row[0]) }));
+    const classes = this.rowsOf('character_class').map(row => ({
+      playerClass: num(row[this.columns.classes.id]),
+    }));
     return { races, classes };
   }
 
   teleportStops(): TeleportStop[] {
+    const c = this.columns.teleports;
     return this.rowsOf('teleport_spot').map(row => ({
-      id: num(row[0]),
-      name: trim(row[1]),
-      mapId: num(row[2]),
-      position: [num(row[3]), num(row[4]), num(row[5])],
-      orientation: num(row[6]),
-      type: num(row[7]),
+      id: num(row[c.id]),
+      name: trim(row[c.name]),
+      mapId: num(row[c.map]),
+      position: [num(row[c.x]), num(row[c.y]), num(row[c.z])],
+      orientation: num(row[c.orientation]),
+      type: num(row[c.type]),
     }));
   }
 
@@ -926,11 +595,12 @@ export class WorldTables {
    * undirected and fares as the cheapest chain; no chain, no travel.
    */
   busRoutes(): BusLeg[] {
+    const c = this.columns.busRoutes;
     return this.rowsOf('t_bus_route')
       .map(row => ({
-        from: num(row[1]),
-        to: num(row[2]),
-        price: num(row[3]),
+        from: num(row[c.from]),
+        to: num(row[c.to]),
+        price: num(row[c.price]),
       }))
       .filter(edge => edge.from > 0 && edge.to > 0);
   }
@@ -940,12 +610,12 @@ export class WorldTables {
     const creatures = this.rowsOf('creature_spawns');
     const staticCounts = new Map<number, number>();
     for (const r of statics) {
-      const m = num(r[SO_SPAWN_MAP]);
+      const m = num(r[this.columns.staticSpawns.map]);
       staticCounts.set(m, (staticCounts.get(m) ?? 0) + 1);
     }
     const creatureCounts = new Map<number, number>();
     for (const r of creatures) {
-      const m = num(r[CR_SPAWN_MAP]);
+      const m = num(r[this.columns.creatureSpawns.map]);
       creatureCounts.set(m, (creatureCounts.get(m) ?? 0) + 1);
     }
 
@@ -953,8 +623,8 @@ export class WorldTables {
     for (const [key, row] of this.keyedRows('map_info')) {
       out.push({
         id: key,
-        name: str(row[this.mapNameCol]),
-        world: str(row[this.mapWldCol]),
+        name: str(row[this.columns.mapInfo.name]),
+        world: str(row[this.columns.mapInfo.world]),
         staticObjects: staticCounts.get(key) ?? 0,
         creatures: creatureCounts.get(key) ?? 0,
       });
@@ -968,45 +638,45 @@ export class WorldTables {
     const maps = new Map(this.maps().map(m => [m.id, m.name]));
     const staticCounts = new Map<number, number>();
     for (const r of this.rowsOf('staticobject_spawns')) {
-      const m = num(r[SO_SPAWN_MAP]);
+      const m = num(r[this.columns.staticSpawns.map]);
       staticCounts.set(m, (staticCounts.get(m) ?? 0) + 1);
     }
 
     const out: ZoneRow[] = [];
     for (const [key, row] of this.keyedRows('zones')) {
-      const mapId = num(row[ZONE_MAP]);
+      const mapId = num(row[this.columns.zones.map]);
       if (!maps.has(mapId)) continue;
-      const x1 = num(row[ZONE_BOUNDS[0]]);
-      const z1 = num(row[ZONE_BOUNDS[1]]);
-      const x2 = num(row[ZONE_BOUNDS[2]]);
-      const z2 = num(row[ZONE_BOUNDS[3]]);
-      const sky = this.zoneSkyFirst;
+      const c = this.columns.zones;
+      const x1 = num(row[c.x1]);
+      const z1 = num(row[c.z1]);
+      const x2 = num(row[c.x2]);
+      const z2 = num(row[c.z2]);
       const models = /\.bdae$/i;
       const images = /\.(tga|png|pvr)$/i;
       out.push({
         id: key,
         name: names.get(key) || `zone ${key}`,
-        parent: names.get(num(row[ZONE_PARENT])) ?? null,
-        parentId: num(row[ZONE_PARENT]),
-        priority: num(row[ZONE_PRIORITY]),
-        icon: this.zoneIconCol < 0 ? '' : trim(row[this.zoneIconCol]),
-        friendly: this.zoneIconCol < 0 ? 1 : num(row[this.zoneIconCol + ZONE_FRIENDLY_AFTER_ICON]),
+        parent: names.get(num(row[this.columns.zones.parent])) ?? null,
+        parentId: num(row[this.columns.zones.parent]),
+        priority: num(row[this.columns.zones.priority]),
+        icon: trim(row[c.icon]),
+        friendly: c.friendly < 0 ? ZONE_NEUTRAL : num(row[c.friendly]),
         mapId,
         mapName: maps.get(mapId) ?? '',
         centre: [(x1 + x2) / 2, (z1 + z2) / 2],
         bounds: [x1, z1, x2, z2],
         hasScenery: (staticCounts.get(mapId) ?? 0) > 0,
-        fogColor: num(row[ZONE_FOG_COLOR]),
-        fogNear: num(row[ZONE_FOG_NEAR]),
-        fogFar: num(row[ZONE_FOG_FAR]),
-        sunColor: this.zoneColumn(row, ZONE_SUN_FROM_STRINGS),
-        shadeColor: this.zoneColumn(row, ZONE_SHADE_FROM_STRINGS),
-        skybox: sky < 0 ? '' : skyPath(row[sky + ZONE_SKY_DOME], models),
-        skyHill: sky < 0 ? '' : skyPath(row[sky + ZONE_SKY_HILL], models),
-        skySun: sky < 0 ? '' : skyPath(row[sky + ZONE_SKY_SUN], images),
-        skyHalo: sky < 0 ? '' : skyPath(row[sky + ZONE_SKY_HALO], images),
-        music: this.zoneColumn(row, ZONE_MUSIC_FROM_STRINGS),
-        ambience: this.zoneColumn(row, ZONE_AMBIENCE_FROM_STRINGS),
+        fogColor: num(row[this.columns.zones.fogColor]),
+        fogNear: num(row[this.columns.zones.fogNear]),
+        fogFar: num(row[this.columns.zones.fogFar]),
+        sunColor: num(row[c.sunColor]),
+        shadeColor: num(row[c.shadeColor]),
+        skybox: skyPath(row[c.skyDome], models),
+        skyHill: skyPath(row[c.skyHill], models),
+        skySun: skyPath(row[c.skySun], images),
+        skyHalo: skyPath(row[c.skyHalo], images),
+        music: num(row[c.music]),
+        ambience: num(row[c.ambience]),
       });
     }
     fillMissingAtmosphere(out);
@@ -1039,26 +709,30 @@ export class WorldTables {
   staticModel(entry: number): { path: string | null; scale: number; type: number } {
     const proto = this.keyedRows('staticobject_proto').get(entry);
     if (!proto) return { path: null, scale: 1, type: 0 };
-    const display = this.keyedRows('staticobject_displayinfo').get(num(proto[SO_PROTO_DISPLAY]));
+    const display = this.keyedRows('staticobject_displayinfo').get(
+      num(proto[this.columns.staticProto.display]),
+    );
     return {
-      path: display ? str(display[SO_DISPLAY_PATH]) || null : null,
-      scale: num(proto[SO_PROTO_SCALE]) || 1,
-      type: num(proto[SO_PROTO_TYPE]),
+      path: display ? str(display[this.columns.staticDisplay.path]) || null : null,
+      scale: num(proto[this.columns.staticProto.scale]) || 1,
+      type: num(proto[this.columns.staticProto.type]),
     };
   }
 
   /** Six (node, `.beff`) pairs on the object's model; a pair missing either side attaches nothing. */
   staticEffects(entry: number): Array<{ node: string; effect: string }> {
-    if (this.soEffectFirst < 0) return [];
+    const { effectNodes, effectFiles } = this.columns.staticDisplay;
     const proto = this.keyedRows('staticobject_proto').get(entry);
     if (!proto) return [];
-    const display = this.keyedRows('staticobject_displayinfo').get(num(proto[SO_PROTO_DISPLAY]));
+    const display = this.keyedRows('staticobject_displayinfo').get(
+      num(proto[this.columns.staticProto.display]),
+    );
     if (!display) return [];
 
     const out: Array<{ node: string; effect: string }> = [];
-    for (let i = 0; i < SO_DISPLAY_EFFECTS; i++) {
-      const node = trim(display[this.soEffectFirst + i]);
-      const effect = trim(display[this.soEffectFirst + SO_DISPLAY_EFFECTS + i]);
+    for (let i = 0; i < effectNodes.length; i++) {
+      const node = trim(display[effectNodes[i]!]);
+      const effect = trim(display[effectFiles[i]!]);
       if (node && effect) out.push({ node, effect });
     }
     return out;
@@ -1067,67 +741,58 @@ export class WorldTables {
   /** Which festival an object belongs to, 0 for always-present scenery. */
   staticFestival(entry: number): number {
     const proto = this.keyedRows('staticobject_proto').get(entry);
-    if (!proto || SO_PROTO_FESTIVAL >= proto.length) return 0;
-    return num(proto[SO_PROTO_FESTIVAL]);
+    if (!proto) return 0;
+    return num(proto[this.columns.staticProto.festival]);
   }
 
   /** A creature's service flags, as the server also sends them; 0 for none. */
   npcServiceBits(entry: number): number {
-    return num(this.keyedRows('creature_proto').get(entry)?.[CR_PROTO_FLAGS]) >>> 0;
+    return (
+      num(this.keyedRows('creature_proto').get(entry)?.[this.columns.creatureProto.flags]) >>> 0
+    );
   }
 
   /** The `chat_menu` row a creature opens its conversation with, or 0 where it has none. */
   greetingMenuOf(entry: number): number {
-    return num(this.keyedRows('creature_proto').get(entry)?.[CR_PROTO_GREETING_MENU]);
-  }
-
-  /** A zone column counted back from the first string, or 0 where there is none. */
-  private zoneColumn(row: Row, fromStrings: number): number {
-    return this.zoneFirstString < 0 ? 0 : num(row[this.zoneFirstString + fromStrings]);
+    return num(
+      this.keyedRows('creature_proto').get(entry)?.[this.columns.creatureProto.greetingMenu],
+    );
   }
 
   /** Every sound, the banks capping them and zones' fight music; empty without the tables. */
   soundCatalogue(): SoundCatalogue {
     const cues: SoundCue[] = [];
     if (this.tables.has('c_sound')) {
-      expect(this.table('c_sound'), 'c_sound', [
-        [SOUND_VARIANTS, 'u'],
-        [SOUND_FLAGS, 'u'],
-        [SOUND_PATH, 's'],
-        [SOUND_VOLUME, 'f'],
-        [SOUND_REACH, 'f'],
-        [SOUND_BANK, 'u'],
-      ]);
       for (const [id, row] of this.keyedRows('c_sound')) {
-        const path = trim(row[SOUND_PATH]).split('\\').join('/');
+        const path = trim(row[this.columns.sounds.path]).split('\\').join('/');
         if (!path) continue;
-        const flags = num(row[SOUND_FLAGS]);
+        const flags = num(row[this.columns.sounds.flags]);
         cues.push({
           id,
           path,
-          variants: Math.max(1, num(row[SOUND_VARIANTS])),
+          variants: Math.max(1, num(row[this.columns.sounds.variants])),
           music: (flags & SOUND_FLAG_MUSIC) !== 0,
           positional: (flags & SOUND_FLAG_POSITIONAL) !== 0,
           loop: (flags & SOUND_FLAG_LOOP) !== 0,
           pitched: (flags & SOUND_FLAG_PITCHED) !== 0,
-          volume: num(row[SOUND_VOLUME]) || 1,
-          reach: num(row[SOUND_REACH]),
-          bank: num(row[SOUND_BANK]),
+          volume: num(row[this.columns.sounds.volume]) || 1,
+          reach: num(row[this.columns.sounds.reach]),
+          bank: num(row[this.columns.sounds.bank]),
         });
       }
     }
     const banks: SoundBankRow[] = [];
     if (this.tables.has('c_sound_bank')) {
       for (const [id, row] of this.keyedRows('c_sound_bank')) {
-        const packed = num(row[SOUND_BANK_CAPACITY]);
+        const packed = num(row[this.columns.soundBanks.capacity]);
         banks.push({ id, capacity: packed & 0xffff });
       }
     }
     const battleMusic: Array<[number, number]> = [];
     if (this.tables.has('ZoneSpecialMusic')) {
       for (const row of this.rowsOf('ZoneSpecialMusic')) {
-        const cue = num(row[BATTLE_MUSIC_CUE]);
-        if (cue) battleMusic.push([num(row[BATTLE_MUSIC_ZONE]), cue]);
+        const cue = num(row[this.columns.battleMusic.cue]);
+        if (cue) battleMusic.push([num(row[this.columns.battleMusic.zone]), cue]);
       }
     }
     return { cues, banks, battleMusic };
@@ -1141,14 +806,16 @@ export class WorldTables {
   unitSounds(entry: number, displayInfoId: number, race = -1, gender = -1): UnitSounds | null {
     if (!this.tables.has('sound_solution')) return null;
     const appearance = entry ? this.keyedRows('creature_appearance').get(entry) : undefined;
-    const displayId = appearance ? num(appearance[CR_APPEARANCE_DISPLAY]) : displayInfoId;
+    const displayId = appearance
+      ? num(appearance[this.columns.creatureAppearance.display])
+      : displayInfoId;
     const own = this.displaySounds(displayId);
     if (own?.hurt) return own;
 
     const bodies = this.rowsOf('character_race').map(row => ({
       race: num(row[0]),
-      male: num(row[RACE_MALE_DISPLAY]),
-      female: num(row[RACE_FEMALE_DISPLAY]),
+      male: num(row[this.columns.races.maleDisplay]),
+      female: num(row[this.columns.races.femaleDisplay]),
     }));
     const path = this.displayModel(displayId)?.path?.toLowerCase();
     const worn = path
@@ -1178,15 +845,17 @@ export class WorldTables {
   private displaySounds(displayId: number): UnitSounds | null {
     const display = this.keyedRows('creaturedisplayinfo').get(displayId);
     if (!display) return null;
-    const model = this.keyedRows('creaturemodeldata').get(num(display[CR_DISPLAY_MODEL]));
+    const model = this.keyedRows('creaturemodeldata').get(
+      num(display[this.columns.creatureDisplay.model]),
+    );
     if (!model) return null;
-    const setId = num(model[model.length + CR_MODEL_SOUNDS_FROM_END]);
+    const setId = num(model[this.columns.creatureModel.sounds]);
     const set = this.keyedRows('sound_solution').get(setId);
     if (!set) return null;
     const out: UnitSounds = {};
     let any = false;
     UNIT_SOUND_STATES.forEach((state, i) => {
-      const cue = num(set[1 + i]);
+      const cue = num(set[this.columns.soundSets.states[i]!]);
       if (cue) {
         out[state] = cue;
         any = true;
@@ -1196,7 +865,9 @@ export class WorldTables {
   }
 
   creatureNameStringId(entry: number): number {
-    return num(this.keyedRows('creature_appearance').get(entry)?.[CR_APPEARANCE_NAME]);
+    return num(
+      this.keyedRows('creature_appearance').get(entry)?.[this.columns.creatureAppearance.name],
+    );
   }
 
   /** Model, scale and skin for a creature entry; `creature_proto`'s scale multiplies the display row's. */
@@ -1204,11 +875,12 @@ export class WorldTables {
     const appearance = this.keyedRows('creature_appearance').get(entry);
     if (!appearance) return noCreatureModel();
 
-    const resolved = this.displayModel(num(appearance[CR_APPEARANCE_DISPLAY]));
+    const resolved = this.displayModel(num(appearance[this.columns.creatureAppearance.display]));
     if (!resolved) return noCreatureModel();
 
     const proto = this.keyedRows('creature_proto').get(entry);
-    if (proto && num(proto[CR_PROTO_SCALE])) resolved.scale *= num(proto[CR_PROTO_SCALE]);
+    if (proto && num(proto[this.columns.creatureProto.scale]))
+      resolved.scale *= num(proto[this.columns.creatureProto.scale]);
     return resolved;
   }
 
@@ -1221,18 +893,24 @@ export class WorldTables {
   private displayModel(displayInfoId: number): CreatureModel | null {
     const display = this.keyedRows('creaturedisplayinfo').get(displayInfoId);
     if (!display) return null;
-    const model = this.keyedRows('creaturemodeldata').get(num(display[CR_DISPLAY_MODEL]));
+    const model = this.keyedRows('creaturemodeldata').get(
+      num(display[this.columns.creatureDisplay.model]),
+    );
     return {
-      path: model ? str(model[CR_MODEL_PATH]) || null : null,
-      scale: (num(display[CR_DISPLAY_SCALE]) || DISPLAY_SCALE_PERCENT) / DISPLAY_SCALE_PERCENT,
-      skin: str(display[CR_DISPLAY_SKIN]) || null,
+      path: model ? str(model[this.columns.creatureModel.path]) || null : null,
+      scale:
+        (num(display[this.columns.creatureDisplay.scale]) || DISPLAY_SCALE_PERCENT) /
+        DISPLAY_SCALE_PERCENT,
+      skin: str(display[this.columns.creatureDisplay.skin]) || null,
     };
   }
 
   animationName(animationId: number): string | null {
     const row = this.keyedRows('c_animationdata').get(animationId);
-    return row && typeof row[C_ANIM_NAME] === 'string' && row[C_ANIM_NAME]
-      ? (row[C_ANIM_NAME] as string)
+    return row &&
+      typeof row[this.columns.animations.name] === 'string' &&
+      row[this.columns.animations.name]
+      ? (row[this.columns.animations.name] as string)
       : null;
   }
 
@@ -1240,7 +918,7 @@ export class WorldTables {
   animationNamed(name: string): string | null {
     const wanted = name.toLowerCase();
     for (const row of this.keyedRows('c_animationdata').values()) {
-      const own = row[C_ANIM_NAME];
+      const own = row[this.columns.animations.name];
       if (typeof own === 'string' && own.toLowerCase() === wanted) return own;
     }
     return null;
@@ -1266,7 +944,7 @@ export class WorldTables {
   /** Whether `c_animationdata` marks this clip as looping. */
   animationLoops(animationId: number): boolean {
     const row = this.keyedRows('c_animationdata').get(animationId);
-    return row ? num(row[C_ANIM_LOOP]) !== 0 : false;
+    return row ? num(row[this.columns.animations.loop]) !== 0 : false;
   }
 
   /** The lowest `c_spellvisual` id showing an effect file, in any phase or as its projectile. */
@@ -1291,16 +969,16 @@ export class WorldTables {
     if (!row) return null;
 
     const phases = {} as Record<SpellPhase, SpellPhaseData | null>;
-    PHASE_COLUMNS.forEach((phase, i) => {
-      phases[phase] = this.visualPhase(num(row[1 + i]));
+    PHASE_COLUMNS.forEach(phase => {
+      phases[phase] = this.visualPhase(num(row[this.columns.spellVisuals[phase]]));
     });
 
     return {
       id: spellVisualId,
       phases,
-      missile: this.visualEffect(num(row[VISUAL_MISSILE]), null),
-      weaponStreak: num(row[VISUAL_STREAK]) & 0xff,
-      impactDelayMs: num(row[VISUAL_IMPACT_DELAY]),
+      missile: this.visualEffect(num(row[this.columns.spellVisuals.missile]), null),
+      weaponStreak: num(row[this.columns.spellVisuals.streak]) & 0xff,
+      impactDelayMs: num(row[this.columns.spellVisuals.impactDelay]),
     };
   }
 
@@ -1311,17 +989,17 @@ export class WorldTables {
     if (!row) return null;
 
     const effects = ANCHOR_COLUMNS.map((anchor, i) =>
-      this.visualEffect(num(row[PHASE_FIRST_EFFECT + i]), anchor),
+      this.visualEffect(num(row[this.columns.spellVisualStates.effects[i]!]), anchor),
     ).filter((e): e is SpellVisualEffect => e !== null);
 
-    const casterClipId = num(row[PHASE_CLIP]);
+    const casterClipId = num(row[this.columns.spellVisualStates.clip]);
     return {
       casterClipId,
       casterClip: casterClipId ? this.animationName(casterClipId) : null,
       casterClipLoops: casterClipId ? this.animationLoops(casterClipId) : false,
-      wholeBody: num(row[PHASE_CLIP_BLEND]) === CLIP_BLEND_WHOLE_BODY,
-      sound: num(row[PHASE_SOUND]),
-      shake: num(row[PHASE_SHAKE]),
+      wholeBody: num(row[this.columns.spellVisualStates.clipBlend]) === CLIP_BLEND_WHOLE_BODY,
+      sound: num(row[this.columns.spellVisualStates.sound]),
+      shake: num(row[this.columns.spellVisualStates.shake]),
       effects,
     };
   }
@@ -1331,16 +1009,18 @@ export class WorldTables {
     if (!effectId) return null;
     const row = this.keyedRows('c_spellvisualeffect').get(effectId);
     if (!row) return null;
-    const pathname = str(row[EFFECT_PATH]);
+    const pathname = str(row[this.columns.spellVisualEffects.path]);
     if (!pathname) return null;
     return {
       effectId,
-      name: str(row[EFFECT_NAME]),
+      name: str(row[this.columns.spellVisualEffects.name]),
       pathname,
-      placement: placementOf(num(row[EFFECT_PLACEMENT])),
-      scale: (num(row[EFFECT_SCALE]) || EFFECT_SCALE_PERCENT) / EFFECT_SCALE_PERCENT,
-      flight: flightOf(num(row[EFFECT_FLIGHT])),
-      count: Math.max(1, num(row[EFFECT_PROJECTILES])),
+      placement: placementOf(num(row[this.columns.spellVisualEffects.placement])),
+      scale:
+        (num(row[this.columns.spellVisualEffects.scale]) || EFFECT_SCALE_PERCENT) /
+        EFFECT_SCALE_PERCENT,
+      flight: flightOf(num(row[this.columns.spellVisualEffects.flight])),
+      count: Math.max(1, num(row[this.columns.spellVisualEffects.projectiles])),
       anchor,
     };
   }
@@ -1348,7 +1028,7 @@ export class WorldTables {
   /** Cast time from `spell_new`: an instant spell with no release row swings through its opening phase. */
   spellCastingTime(spellId: number): number {
     const row = this.keyedRows('spell_new').get(spellId);
-    return row ? num(row[CAST_TIME_COLUMN]) : 0;
+    return row ? num(row[this.columns.spells.castMs]) : 0;
   }
 
   /** What the spell book's card shows of a spell: its cost, cast time, cooldown and reach. */
@@ -1366,14 +1046,16 @@ export class WorldTables {
         skillSetIcon: null,
       };
     }
-    const skillSet = num(row[SPELL_SKILL_GROUP]);
-    const icon = str(this.keyedRows('spell_skillset').get(skillSet)?.[SKILL_SET_ICON] ?? '');
+    const skillSet = num(row[this.columns.spells.skillSet]);
+    const icon = str(
+      this.keyedRows('spell_skillset').get(skillSet)?.[this.columns.skillSets.icon] ?? '',
+    );
     return {
-      powerCost: num(row[POWER_COST_COLUMN]),
-      castMs: num(row[CAST_TIME_COLUMN]),
-      cooldownMs: num(row[COOLDOWN_COLUMN]),
-      range: num(row[MAX_RANGE_COLUMN]),
-      mount: num(row[MOUNT_KIND_COLUMN]) > 0,
+      powerCost: num(row[this.columns.spells.powerCost]),
+      castMs: num(row[this.columns.spells.castMs]),
+      cooldownMs: num(row[this.columns.spells.cooldownMs]),
+      range: num(row[this.columns.spells.range]),
+      mount: num(row[this.columns.spells.mountKind]) > 0,
       pet: this.callsPet(row),
       skillSet,
       skillSetIcon: icon && icon !== '0' ? icon : null,
@@ -1384,7 +1066,10 @@ export class WorldTables {
   itemWeaponClass(entry: number): { itemClass: number; subClass: number } {
     const row = this.keyedRows('items').get(entry);
     if (!row) return { itemClass: 0, subClass: 0 };
-    return { itemClass: num(row[ITEM_CLASS]), subClass: num(row[ITEM_SUBCLASS]) };
+    return {
+      itemClass: num(row[this.columns.items.itemClass]),
+      subClass: num(row[this.columns.items.subClass]),
+    };
   }
 
   /**
@@ -1396,12 +1081,12 @@ export class WorldTables {
     const row = this.keyedRows('spell_new').get(spellId);
     if (!row) return 0;
     const effects = this.keyedRows('spell_effect');
-    for (const slot of SPELL_EFFECT_SLOTS) {
+    for (const slot of this.columns.spells.effects) {
       const effect = effects.get(num(row[slot]));
       if (!effect) continue;
-      const label = effect[SPELL_EFFECT_LABEL];
+      const label = effect[this.columns.spellEffects.label];
       if (typeof label === 'string' && label.startsWith('Avatar'))
-        return num(effect[SPELL_EFFECT_ARGUMENT]);
+        return num(effect[this.columns.spellEffects.argument]);
     }
     return 0;
   }
@@ -1411,14 +1096,14 @@ export class WorldTables {
     const row = this.keyedRows('spell_new').get(spellId);
     if (!row) return 0;
     const effects = this.keyedRows('spell_effect');
-    for (const slot of SPELL_EFFECT_SLOTS) {
+    for (const slot of this.columns.spells.effects) {
       const effect = effects.get(num(row[slot]));
       if (
         effect &&
-        num(effect[SPELL_EFFECT_KIND]) === AURA_EFFECT &&
-        num(effect[SPELL_EFFECT_DETAIL]) === MOUNT_DETAIL
+        num(effect[this.columns.spellEffects.kind]) === AURA_EFFECT &&
+        num(effect[this.columns.spellEffects.detail]) === MOUNT_DETAIL
       )
-        return num(effect[SPELL_EFFECT_ARGUMENT]);
+        return num(effect[this.columns.spellEffects.argument]);
     }
     return 0;
   }
@@ -1427,7 +1112,7 @@ export class WorldTables {
   itemNames(): Array<{ entry: number; nameId: number }> {
     const found: Array<{ entry: number; nameId: number }> = [];
     for (const [entry, row] of this.keyedRows('items')) {
-      const nameId = num(row[ITEM_NAME_STRING]);
+      const nameId = num(row[this.columns.items.nameString]);
       if (nameId > 0) found.push({ entry, nameId });
     }
     return found;
@@ -1437,7 +1122,7 @@ export class WorldTables {
   itemNameId(entry: number): number | null {
     const row = this.keyedRows('items').get(entry);
     if (!row) return null;
-    const nameId = num(row[ITEM_NAME_STRING]);
+    const nameId = num(row[this.columns.items.nameString]);
     return nameId > 0 ? nameId : null;
   }
 
@@ -1446,55 +1131,60 @@ export class WorldTables {
     const row = this.keyedRows('items').get(entry);
     if (!row) return null;
     return {
-      itemClass: num(row[ITEM_CLASS_COL]),
-      subClass: num(row[ITEM_SUBCLASS_COL]),
-      quality: num(row[ITEM_QUALITY]),
-      requiredLevel: num(row[ITEM_LEVEL_NEEDED_COLUMN]),
-      descriptionId: num(row[ITEM_DESCRIPTION_STRING]),
-      inventoryType: num(row[ITEM_WORN_ON_COLUMN]),
-      armour: num(row[ITEM_ARMOUR]),
-      binding: num(row[ITEM_BINDING]),
-      allowedClasses: num(row[ITEM_WEARER_CLASSES_COLUMN]),
-      stats: itemStats(row),
-      damage: itemDamage(row),
-      delay: num(row[ITEM_DELAY]),
-      block: num(row[ITEM_BLOCK]),
-      spells: itemSpells(row),
-      spellSlots: itemSpellSlots(row),
-      startsQuest: num(row[ITEM_STARTS_QUEST]),
+      itemClass: num(row[this.columns.items.itemClass]),
+      subClass: num(row[this.columns.items.subClass]),
+      quality: num(row[this.columns.items.quality]),
+      requiredLevel: num(row[this.columns.items.levelNeeded]),
+      descriptionId: num(row[this.columns.items.descriptionString]),
+      inventoryType: num(row[this.columns.items.wornOn]),
+      armour: num(row[this.columns.items.armour]),
+      binding: num(row[this.columns.items.binding]),
+      allowedClasses: num(row[this.columns.items.wearerClasses]),
+      stats: this.columns.items.statsFirst < 0 ? [] : itemStats(row, this.columns.items.statsFirst),
+      damage:
+        this.columns.items.damageFirst < 0 ? [] : itemDamage(row, this.columns.items.damageFirst),
+      delay: num(row[this.columns.items.delay]),
+      block: num(row[this.columns.items.block]),
+      spells:
+        this.columns.items.spellsFirst < 0 ? [] : itemSpells(row, this.columns.items.spellsFirst),
+      spellSlots:
+        this.columns.items.spellsFirst < 0
+          ? []
+          : itemSpellSlots(row, this.columns.items.spellsFirst),
+      startsQuest: num(row[this.columns.items.startsQuest]),
     };
   }
 
   /** The string id describing a spell; 0 where none. */
   spellDescriptionId(spellId: number): number {
     const row = this.keyedRows('spell_new').get(spellId);
-    return row ? num(row[SPELL_DESCRIPTION_STRING]) : 0;
+    return row ? num(row[this.columns.spells.descriptionString]) : 0;
   }
 
   /** The spell visual id the spell's own row names. */
   spellVisualId(spellId: number): number {
     const row = this.keyedRows('spell_new').get(spellId);
-    return row ? num(row[SPELL_VISUAL_COLUMN]) : 0;
+    return row ? num(row[this.columns.spells.visual]) : 0;
   }
 
   /** The string id naming a spell, from `spell_new`'s name column, not the spell id. */
   spellNameId(spellId: number): number | null {
     const row = this.keyedRows('spell_new').get(spellId);
     if (!row) return null;
-    const nameId = num(row[SPELL_NAME_STRING]);
+    const nameId = num(row[this.columns.spells.nameString]);
     return nameId > 0 ? nameId : null;
   }
 
   /** A spell's rank in its chain; 0 when the row gives none. */
   spellRank(spellId: number): number {
     const row = this.keyedRows('spell_new').get(spellId);
-    return row ? num(row[SPELL_RANK]) : 0;
+    return row ? num(row[this.columns.spells.rank]) : 0;
   }
 
   /** Item icon file name: by entry first, by display id for the shared-look minority. */
   itemIcon(entry: number): string | null {
     const row = this.keyedRows('itemdisplayinfo').get(entry);
-    const icon = row ? str(row[ITEM_DISPLAY_ICON]) : null;
+    const icon = row ? str(row[this.columns.itemDisplay.icon]) : null;
     if (icon && icon !== '0') return icon;
     return this.itemIconByDisplayId(entry);
   }
@@ -1506,11 +1196,11 @@ export class WorldTables {
   private itemIconByDisplayId(entry: number): string | null {
     const item = this.keyedRows('items').get(entry);
     if (!item) return null;
-    const displayId = num(item[ITEM_LOOK_COLUMN]);
+    const displayId = num(item[this.columns.items.look]);
     if (!displayId || displayId === entry) return null;
     const row = this.keyedRows('itemdisplayinfo').get(displayId);
     if (!row) return null;
-    const icon = str(row[ITEM_DISPLAY_ICON]);
+    const icon = str(row[this.columns.itemDisplay.icon]);
     return icon && icon !== '0' ? icon : null;
   }
 
@@ -1518,7 +1208,7 @@ export class WorldTables {
   spellIcon(spellId: number): string | null {
     const row = this.keyedRows('spell_new').get(spellId);
     if (!row) return null;
-    const icon = str(row[SPELL_ICON]);
+    const icon = str(row[this.columns.spells.icon]);
     return icon && icon !== '0' ? icon : null;
   }
 
@@ -1526,21 +1216,21 @@ export class WorldTables {
   spellCastable(spellId: number): boolean {
     const row = this.keyedRows('spell_new').get(spellId);
     if (!row) return false;
-    if (num(row[MOUNT_KIND_COLUMN]) > 0) return false;
-    if (num(row[SPELL_FLAGS_COLUMN]) & SPELL_NEVER_CAST_FLAG) return false;
-    const skillGroup = num(row[SPELL_SKILL_GROUP]);
+    if (num(row[this.columns.spells.mountKind]) > 0) return false;
+    if (num(row[this.columns.spells.flags]) & SPELL_NEVER_CAST_FLAG) return false;
+    const skillGroup = num(row[this.columns.spells.skillSet]);
     if (skillGroup === 0 && this.callsPet(row)) return true;
     if (skillGroup === 0 || (skillGroup >= 23 && skillGroup <= 26)) return false;
     return true;
   }
 
   private callsPet(row: Row): boolean {
-    return SPELL_EFFECT_SLOTS.some(slot => {
+    return this.columns.spells.effects.some(slot => {
       const effect = this.keyedRows('spell_effect').get(num(row[slot]));
       return (
         effect !== undefined &&
-        num(effect[SPELL_EFFECT_KIND]) === INSTANT_EFFECT &&
-        num(effect[SPELL_EFFECT_DETAIL]) === SUMMON_DETAIL
+        num(effect[this.columns.spellEffects.kind]) === INSTANT_EFFECT &&
+        num(effect[this.columns.spellEffects.detail]) === SUMMON_DETAIL
       );
     });
   }

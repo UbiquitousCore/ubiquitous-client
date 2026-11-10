@@ -1,8 +1,4 @@
-/**
- * The build fingerprint: every loaded table's shape, for the boot log and
- * for comparing against the server's golden fingerprints. A new build shows
- * up here first, as shape drift rather than a bare column error.
- */
+/** Every loaded table's shape, as the boot log prints it. */
 
 import { describe, expect, it } from 'vitest';
 

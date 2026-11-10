@@ -169,7 +169,7 @@ export function FallbackMakeCharacter(): JSX.Element {
       Name
       <input
         aria-label="Name"
-        className="bg-ink-950 rounded border border-parchment-700 px-2 py-1"
+        className="rounded border border-parchment-700 bg-chrome-950 px-2 py-1"
         value={name}
         onInput={event => {
           setName(event.currentTarget.value);

@@ -11,6 +11,7 @@ import type { Library } from '../src/assets/vfs/Library';
 import type { WorldTables } from '../src/assets/formats/tables';
 import { MapSpawns, buildTile, fallbackGeom } from '../src/assets/providers/localTile';
 import { CollisionWorld } from '../src/world/CollisionWorld';
+import { referenceColumns } from './helpers/tableColumns';
 
 const WINDMILL = 'model/windmill.bdae';
 const FOUNTAIN = 'Effects/fountain.beff';
@@ -23,6 +24,7 @@ function tables(): WorldTables {
   ];
   return {
     maps: () => [{ id: 1, world: 'world/silence.wld' }],
+    columns: referenceColumns(),
     rowsOf: (name: string) => (name === 'staticobject_spawns' ? rows : []),
     staticModel: (entry: number) =>
       entry === 7001

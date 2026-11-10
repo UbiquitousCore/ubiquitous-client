@@ -27,19 +27,6 @@ import { itmRotation, mapPackName, offsetBy, placementScale, spawnRotation } fro
 
 const log = logger('local-tile');
 
-/** Column indices this module reads directly out of the spawn tables. */
-const SO_SPAWN_ENTRY = 1;
-const SO_SPAWN_MAP = 2;
-const SO_SPAWN_XYZ = [3, 4, 5] as const;
-const SO_SPAWN_ROT_Y = 7;
-const SO_SPAWN_SCALE = 11;
-const CR_SPAWN_ENTRY = 1;
-const CR_SPAWN_MAP = 2;
-const CR_SPAWN_XYZ = [3, 4, 5] as const;
-const CR_SPAWN_O = 6;
-const CR_DISPLAY_EXTRA = 7;
-const CR_APPEARANCE_DISPLAY = 5;
-
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 
 /** `'17,12'` — how a tile addresses itself in every map keyed by one. */
@@ -88,26 +75,27 @@ export class MapSpawns {
 
   static build(tables: WorldTables, mapId: number): MapSpawns {
     const index = new MapSpawns(mapId);
+    const { staticSpawns: statics, creatureSpawns: creatures } = tables.columns;
 
     for (const r of tables.rowsOf('staticobject_spawns')) {
-      if (num(r[SO_SPAWN_MAP]) !== mapId) continue;
-      const entry = num(r[SO_SPAWN_ENTRY]);
+      if (num(r[statics.map]) !== mapId) continue;
+      const entry = num(r[statics.entry]);
       if (SERVER_PLACED_STATIC_ENTRIES.has(entry)) continue;
       const { path, scale: protoScale, type } = tables.staticModel(entry);
       if (!path) continue;
       const pos: [number, number, number] = [
-        num(r[SO_SPAWN_XYZ[0]]),
-        num(r[SO_SPAWN_XYZ[1]]),
-        num(r[SO_SPAWN_XYZ[2]]),
+        num(r[statics.x]),
+        num(r[statics.y]),
+        num(r[statics.z]),
       ];
-      // One uniform scale float at 1.0.2, scaleX/Y/Z from 1.1.4 on. The
+      // One scale in the oldest builds, one per axis since. The
       // scalar is the one drawn with — using the per-axis values instead
       // visibly stretches decorations.
-      const spawnScale = num(r[SO_SPAWN_SCALE]);
+      const spawnScale = num(r[statics.scale]);
       push(index.statics, pos, {
         model: path,
         pos,
-        yaw: num(r[SO_SPAWN_ROT_Y]),
+        yaw: num(r[statics.yaw]),
         scale: spawnScale || protoScale || 1,
         entry,
         interactionIcon: objectServiceIcon(type, true) ?? null,
@@ -116,19 +104,19 @@ export class MapSpawns {
     }
 
     for (const r of tables.rowsOf('creature_spawns')) {
-      if (num(r[CR_SPAWN_MAP]) !== mapId) continue;
-      const entry = num(r[CR_SPAWN_ENTRY]);
+      if (num(r[creatures.map]) !== mapId) continue;
+      const entry = num(r[creatures.entry]);
       const { path, scale, skin } = tables.creatureModel(entry);
       if (!path) continue;
       const pos: [number, number, number] = [
-        num(r[CR_SPAWN_XYZ[0]]),
-        num(r[CR_SPAWN_XYZ[1]]),
-        num(r[CR_SPAWN_XYZ[2]]),
+        num(r[creatures.x]),
+        num(r[creatures.y]),
+        num(r[creatures.z]),
       ];
       push(index.creatures, pos, {
         model: path,
         pos,
-        yaw: num(r[CR_SPAWN_O]),
+        yaw: num(r[creatures.yaw]),
         scale: scale || 1,
         entry,
         skin,
@@ -599,9 +587,11 @@ function appearanceFor(
   if (!appearance) return undefined;
   const display = tables
     .keyedRows('creaturedisplayinfo')
-    .get(num(appearance[CR_APPEARANCE_DISPLAY]));
+    .get(num(appearance[tables.columns.creatureAppearance.display]));
   if (!display) return undefined;
-  const extra = tables.keyedRows('creaturedisplayinfoextra').get(num(display[CR_DISPLAY_EXTRA]));
+  const extra = tables
+    .keyedRows('creaturedisplayinfoextra')
+    .get(num(display[tables.columns.creatureDisplay.extra]));
   if (!extra) return undefined;
 
   const look = lookFromRow(extra);

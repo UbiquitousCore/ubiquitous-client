@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { MapSpawns } from '../src/assets/providers/localTile';
+import { referenceColumns } from './helpers/tableColumns';
 
 type Tables = Parameters<typeof MapSpawns.build>[0];
 
 function tables(entries: number[]): Tables {
   const rows = entries.map(entry => [0, entry, 1, 10, 0, 10, 0, 0, 0, 0, 0, 1]);
   return {
+    columns: referenceColumns(),
     rowsOf: (name: string) => (name === 'staticobject_spawns' ? rows : []),
     staticModel: () => ({ path: 'prop.bdae', scale: 1, type: 0 }),
     staticEffects: () => [],

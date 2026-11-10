@@ -1500,7 +1500,7 @@ export class PackAssetProvider implements AssetProvider {
       const displayId = shape || (appearanceRow ? Number(appearanceRow[5]) : id.displayInfoId);
       const display = tables.keyedRows('creaturedisplayinfo').get(displayId);
       const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
+        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[tables.columns.creatureDisplay.extra]))
         : undefined;
       if (extra) {
         const look = lookFromRow(extra);
@@ -1788,7 +1788,7 @@ export class PackAssetProvider implements AssetProvider {
       const display = tables.keyedRows('creaturedisplayinfo').get(Number(parts[2]));
       const { path } = tables.creatureDisplayModel(Number(parts[2]));
       const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
+        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[tables.columns.creatureDisplay.extra]))
         : undefined;
       if (!path || !extra) throw new ResourceNotFoundError(`texture:${ref}`);
       modelPath = path;
@@ -1800,10 +1800,10 @@ export class PackAssetProvider implements AssetProvider {
       modelPath = path;
       const appearance = tables.keyedRows('creature_appearance').get(entry);
       const display = appearance
-        ? tables.keyedRows('creaturedisplayinfo').get(Number(appearance[5]))
+        ? tables.keyedRows('creaturedisplayinfo').get(Number(appearance[tables.columns.creatureAppearance.display]))
         : undefined;
       const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
+        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[tables.columns.creatureDisplay.extra]))
         : undefined;
       if (!extra) throw new ResourceNotFoundError(`texture:${ref}`);
       look = lookFromRow(extra);

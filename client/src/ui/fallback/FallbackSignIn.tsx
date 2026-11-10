@@ -50,7 +50,7 @@ export function FallbackSignIn(): JSX.Element {
         Account
         <input
           aria-label="Account"
-          className="bg-ink-950 rounded border border-parchment-700 px-2 py-1"
+          className="rounded border border-parchment-700 bg-chrome-950 px-2 py-1"
           value={account}
           disabled={working}
           onInput={event => setAccount(event.currentTarget.value)}
@@ -62,7 +62,7 @@ export function FallbackSignIn(): JSX.Element {
         <input
           aria-label="Password"
           type="password"
-          className="bg-ink-950 rounded border border-parchment-700 px-2 py-1"
+          className="rounded border border-parchment-700 bg-chrome-950 px-2 py-1"
           value={password}
           disabled={working}
           onInput={event => setPassword(event.currentTarget.value)}
