@@ -47,7 +47,6 @@ import { WaterRipples } from './WaterRipples';
 import { ObjectShadows, collectShadows } from './ObjectShadows';
 import type { GroundCacheEntry } from './ObjectShadows';
 import { TargetRing, placeRing } from './TargetRing';
-import { GUIDE_MODEL, GUIDE_SCALE } from '../gameplay/questGuide';
 import type { Relation } from './TargetRing';
 
 /**
@@ -156,6 +155,11 @@ const log = logger('renderer');
 
 /** The slots whose item moves between a resting node and the hand. */
 const HELD_SLOTS: ReadonlySet<WornSlot> = new Set(['twoHand', 'mainHand', 'offHand', 'ranged']);
+
+/** The quest guide arrow's model. */
+const GUIDE_MODEL = 'model/scene/sky/arrowhead/arrowhead.bdae';
+/** Observed in play by the owner: the arrow is drawn larger than its model. Own choice: 2.5 times. */
+const GUIDE_SCALE = 2.5;
 
 /** Radians per pixel dragged: a full turn over about 630 px. */
 const PREVIEW_TURN_PER_PIXEL = 0.01;
