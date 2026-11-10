@@ -150,7 +150,7 @@ import { EntityClips } from '../gameplay/EntityClips';
 import { NetworkBodies } from '../gameplay/NetworkBodies';
 import { PetFollowers } from '../gameplay/PetFollowers';
 import { describeCombatEvent } from '../gameplay/combatLog';
-import { UNARMED, WEAPON_SLOT, weaponsFromHands } from '../gameplay/weaponClips';
+import { UNARMED, WEAPON_SLOT, weaponsFromHands } from '../assets/weaponClips';
 import type { PlayClipOptions } from '../gameplay/CombatVisuals';
 import { auraRemovalVisual, castVisualId, CombatVisuals } from '../gameplay/CombatVisuals';
 import { AudioEngine } from '../audio/AudioEngine';

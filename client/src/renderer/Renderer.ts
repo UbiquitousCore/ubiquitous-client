@@ -73,8 +73,8 @@ import { attachPointId, effectId, heldItemId } from '../assets/ids';
 import { MaterialCache } from './MaterialCache';
 import { EffectInstance } from './EffectFactory';
 import { placementSeed } from './emitterSpawn';
-import { combatClipName, UNARMED } from '../gameplay/weaponClips';
-import type { EquippedWeapons } from '../gameplay/weaponClips';
+import { combatClipName, UNARMED } from '../assets/weaponClips';
+import type { EquippedWeapons } from '../assets/weaponClips';
 import { CameraRig } from './CameraRig';
 import {
   appendEntry,

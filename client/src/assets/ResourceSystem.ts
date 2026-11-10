@@ -69,8 +69,8 @@ import type {
   ZoneIndex,
 } from './types';
 import type { SpellVisualData } from './formats/tables';
-import { WEAPON_SLOT, familyOf } from '../gameplay/weaponClips';
-import type { EquippedWeapons, WeaponType } from '../gameplay/weaponClips';
+import { WEAPON_SLOT, familyOf } from './weaponClips';
+import type { EquippedWeapons, WeaponType } from './weaponClips';
 import { CACHE_SCHEMA_VERSION, MemoryResourceCache } from './cache/ResourceCache';
 import type { ResourceCache } from './cache/ResourceCache';
 

@@ -29,7 +29,7 @@ import { busFaresFrom } from '../src/gameplay/busRoutes';
 import { dedupeRanks } from '../src/gameplay/SpellBook';
 import { cueClips, cueFor } from '../src/gameplay/ClipMachine';
 import type { Movement, Posture } from '../src/gameplay/ClipMachine';
-import { combatClipName, familyOf, UNARMED } from '../src/gameplay/weaponClips';
+import { combatClipName, familyOf, UNARMED } from '../src/assets/weaponClips';
 import { heldKind } from '../src/assets/heldKinds';
 import { useOf } from '../src/ui/items';
 import { ACTION_CLIPS, GATHER_HELD_ITEMS } from '../src/gameplay/actionClips';

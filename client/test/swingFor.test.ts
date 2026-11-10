@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ATTACK_CLIPS, SwingQueue, attackerClipFor, swingFor } from '../src/gameplay/combatResults';
-import { OFF_HAND_SWING, swingsOffHand } from '../src/gameplay/weaponClips';
+import { OFF_HAND_SWING, swingsOffHand } from '../src/assets/weaponClips';
 
 describe('swingFor', () => {
   it('splits ordinary blows evenly between the two swings', () => {
