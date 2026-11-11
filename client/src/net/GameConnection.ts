@@ -16,7 +16,6 @@ export enum EntityMovementState {
   LandedMoving = 'landedMoving',
 }
 
-/** A lasting effect a body already wears when first sent. */
 /** One table of the player's game file, as the login describes it. */
 export interface SentTable {
   name: string;
@@ -32,6 +31,7 @@ export interface ServerBuild {
   differingTables: string[];
 }
 
+/** A lasting effect a body already wears when first sent. */
 export interface HeldAura {
   casterId: number;
   spellId: number;
