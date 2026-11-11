@@ -11,7 +11,7 @@
  * fights unarmed (`HOLDING_NO_FAMILY`). Beasts keep bare names.
  */
 
-import { type HeldKind, heldKind } from '../assets/heldKinds';
+import { type HeldKind, heldKind } from './heldKinds';
 
 /** Where the weapons sit in the protocol's 16-slot equipment list. */
 export const WEAPON_SLOT = {

@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { WorldTables } from '../src/assets/formats/tables';
+import { spellLayout } from '../src/assets/formats/tableLayouts';
 import { buildTable, buildTableFiles } from './helpers/fixtures';
 
 function loader(extra: Array<{ name: string; data: Uint8Array }>) {
@@ -56,13 +57,15 @@ const animation = buildTable(
   [row(4, { 1: 'cast_loop', 2: 1 })],
   [70],
 );
+const spellRow = (set: Record<number, number | string>): (number | string)[] =>
+  [...spellLayout.reference].map((type, at) => set[at] ?? (type === 's' ? '' : 0));
 const spells = buildTable(
-  format(44, [10]),
+  spellLayout.reference,
   // The columns the reader takes: skill set, name, rank, description, icon,
   // cast time, cooldown, reach, mount kind, visual, power cost and flags
   // (0x4 marks a spell that is never cast).
   [
-    row(44, {
+    spellRow({
       1: 3,
       5: 900,
       6: 2,
@@ -74,8 +77,8 @@ const spells = buildTable(
       26: 5,
       41: 40,
     }),
-    row(44, { 1: 3, 10: '0', 43: 0x4 }),
-    row(44, { 1: 3, 25: 1 }),
+    spellRow({ 1: 3, 10: '0', 43: 0x4 }),
+    spellRow({ 1: 3, 25: 1 }),
   ],
   [100, 101, 102],
 );

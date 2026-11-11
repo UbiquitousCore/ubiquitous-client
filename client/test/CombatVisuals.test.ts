@@ -27,7 +27,6 @@ import type {
   SpellVisualEffect,
 } from '../src/assets/formats/tables';
 import type { EffectInstance } from '../src/renderer/EffectFactory';
-import * as THREE from 'three';
 import { LOOT_GLOW_EFFECT } from '../src/gameplay/loot';
 
 // ---------------------------------------------------------------------------
@@ -46,6 +45,8 @@ interface FakeInstance {
   /** A projectile that arrived: gone, with its trail left fading. */
   landed: boolean;
   pos: [number, number, number];
+  /** Which way the scene was last told its nose points; null until it has flown. */
+  heading: [number, number, number] | null;
   path: string;
   /** The skeleton node it hung off, or null when it was placed in the world. */
   node: string | null;
@@ -164,6 +165,7 @@ function harness(
       inFlight,
       landed: false,
       pos: [...pos] as [number, number, number],
+      heading: null,
       path,
       node,
       scale,
@@ -188,8 +190,10 @@ function harness(
     async attachEffectToEntity(_entityId, path, nodeId, scale = 1) {
       return make(path, [0, 0, 0], nodeId, scale);
     },
-    moveTempEffect(instance, pos) {
-      (instance as unknown as FakeInstance).pos = [...pos] as [number, number, number];
+    moveTempEffect(instance, pos, heading) {
+      const fake = instance as unknown as FakeInstance;
+      fake.pos = [...pos] as [number, number, number];
+      if (heading) fake.heading = [...heading] as [number, number, number];
     },
     setEffectPaused(instance, paused) {
       (instance as unknown as FakeInstance).paused = paused;
@@ -214,7 +218,7 @@ function harness(
       return null;
     },
     entityBounds() {
-      return { size: new THREE.Vector3(0.7, 1.9, 0.5), centreY: 0.95 };
+      return { size: { x: 0.7, y: 1.9, z: 0.5 }, centreY: 0.95 };
     },
     // Straight above the world origin, so a hit nudged toward the camera moves
     // in +Y and its horizontal place is still the body it struck.
@@ -408,7 +412,7 @@ describe('a cast with a projectile', () => {
   it('strikes a tall body high on its chest, about three quarters of the way up', async () => {
     const h = harness(fireball());
     // A body 2 units tall standing on the ground: its box runs 0 to 2.
-    h.scene.entityBounds = () => ({ size: new THREE.Vector3(0.6, 2, 0.4), centreY: 1 });
+    h.scene.entityBounds = () => ({ size: { x: 0.6, y: 2, z: 0.4 }, centreY: 1 });
 
     await h.combat.release(1, 1, 2000, 30, [2]);
     await advance(h, 1.5);
@@ -418,9 +422,26 @@ describe('a cast with a projectile', () => {
     expect(shot.pos[1]).toBeCloseTo(1.4, 5);
   });
 
+  it('points a projectile along the line it flies, as a unit direction', async () => {
+    const h = harness(fireball());
+    h.positions.set(2, [30, 0, 40]);
+
+    await h.combat.release(1, 1, 2000, 30, [2]);
+    await advance(h, 0.3);
+
+    const shot = h.instances.find(i => i.path === 'shoot.beff')!;
+    expect(shot.landed).toBe(false);
+    const heading = shot.heading!;
+    expect(Math.hypot(...heading)).toBeCloseTo(1, 5);
+    // Level with the ground it is headed over: a 3-4-5 triangle to the target.
+    const flat = Math.hypot(heading[0], heading[2]);
+    expect(heading[0] / flat).toBeCloseTo(0.6, 2);
+    expect(heading[2] / flat).toBeCloseTo(0.8, 2);
+  });
+
   it('strikes a body wider than it is tall in the middle of its box', async () => {
     const h = harness(fireball());
-    h.scene.entityBounds = () => ({ size: new THREE.Vector3(3, 1.2, 2), centreY: 0.6 });
+    h.scene.entityBounds = () => ({ size: { x: 3, y: 1.2, z: 2 }, centreY: 0.6 });
 
     await h.combat.release(1, 1, 2000, 30, [2]);
     await advance(h, 1.5);

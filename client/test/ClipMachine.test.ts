@@ -15,7 +15,7 @@ import {
   stunnedPosture,
 } from '../src/gameplay/ClipMachine';
 import type { Movement, Posture, Rig } from '../src/gameplay/ClipMachine';
-import { combatClipName, UNARMED, weaponsFromHands } from '../src/gameplay/weaponClips';
+import { combatClipName, UNARMED, weaponsFromHands } from '../src/assets/weaponClips';
 
 /** Synthetic clip lengths, in seconds. */
 const LENGTHS: Record<string, number> = {

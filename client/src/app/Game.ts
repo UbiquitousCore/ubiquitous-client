@@ -125,6 +125,7 @@ import { topZoneForSubArea } from './helpers/map/travelZone';
 import { selectViewZone } from './helpers/map/viewZone';
 import { worldEntryPlan } from './helpers/world/worldEntryPlan';
 import { AccountSession } from './features/frontEnd/AccountSession';
+import { buildDifferenceLine } from './features/frontEnd/buildDifference';
 import { loadSpellBook } from './helpers/spell/loadSpellBook';
 import { moneyChange } from './helpers/hud/moneyChange';
 import { creatureNameLookups, type NameLookup } from './helpers/hud/creatureNameLookups';
@@ -150,7 +151,7 @@ import { EntityClips } from '../gameplay/EntityClips';
 import { NetworkBodies } from '../gameplay/NetworkBodies';
 import { PetFollowers } from '../gameplay/PetFollowers';
 import { describeCombatEvent } from '../gameplay/combatLog';
-import { UNARMED, WEAPON_SLOT, weaponsFromHands } from '../gameplay/weaponClips';
+import { UNARMED, WEAPON_SLOT, weaponsFromHands } from '../assets/weaponClips';
 import type { PlayClipOptions } from '../gameplay/CombatVisuals';
 import { auraRemovalVisual, castVisualId, CombatVisuals } from '../gameplay/CombatVisuals';
 import { AudioEngine } from '../audio/AudioEngine';
@@ -161,7 +162,7 @@ import { impactSound, parrySound, swingSound, weaponFamily } from '../gameplay/w
 import type { WeaponFamily } from '../gameplay/weaponSounds';
 import { clickOf } from './uiClicks';
 import type { ItemKind } from '../gameplay/itemSounds';
-import type { UnitSoundState, UnitSounds } from '../assets/formats/tables';
+import type { UnitSoundState, UnitSounds } from '../assets/types';
 import { EntityMovementState, OfflineConnection } from '../net/GameConnection';
 import type {
   CharacterSummary,
@@ -1549,9 +1550,16 @@ export class Game {
       return;
     }
 
-    const account = new AccountSession(this.connection, LIST_PATIENCE, () => {
-      log.warn('the server sent no fresh character list; carrying on with the last one');
-    });
+    // A game file whose tables cannot be listed still signs in, uncompared.
+    const tables = await this.resources.tableShapes().catch(() => []);
+    const account = new AccountSession(
+      this.connection,
+      LIST_PATIENCE,
+      () => {
+        log.warn('the server sent no fresh character list; carrying on with the last one');
+      },
+      tables,
+    );
 
     this.boot.show('Connecting...');
     await this.connection.connect({
@@ -1562,9 +1570,15 @@ export class Game {
         say(`Disconnected: ${reason}`);
         account.disconnected(reason);
       },
-      onLoginResult: (ok, code, reason, isAdmin) => {
+      onLoginResult: (ok, code, reason, isAdmin, build) => {
         account.loginAnswered(ok, code, reason, isAdmin);
         if (ok) this.showAdminPanel(isAdmin === true);
+        const differs =
+          ok && buildDifferenceLine(build?.gameVersion ?? null, build?.differingTables ?? []);
+        if (differs) {
+          log.warn(differs);
+          say(differs);
+        }
       },
       onAdminInvincible: on => void this.admin?.then(panel => panel.showInvincible(on)),
       onLoggedOut: () => {

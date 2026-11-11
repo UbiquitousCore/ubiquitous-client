@@ -9,7 +9,14 @@
  * among them.
  */
 
-export type SpellBookPage = 'lifeSkills' | 'treeOne' | 'treeTwo' | 'crafting' | 'gm' | 'mounts' | 'none';
+export type SpellBookPage =
+  | 'lifeSkills'
+  | 'treeOne'
+  | 'treeTwo'
+  | 'crafting'
+  | 'gm'
+  | 'mounts'
+  | 'none';
 
 /** The side tabs in the order they stand, top to bottom. */
 export const SPELL_BOOK_PAGES: readonly SpellBookPage[] = [

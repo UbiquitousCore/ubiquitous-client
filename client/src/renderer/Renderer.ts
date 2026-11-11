@@ -47,7 +47,6 @@ import { WaterRipples } from './WaterRipples';
 import { ObjectShadows, collectShadows } from './ObjectShadows';
 import type { GroundCacheEntry } from './ObjectShadows';
 import { TargetRing, placeRing } from './TargetRing';
-import { GUIDE_MODEL, GUIDE_SCALE } from '../gameplay/questGuide';
 import type { Relation } from './TargetRing';
 
 /**
@@ -73,8 +72,8 @@ import { attachPointId, effectId, heldItemId } from '../assets/ids';
 import { MaterialCache } from './MaterialCache';
 import { EffectInstance } from './EffectFactory';
 import { placementSeed } from './emitterSpawn';
-import { combatClipName, UNARMED } from '../gameplay/weaponClips';
-import type { EquippedWeapons } from '../gameplay/weaponClips';
+import { combatClipName, UNARMED } from '../assets/weaponClips';
+import type { EquippedWeapons } from '../assets/weaponClips';
 import { CameraRig } from './CameraRig';
 import {
   appendEntry,
@@ -157,6 +156,11 @@ const log = logger('renderer');
 /** The slots whose item moves between a resting node and the hand. */
 const HELD_SLOTS: ReadonlySet<WornSlot> = new Set(['twoHand', 'mainHand', 'offHand', 'ranged']);
 
+/** The quest guide arrow's model. */
+const GUIDE_MODEL = 'model/scene/sky/arrowhead/arrowhead.bdae';
+/** Observed in play by the owner: the arrow is drawn larger than its model. Own choice: 2.5 times. */
+const GUIDE_SCALE = 2.5;
+
 /** Radians per pixel dragged: a full turn over about 630 px. */
 const PREVIEW_TURN_PER_PIXEL = 0.01;
 
@@ -168,12 +172,17 @@ const SHADOW_MAP_SIZE = 4096;
 const SHADOW_REACH = 80;
 const SHADOW_SUN_DISTANCE = 150;
 const SHADOW_SOFTNESS = 3;
+/** A missile effect points down its own -Z. */
+const MISSILE_NOSE = new THREE.Vector3(0, 0, -1);
+const scratchHeading = new THREE.Vector3();
 /** Scratch for `followSunShadow`, once per frame. */
 const scratchShadowCentre = new THREE.Vector3();
 const scratchShadowRight = new THREE.Vector3();
 const scratchShadowUp = new THREE.Vector3();
 
 export interface EntityView {
+  /** The record this view draws, so the per-frame diff walks views with no lookup for each. */
+  entity: Entity;
   object: THREE.Object3D;
   version: number;
   /** Pieces of this body's gear still being fetched, so its portrait waits for its own, not the scene's. */
@@ -664,6 +673,8 @@ export class Renderer {
     Promise<THREE.SpriteMaterial | null>
   >();
   private readonly interactionIconUpdates = new Set<EntityId>();
+  /** The views wearing a head icon: the bob touches these each frame, not every view. */
+  private readonly iconViews = new Set<EntityView>();
   private readonly headshotCache = new Map<string, string>();
   private viewCover: ViewCover | null = null;
   private readonly heroStages = new Set<HeroStage>();
@@ -1149,15 +1160,18 @@ export class Renderer {
       const entity = this.preloadCandidates.pop();
       if (!entity) break;
       if (!world.entities.has(entity.id) || this.views.has(entity.id)) continue;
-      this.views.set(entity.id, { object: new THREE.Group(), version: -1 });
+      this.views.set(entity.id, { entity, object: new THREE.Group(), version: -1 });
       this.visibilityDirty = true;
       this.attachQueue.push(entity);
       room--;
     }
 
-    for (const entity of world.entities.values()) {
-      const view = this.views.get(entity.id);
-      if (!view) continue;
+    // Views, not entities: most of the world is scenery out of sight with no
+    // view at all. One outlives its entity only until the eviction below.
+    const someGone = world.membership !== this.evictedMembership;
+    for (const view of this.views.values()) {
+      const entity = view.entity;
+      if (someGone && !world.entities.has(entity.id)) continue;
       if (view.version !== entity.version) {
         this.visibilityDirty = true;
         applyTransform(view.object, entity);
@@ -1228,6 +1242,7 @@ export class Renderer {
       if (view.interactionIcon) {
         view.object.remove(view.interactionIcon);
         this.icons.forget(entity.id);
+        this.iconViews.delete(view);
         view.interactionIcon = undefined;
         view.iconBaseY = undefined;
         view.iconLines = undefined;
@@ -1248,6 +1263,7 @@ export class Renderer {
       sprite.userData.entityId = entity.id;
       view.object.add(sprite);
       view.interactionIcon = sprite;
+      this.iconViews.add(view);
       refreshWorldMatrix(view.object);
     } finally {
       this.interactionIconUpdates.delete(entity.id);
@@ -1553,10 +1569,10 @@ export class Renderer {
   private syncIcons(): void {
     const now = performance.now();
     // The bob shifts the quad via `center`, leaving frozen matrices alone.
-    for (const [id, view] of this.views) {
+    for (const view of this.iconViews) {
       const icon = view.interactionIcon;
       if (!icon) continue;
-      icon.center.set(0.5, 0.5 - iconBob(now, id) / icon.scale.y);
+      icon.center.set(0.5, 0.5 - iconBob(now, view.entity.id) / icon.scale.y);
     }
     this.icons.advance(now, (id, y) => {
       const icon = this.views.get(id)?.interactionIcon;
@@ -2351,6 +2367,7 @@ export class Renderer {
         sprite.userData.entityId = entity.id;
         object.add(sprite);
         view.interactionIcon = sprite;
+        this.iconViews.add(view);
       }
     }
 
@@ -2449,6 +2466,7 @@ export class Renderer {
     this.detach(entity.id);
     if (ridden) this.pendingMounts.set(entity.id, ridden);
     this.views.set(entity.id, {
+      entity,
       object: new THREE.Group(),
       version: -1,
       weapons,
@@ -2845,16 +2863,24 @@ export class Renderer {
     instance.land();
   }
 
-  /** Move a free-standing effect (a projectile); a no-op on a bone-parented one. */
+  /**
+   * Move a free-standing effect (a projectile); a no-op on a bone-parented
+   * one. `heading`, a unit direction, is where its nose turns to.
+   */
   moveTempEffect(
     instance: EffectInstance,
     pos: [number, number, number],
-    rotation?: THREE.Quaternion,
+    heading?: readonly [number, number, number],
   ): void {
     const entry = this.effects.find(e => e.instance === instance);
     if (!entry || entry.attached) return;
     entry.object.position.set(pos[0], pos[1], pos[2]);
-    if (rotation) entry.object.quaternion.copy(rotation);
+    if (heading) {
+      entry.object.quaternion.setFromUnitVectors(
+        MISSILE_NOSE,
+        scratchHeading.set(heading[0], heading[1], heading[2]),
+      );
+    }
     refreshWorldMatrix(entry.object);
   }
 
@@ -3006,6 +3032,7 @@ export class Renderer {
       if (at >= 0) this.animated.splice(at, 1);
     }
     this.views.delete(id);
+    this.iconViews.delete(view);
     this.withActions.delete(id);
     // Entity ids are never reused, so an entry left behind is a leak.
     this.shadowGround.delete(id);
@@ -4080,6 +4107,7 @@ export class Renderer {
     for (const id of [...this.views.keys()]) this.detach(id);
     this.entityGroup.clear();
     this.views.clear();
+    this.iconViews.clear();
     this.withActions.clear();
     this.animated.length = 0;
     this.riders.clear();

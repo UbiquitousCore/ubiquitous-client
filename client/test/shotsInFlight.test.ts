@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ATTACK_CLIPS, attackerClipFor, ShotsInFlight } from '../src/gameplay/combatResults';
-import { combatClipName, weaponsFromHands } from '../src/gameplay/weaponClips';
+import { combatClipName, weaponsFromHands } from '../src/assets/weaponClips';
 
 const REMOTE = 7;
 const WEAPON = 2;

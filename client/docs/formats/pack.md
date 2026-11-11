@@ -24,7 +24,13 @@ local signature.
 
 - The packs carry no archive comment, so the end record is the last 22
   bytes of the file. The reader falls back to a bounded backwards search.
-- Methods are 0 (stored) and 8 (raw DEFLATE). Nothing else appears.
+- Methods are 0 (stored) and 8 (raw DEFLATE) through 2.2.0. From 2.5.0 on
+  every entry is method 14 (LZMA): two version bytes, a `uint16` length of
+  the property block (always 5), the properties (lc/lp/pb packed in one
+  byte, then a `uint32` dictionary size), then the raw stream. Reader:
+  `client/src/assets/vfs/lzma.ts`, written from the public LZMA
+  specification. Tests: `client/test/lzma.test.ts`,
+  `client/test/tableLayoutPacks.test.ts`.
 - When flag bit 3 is set, or both sizes in the local header are zero, the
   sizes come from the central directory entry instead.
 - Names use forward slashes. Case is not consistent between a pack and the

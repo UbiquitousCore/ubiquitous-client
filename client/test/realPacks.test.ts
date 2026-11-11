@@ -29,7 +29,7 @@ import { busFaresFrom } from '../src/gameplay/busRoutes';
 import { dedupeRanks } from '../src/gameplay/SpellBook';
 import { cueClips, cueFor } from '../src/gameplay/ClipMachine';
 import type { Movement, Posture } from '../src/gameplay/ClipMachine';
-import { combatClipName, familyOf, UNARMED } from '../src/gameplay/weaponClips';
+import { combatClipName, familyOf, UNARMED } from '../src/assets/weaponClips';
 import { heldKind } from '../src/assets/heldKinds';
 import { useOf } from '../src/ui/items';
 import { ACTION_CLIPS, GATHER_HELD_ITEMS } from '../src/gameplay/actionClips';
@@ -73,7 +73,7 @@ import {
   bodyLayers,
   heldItemsOf,
   lookFrom,
-  lookFromRow,
+  lookFromCells,
   shippedHairColours,
   visibleMeshes,
 } from '../src/assets/formats/avatar';
@@ -1177,8 +1177,8 @@ describe.skipIf(!TABLES)('tables.bin, from the user packs', () => {
     look.worn.mainHand = GATHER_HELD_ITEMS.get(23)!;
     const [pick, ...rest] = attachmentsFor(
       look,
-      id => tables.keyedRows('itemdisplayinfo').get(id),
-      id => tables.keyedRows('itemmodeldata').get(id),
+      id => tables.shownItem(id),
+      id => tables.itemModel(id),
       true,
       id => tables.itemWeaponClass(id),
     );
@@ -1197,13 +1197,10 @@ describe.skipIf(!TABLES)('tables.bin, from the user packs', () => {
     });
     let held = 0;
     let kinded = 0;
-    for (const row of tables.keyedRows('creature_appearance').values()) {
-      const display = tables.keyedRows('creaturedisplayinfo').get(Number(row[5]));
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
-        : undefined;
+    for (const entry of tables.keyedRows('creature_appearance').keys()) {
+      const extra = tables.creatureLook(tables.creatureLookId(tables.creatureDisplayId(entry)));
       if (!extra) continue;
-      const hands = heldItemsOf(lookFromRow(extra), id => tables.itemWeaponClass(id));
+      const hands = heldItemsOf(lookFromCells(extra), id => tables.itemWeaponClass(id));
       for (const hand of hands ? [hands.mainhand, hands.offhand, hands.ranged] : []) {
         if (!hand.entry) continue;
         held++;
@@ -3005,7 +3002,6 @@ describe.skipIf(!RES || !TABLES)('character looks, against the user item tables'
     const doc = new Bdae((await unwrapBdae(await res.read(MODEL))).payload);
     const meshes = doc.meshes(true).map(m => m.name);
     const display = tables.keyedRows('itemdisplayinfo');
-    const models = tables.keyedRows('itemmodeldata');
     /** Every armour item of an inventory type that has a display row. */
     const ofType = (inventoryType: number): number[] =>
       [...tables.keyedRows('items').keys()].filter(
@@ -3015,8 +3011,8 @@ describe.skipIf(!RES || !TABLES)('character looks, against the user item tables'
       tables,
       meshes,
       ofType,
-      items: (id: number) => display.get(id),
-      models: (id: number) => models.get(id),
+      items: (id: number) => tables.shownItem(id),
+      models: (id: number) => tables.itemModel(id),
     };
   };
   const wearing = (slot: 'head' | 'chest' | 'legs' | 'hands' | 'feet', id: number) => {
@@ -3047,7 +3043,7 @@ describe.skipIf(!RES || !TABLES)('character looks, against the user item tables'
         /^lower(arm|leg)_/.test(n),
       );
       // Gauntlets: hands art on a forearm variant from the outer range up.
-      const outerVariant = Number(items(id)?.[1] ?? 0) >= 20;
+      const outerVariant = (items(id)?.model ?? 0) >= 20;
       const gauntlets =
         outerVariant && bodyLayers(MODEL, look, items).some(l => l.piece === 'hands');
       // A bare forearm and shin, plus the item's own over one of them.
@@ -3128,7 +3124,7 @@ describe.skipIf(!RES || !TABLES)('capes, on every body in every build', () => {
       });
       const res = await PackReader.open(await fileSource(build.res), 'res.bin');
       const display = tables.keyedRows('itemdisplayinfo');
-      const items = (id: number) => display.get(id);
+      const items = (id: number) => tables.shownItem(id);
       const backItems = [...tables.keyedRows('items').keys()].filter(
         id => tables.itemFacts(id)?.inventoryType === 14,
       );

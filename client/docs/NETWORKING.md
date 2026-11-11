@@ -15,6 +15,14 @@ number and a JSON payload. No message number, byte layout or byte order
 appears anywhere in `client/` (`WebSocketConnection.test.ts` enforces it); a
 server speaking another wire format translates in its own process.
 
+## Which build the server runs
+
+`account.login` carries the name, row count and format of every table read
+from the player's game file (`ResourceSystem.tableShapes`). The server
+answers with the game version its data came from and the tables it holds
+differently. A difference does not stop the sign-in: the player is told
+once, on the screen that follows (`buildDifferenceLine`).
+
 ## Wire fixtures
 
 `test/fixtures/*FromServer.json` hold what the server actually sends.

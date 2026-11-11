@@ -43,6 +43,8 @@ export type ResourceId =
   | { readonly kind: 'mountList' }
   /** The races and classes a character can be made as. */
   | { readonly kind: 'playableKinds' }
+  /** The shape of every table read, to tell the server which build this is. */
+  | { readonly kind: 'tableShapes' }
   /** The looks one body offers: its skins, faces, hair styles and colours. */
   | { readonly kind: 'lookOptions'; readonly model: string }
   /** Named teleport stops from the local game tables. */
@@ -220,6 +222,8 @@ export function resourceKey(id: ResourceId): string {
       return 'mountList';
     case 'playableKinds':
       return 'playableKinds';
+    case 'tableShapes':
+      return 'tableShapes';
     case 'lookOptions':
       return `lookOptions:${id.model}`;
     case 'teleportStops':
@@ -328,6 +332,8 @@ export const zoneIndexId = (): IdOf<'zoneIndex'> => ({ kind: 'zoneIndex' });
 export const mountListId = (): IdOf<'mountList'> => ({ kind: 'mountList' });
 
 export const playableKindsId = (): IdOf<'playableKinds'> => ({ kind: 'playableKinds' });
+
+export const tableShapesId = (): IdOf<'tableShapes'> => ({ kind: 'tableShapes' });
 
 export const lookOptionsId = (model: string): IdOf<'lookOptions'> => ({
   kind: 'lookOptions',

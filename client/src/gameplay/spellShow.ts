@@ -5,7 +5,7 @@ import type {
   SpellPhaseData,
   SpellVisualData,
   SpellVisualEffect,
-} from '../assets/formats/tables';
+} from '../assets/types';
 
 /**
  * The moments of a cast the client knows about. A moment is what happened;

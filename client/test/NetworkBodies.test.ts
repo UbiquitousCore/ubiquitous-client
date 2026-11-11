@@ -14,7 +14,7 @@ import { World, gameYaw } from '../src/world/World';
 import type { Appearance } from '../src/assets/types';
 import type { EntitySnapshot } from '../src/net/GameConnection';
 import { EntityMovementState } from '../src/net/GameConnection';
-import { UNARMED } from '../src/gameplay/weaponClips';
+import { UNARMED } from '../src/assets/weaponClips';
 import { FIDGET_CLIPS, FIDGET_WAIT } from '../src/gameplay/idleFidgets';
 import { isInteractable } from '../src/gameplay/npcInteraction';
 import { QUEST_GESTURES } from '../src/gameplay/questGestures';
