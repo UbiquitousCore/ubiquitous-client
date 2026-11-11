@@ -102,6 +102,7 @@ format specs themselves are under [client/docs/formats/](../client/docs/formats/
 
 - read from the user's own files: the 52-byte PVR v2 header — header size +0, height +4, width +8, mip level count +12, flags +16 whose low byte is the format, 24 (2 bpp) or 25 (4 bpp), and whose bit `0x8000` means alpha, `PVR!` at +44 — with mip levels stored largest first, back to back. Spec: `client/docs/formats/pvr.md`.
 - read from the public PVRTC description: block word order, colour A/B bit layouts, modulation weights {0, 3, 5, 8} and {0, 4, 4, 8} with punch-through at value 2, bilinear colour upscaling and Z-order block layout. The block-order function is written from the definition of Z-order; for this function, no third-party code is used.
+- read from the user's own files, decoded per a public specification: the Android builds' pictures use the same PVR v2 header with format byte `0x36`, ETC1; a picture with transparency is a ZIP of stored entries `SPLIT`, `rgb.pvr` and `alpha.pvr`, the last holding the transparency as a grey picture. The ETC1 decoder is this project's own, written from the public ETC1 specification.
 
 ## World tiles
 

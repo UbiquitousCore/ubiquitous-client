@@ -261,3 +261,25 @@ function lastIndexOfSig(buf: Uint8Array, sig: number): number {
   }
   return -1;
 }
+
+/**
+ * The entries of a small archive held whole in memory, each stored without
+ * compression, read front to back from their own headers. Null if `data`
+ * is not such an archive.
+ */
+export function storedEntries(data: Uint8Array): Map<string, Uint8Array> | null {
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const out = new Map<string, Uint8Array>();
+  let at = 0;
+  while (at + 30 <= data.length && dv.getUint32(at, true) === SIG_LFH_PK) {
+    if (dv.getUint16(at + 8, true) !== METHOD_STORE) return null;
+    const size = dv.getUint32(at + 18, true);
+    const nameLength = dv.getUint16(at + 26, true);
+    const start = at + 30 + nameLength + dv.getUint16(at + 28, true);
+    if (start + size > data.length) return null;
+    const name = String.fromCharCode(...data.subarray(at + 30, at + 30 + nameLength));
+    out.set(name, data.subarray(start, start + size));
+    at = start + size;
+  }
+  return out.size > 0 ? out : null;
+}
