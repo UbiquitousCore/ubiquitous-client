@@ -461,6 +461,8 @@ export class PackAssetProvider implements AssetProvider {
         return (await this.worldTables()).mounts() as ResourceTypes[K];
       case 'playableKinds':
         return (await this.loadPlayableKinds()) as ResourceTypes[K];
+      case 'tableShapes':
+        return (await this.worldTables()).shapes() as ResourceTypes[K];
       case 'lookOptions':
         return (await this.loadLookOptions(target.model)) as ResourceTypes[K];
       case 'teleportStops':

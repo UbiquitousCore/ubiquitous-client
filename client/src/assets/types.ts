@@ -350,6 +350,14 @@ export interface LookOptions {
   hairColours: number[];
 }
 
+/** One table as the build ships it: enough to tell one build's copy from another's. */
+export interface TableShape {
+  name: string;
+  rows: number;
+  /** One letter per column. */
+  format: string;
+}
+
 export interface PlayableKinds {
   races: PlayableRace[];
   classes: PlayableClass[];
@@ -829,6 +837,7 @@ export interface ResourceTypes {
   model: ModelData;
   texture: TextureData;
   playableKinds: PlayableKinds;
+  tableShapes: TableShape[];
   lookOptions: LookOptions;
   avatar: Appearance;
   networkAppearance: NetworkAppearance;

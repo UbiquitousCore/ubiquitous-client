@@ -17,6 +17,21 @@ export enum EntityMovementState {
 }
 
 /** A lasting effect a body already wears when first sent. */
+/** One table of the player's game file, as the login describes it. */
+export interface SentTable {
+  name: string;
+  rows: number;
+  format: string;
+}
+
+/** What the server says of its own data when an account signs in. */
+export interface ServerBuild {
+  /** The game version its data was imported from, or null where it does not say. */
+  gameVersion: string | null;
+  /** The tables sent with the login that the server holds with another shape or length. */
+  differingTables: string[];
+}
+
 export interface HeldAura {
   casterId: number;
   spellId: number;
@@ -578,9 +593,17 @@ export interface ConnectionEvents {
   /**
    * Read `ok`, not the code: which codes mean success is the server's to say.
    * A refusal may be followed by another attempt on the same connection, a few
-   * times. `isAdmin` is true only for a GM account that signed in.
+   * times. `isAdmin` is true only for a GM account that signed in. `build`
+   * says which game version the server's data came from and which of the
+   * tables sent with the login it holds differently.
    */
-  onLoginResult?(ok: boolean, code: number, reason?: string, isAdmin?: boolean): void;
+  onLoginResult?(
+    ok: boolean,
+    code: number,
+    reason?: string,
+    isAdmin?: boolean,
+    build?: ServerBuild,
+  ): void;
   /** The server has signed the connection out; a new login may follow. */
   onLoggedOut?(): void;
   /** The server says whether the character is invincible now (GM only). */
@@ -978,8 +1001,12 @@ export interface GameConnection {
   // — getting into the world ------------------------------------------------
   // No-ops offline, so a caller need not branch on transport.
 
-  /** Authenticate the account. Answered by `onLoginResult`. */
-  login(userId: string, passHash: string): void;
+  /**
+   * Authenticate the account. Answered by `onLoginResult`. `tables` are the
+   * tables read from the player's own game file, for the server to compare
+   * with its own.
+   */
+  login(userId: string, passHash: string, tables?: readonly SentTable[]): void;
   /** Sign out without closing the connection. Answered by `onLoggedOut`. */
   logout(): void;
   /** Ask for the account's characters. Answered by `onCharacters`. */

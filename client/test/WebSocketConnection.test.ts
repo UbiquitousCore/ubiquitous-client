@@ -320,6 +320,32 @@ describe('getting into the world', () => {
     });
   });
 
+  it('sends the tables of the game file along, when it has them', async () => {
+    const conn = await connected();
+
+    conn.login('tester', 'NOT-A-HASH', [{ name: 'items', rows: 3, format: 'uuuk' }]);
+
+    expect(socket.ofType('account.login')[0]!.payload).toEqual({
+      userId: 'tester',
+      passHash: 'NOT-A-HASH',
+      tables: [{ name: 'items', rows: 3, format: 'uuuk' }],
+    });
+  });
+
+  it('passes on the build the server runs and the tables it holds differently', async () => {
+    await connected();
+    socket.emit('account.loginResult', {
+      ok: true,
+      code: 2,
+      gameVersion: '1.1.4',
+      differingTables: ['items', 'zones'],
+    });
+    expect(events.onLoginResult).toHaveBeenCalledWith(true, 2, undefined, false, {
+      gameVersion: '1.1.4',
+      differingTables: ['items', 'zones'],
+    });
+  });
+
   it('reports the login result, with the reason when the server names it', async () => {
     await connected();
 
@@ -336,19 +362,26 @@ describe('getting into the world', () => {
       7,
       'Sample refusal: wrong password.',
       false,
+      { gameVersion: null, differingTables: [] },
     );
   });
 
   it('reports a login result that carries no reason', async () => {
     await connected();
     socket.emit('account.loginResult', { ok: true, code: 3 });
-    expect(events.onLoginResult).toHaveBeenCalledWith(true, 3, undefined, false);
+    expect(events.onLoginResult).toHaveBeenCalledWith(true, 3, undefined, false, {
+      gameVersion: null,
+      differingTables: [],
+    });
   });
 
   it('passes on whether the server says the account is a GM', async () => {
     await connected();
     socket.emit('account.loginResult', { ok: true, code: 2, isAdmin: true });
-    expect(events.onLoginResult).toHaveBeenCalledWith(true, 2, undefined, true);
+    expect(events.onLoginResult).toHaveBeenCalledWith(true, 2, undefined, true, {
+      gameVersion: null,
+      differingTables: [],
+    });
   });
 
   it('asks the server to give an item or gold, for a GM', async () => {

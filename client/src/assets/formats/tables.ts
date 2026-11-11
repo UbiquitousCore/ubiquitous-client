@@ -12,6 +12,7 @@ import type {
   MountRow,
   PlayableKinds,
   StorageUpgradeRow,
+  TableShape,
   TalentData,
   TeleportStop,
 } from '../types';
@@ -437,7 +438,12 @@ export class WorldTables {
       `tables loaded: ${w.rows.get('zones')!.length} zones, ` +
         `${w.rows.get('staticobject_spawns')!.length} static spawns`,
     );
-    log.debug(`build fingerprint:\n${w.fingerprint().join('\n')}`);
+    log.debug(
+      `table shapes:\n${w
+        .shapes()
+        .map(shape => `${shape.name}: ${shape.rows} rows, format ${JSON.stringify(shape.format)}`)
+        .join('\n')}`,
+    );
     return w;
   }
 
@@ -468,18 +474,13 @@ export class WorldTables {
     return t;
   }
 
-  /**
-   * Every loaded table's shape (`name: rows cols format`), in load order,
-   * for the boot log: the lines to compare when a build reads wrongly.
-   */
-  fingerprint(): string[] {
-    const out: string[] = [];
-    for (const [name, table] of this.tables) {
-      out.push(
-        `${name}: ${table.rows} rows, ${table.cols} cols, format ${JSON.stringify(table.format)}`,
-      );
-    }
-    return out;
+  /** Every loaded table's name, length and format, in load order. */
+  shapes(): TableShape[] {
+    return [...this.tables].map(([name, table]) => ({
+      name,
+      rows: table.rows,
+      format: table.format,
+    }));
   }
 
   rowsOf(name: string): Row[] {

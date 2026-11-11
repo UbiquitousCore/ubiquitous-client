@@ -125,6 +125,7 @@ import { topZoneForSubArea } from './helpers/map/travelZone';
 import { selectViewZone } from './helpers/map/viewZone';
 import { worldEntryPlan } from './helpers/world/worldEntryPlan';
 import { AccountSession } from './features/frontEnd/AccountSession';
+import { buildDifferenceLine } from './features/frontEnd/buildDifference';
 import { loadSpellBook } from './helpers/spell/loadSpellBook';
 import { moneyChange } from './helpers/hud/moneyChange';
 import { creatureNameLookups, type NameLookup } from './helpers/hud/creatureNameLookups';
@@ -1549,9 +1550,16 @@ export class Game {
       return;
     }
 
-    const account = new AccountSession(this.connection, LIST_PATIENCE, () => {
-      log.warn('the server sent no fresh character list; carrying on with the last one');
-    });
+    // A game file whose tables cannot be listed still signs in, uncompared.
+    const tables = await this.resources.tableShapes().catch(() => []);
+    const account = new AccountSession(
+      this.connection,
+      LIST_PATIENCE,
+      () => {
+        log.warn('the server sent no fresh character list; carrying on with the last one');
+      },
+      tables,
+    );
 
     this.boot.show('Connecting...');
     await this.connection.connect({
@@ -1562,9 +1570,15 @@ export class Game {
         say(`Disconnected: ${reason}`);
         account.disconnected(reason);
       },
-      onLoginResult: (ok, code, reason, isAdmin) => {
+      onLoginResult: (ok, code, reason, isAdmin, build) => {
         account.loginAnswered(ok, code, reason, isAdmin);
         if (ok) this.showAdminPanel(isAdmin === true);
+        const differs =
+          ok && buildDifferenceLine(build?.gameVersion ?? null, build?.differingTables ?? []);
+        if (differs) {
+          log.warn(differs);
+          say(differs);
+        }
       },
       onAdminInvincible: on => void this.admin?.then(panel => panel.showInvincible(on)),
       onLoggedOut: () => {
