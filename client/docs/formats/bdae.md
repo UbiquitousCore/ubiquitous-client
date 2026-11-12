@@ -16,10 +16,14 @@ Every `.bdae` in `res.bin` is wrapped in a small ZIP; see
 | ----- | ----- | ---------------- | ------------- | ---------------------- | ---------------------- | ----------- |
 | 1.1.4 | 6,960 | 2,895            | 2,895         | 4,224                  | 823 skins in 250 files | 43          |
 | 2.2.0 | 9,464 | 3,926            | 3,926         | 5,747                  | 949 skins in 344 files | 46          |
+| 4.2.21 | 18,808 | 6,109           | 6,109         | 13,139                 | 1,590 skins in 792 files | 29        |
 
-`res_t.bin` holds none. File sizes run from 344 bytes to 1,052,732. Every
-check on this page holds in both builds; no layout difference between them
-was found.
+In 1.1.4 and 2.2.0 `res_t.bin` holds none; the 4.2.21 count is the distinct
+paths in `res.bin` and `res_t.bin` together. In 1.1.4 and 2.2.0 file sizes
+run from 344 bytes to 1,052,732, and every check on this page holds in both
+builds. 4.2.21 stores the same records with wider pointer slots; see
+[Pointer widths](#pointer-widths). Offsets on the rest of this page are the
+narrow ones.
 
 A walker that follows every record on this page, from the header down,
 reaches every entry of the relocation table (below) in 15,778 of the 16,424
@@ -31,7 +35,9 @@ material bindings and node extras (71 files).
 
 - **Little-endian.** The endian mark at offset 4 is `0xFFFE` in every
   file; reject anything else.
-- **Pointers are absolute file offsets**, `u32`. A null pointer is 0.
+- **Pointers are absolute file offsets**, `u32`, in files with a 60-byte
+  header. A null pointer is 0. Files with an 80-byte header differ; see
+  [Pointer widths](#pointer-widths).
 - **Every non-null pointer is listed in the relocation table**, and nothing
   else is. That gives a decoder a check: a field this page calls a pointer
   should sit at a listed offset. The one kind of offset that is _not_ a
@@ -51,6 +57,109 @@ material bindings and node extras (71 files).
   | `list<T>`                 | 8          | `u32` count, then `ptr` to count × T                   |
   | `vec3`, `quat`            | 12, 16     | three `f32`; four `f32` x, y, z, w                     |
   | `mat4`                    | 64         | sixteen `f32`, see [Matrices](#matrices-and-rotations) |
+
+## Pointer widths
+
+Builds up to 2.5.0 write every model with a 60-byte header. 4.2.21 writes
+every model (all 18,808) with an 80-byte header, and the records change in
+one described way. Each field of each record is one of:
+
+| Kind   | Narrow (60-byte header)     | Wide (80-byte header)                           |
+| ------ | --------------------------- | ----------------------------------------------- |
+| number | 4 bytes                     | 4 bytes                                         |
+| slot   | 4 bytes, absolute pointer   | 8 bytes, 8-aligned, absolute pointer            |
+| link   | 4 bytes, absolute pointer   | 4 bytes, `i32` counted from the link's own offset |
+| list   | `u32` count, then a link    | `u32` count, then a link                        |
+
+- **Slots** are every `str` field, every pointer to a data block, and a few
+  fields that hold 0 or a small number (named below). In wide files they
+  are 8 bytes with a high word of 0 in every file, and the relocation table
+  lists them.
+- **Links** are every other pointer: one record pointing at another. In
+  wide files the value is the distance from the link to its target; 0 means
+  none, as before, and an empty list's link is 0. The relocation table does
+  not list them.
+- Field order is unchanged, except in channels. Each field starts at the
+  next multiple of its alignment (8 for a wide slot, 4 otherwise), and a
+  record holding a wide slot is padded to a multiple of 8 and always starts
+  8-aligned. A record that holds none keeps its narrow size.
+
+This was established by walking every record on this page in all 18,808
+files of 4.2.21 and 9,464 of 2.2.0: every field this page calls a `str` or
+a block pointer sits at a relocation-table entry and points into the string
+table or the data area, and every link is unlisted and lands inside the
+file. Where a zero field is a slot was settled by where the next field
+holds its value (for example the material's localEffect, −1 or an effect
+index as in narrow files, sits at +40 and the next field at +48), and by the
+stride between records in lists with more than one.
+
+### Wide header (80 bytes)
+
+| Offset | Type    | Field           | Notes                                   |
+| ------ | ------- | --------------- | --------------------------------------- |
+| 0–20   |         |                 | as in the narrow header; headerSize 80  |
+| 24     | slot    | relocationTable | always 80                               |
+| 32     | slot    | stringTable     | always `80 + 8 × relocationCount`       |
+| 40     | slot    | modelInfo       |                                         |
+| 48     | slot    | modelInfoEnd    | always `modelInfo + 208`                |
+| 56     | slot    | dataArea        |                                         |
+| 64     | `u32`   | dataAreaSize    |                                         |
+| 68     | `u32`   | dataBlockCount  |                                         |
+| 72, 76 | `u32`   | —               | 0                                       |
+
+The relocation table holds `relocationCount` 8-byte offsets, 8-aligned, each
+naming a slot. Model info is followed by `u32` 1, `u32` 0 as in narrow files.
+
+### Wide record sizes and offsets
+
+Narrow → wide offset of each field the client reads, and of each zero slot.
+
+| Record          | Size     | Fields                                                                                                                                                                                                  |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| model info      | 188→208  | versionText 0→0; slots at 4→8, 8→16, 24→40; unknown12 12→24; unknown20 20→32; timeStart 28→48; animationRecords 36→56; animationStore 48→68; clipRanges 52→72; lights 68→88; textures 76→96; effects 84→104; materials 92→112; geometries 100→120; controllers 108→128; nodeTrees 148→168; scenes 180→200 |
+| texture         | 20→40    | id 0→0, name 4→8, path 8→16; the 8 zero bytes at 12 become 16 at 24                                                                                                                                     |
+| material        | 36→56    | id 0→0, name 4→8, effectFile 8→16, effectUrl 12→24, parameters 16→32, localEffect (slot) 24→40, 28→48, 32→52                                                                                            |
+| parameter       | 24→32    | name 0→0, semantic 4→8, valueType 8→16, 12→20, valueBlock 16→24, value 20→28; the value is `valueBlock + 8`                                                                                             |
+| geometry        | 16→24    | id 0→0, name 4→8, geometryKind 8→16, data 12→20                                                                                                                                                         |
+| mesh            | 44       | unchanged                                                                                                                                                                                               |
+| vertex format   | 44→56    | lists unchanged at 4, 12, 20, 28; vertexBlock 36→40; 40→48                                                                                                                                              |
+| part            | 56→80    | material 4→8, triangleCount 8→16, slotMap 12→20, 28→36, lowestIndex 32→40, highestIndex 36→44, indexCount 40→48, indexBlock 44→56; the 8 zero bytes at 48 become 16 at 64                              |
+| controller      | 12→24    | controllerKind 0→0, id 4→8, data 8→16                                                                                                                                                                   |
+| skin            | 156→184  | unchanged to 112; sourceUrl 112→112, joints 116→120, weightWords 124→128, weightBlock 128→136, jointListCount 132→144, jointListBlock 136→152, sphereCount 140→160, jointSpheres 144→164, slot 148→168, influences 152→176 |
+| morph           | 32→40    | sourceUrl 0→0, 4→8, targetIds 8→12, targetIndices 16→20, restWeights 24→28                                                                                                                              |
+| node tree       | 16→24    | id 0→0, name 4→8, roots 8→16                                                                                                                                                                            |
+| node            | 80→96    | id 0→0, name 4→8, sid 8→16, translation 12→24, storedRotation 24→36, scale 40→52, visible 52→64, children 56→68, instances 64→76, extra 72→84, extra2 76→88                                             |
+| instance        | 8        | unchanged                                                                                                                                                                                               |
+| instance data   |          | 0→0, url 4→8, 8→16, bindings 12→20, 20→28, skeletonRoots 24→32                                                                                                                                          |
+| binding         | 60→80    | materialUrl 4→8, materialIndex 8→16, techniqueBindings 28→36, techniqueBindings2 36→44; technique and pass entries 12→16                                                                               |
+| animation record | 32→40   | id 0→0, samplers 4→8, channels 12→16, slot 20→24, baseValue 24→32, 28→36                                                                                                                               |
+| sampler         | 28       | unchanged; the channel list after it starts 8-aligned                                                                                                                                                   |
+| clip range      | 12→16    | name 0→0, start 4→8, end 8→12                                                                                                                                                                           |
+| light           | 24→32    | id 0→0, name 4→8, kind 8→16, colour 12→20, intensity 16→24                                                                                                                                             |
+| effect          | 116→128  | id 0→0, name 4→8, lists from 8→16 on                                                                                                                                                                    |
+| scene           | 16→24    | kind 0→0, data 4→4, 8→8, url 12→16                                                                                                                                                                      |
+| store, segment, base value | 8, 24, 12 | unchanged; the source table keeps its shape and its self-relative offsets                                                                                                                    |
+
+Data blocks keep their 4-byte tag and contents. A block-table entry is
+(`u32` size, 4 bytes of 0, slot offset), 16 bytes. A joint-list block's
+per-joint entry is (`u32` entryCount, 4 bytes of 0, slot entries), 16 bytes;
+those slots are listed in the relocation table.
+
+**Channels are reordered**, not only widened:
+
+| Offset | Type   | Field       | Notes                                                                                                                                  |
+| ------ | ------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 0      | `str`  | target      |                                                                                                                                        |
+| 8      | `u32`  | channelKind | the same kinds                                                                                                                         |
+| 12     | `u32`  | —           | 0 in every channel; the −1 that leads a narrow channel is not stored                                                                    |
+| 16     | slot   | detail      | kind 14: `0xFF00` + the morph target index in the low 16 bits. Kinds 105–109: a `str`, listed. Other kinds: low 16 bits `0xFFFF`, high word `0xFFFFFFFF` |
+
+What the files do not settle: which of the zero bytes at the ends of the
+texture, part and binding records are slots and which are numbers (only the
+sizes are certain), and what the slots at model info +4, +8, +24 and skin
++148 hold, since they are 0 in every file. In 4.2.21, 188 of 8,384,963
+four-value rotation keys are more than 0.01 from unit length (at most
+0.017); in 2.2.0 every one is within 0.001.
 
 ## Top-down layout
 
@@ -670,8 +779,9 @@ the material fields it needs.
 The shapes those callers read:
 
 - **Construction.** `new Bdae(payload)` throws `BdaeError` when the payload
-  is under 60 bytes, the signature is not `BRES`, the endian mark is not
-  `0xFFFE` or the header size is not 60. Every other problem is tolerated:
+  is under 60 bytes or under its header, the signature is not `BRES`, the
+  endian mark is not `0xFFFE` or the header size is not 60 or 80. A slot
+  whose high word is not 0 is refused like any other unreadable field. Every other problem is tolerated:
   unreadable parts are skipped and noted in a `warnings: string[]`.
   `bytes` is the payload.
 - **`header`**: `{ signature, version, headerSize, fileSize,
