@@ -183,7 +183,8 @@ const SKELETON_CACHE_ENTRIES = 256;
 
 /** Extracted together; map packs are added once the zone names its map. */
 const CORE_PACKS = ['tables.bin', 'res.bin', 'res_t.bin', 'model_phy.bin'];
-const EFFECT_PACKS = ['res.bin', 'res_t.bin'];
+/** 4.2.21 keeps its whole `ui/` tree in `res_t.bin`; earlier builds keep it in `res.bin`. */
+const RES_PACKS = ['res.bin', 'res_t.bin'];
 
 const AREA_CONFIG = '2d_texture/area.cnfg';
 
@@ -794,7 +795,7 @@ export class PackAssetProvider implements AssetProvider {
 
   /** The interface's words in the build's order; only the first group is the interface's. */
   async loadUiStrings(): Promise<readonly string[]> {
-    const bytes = await this.lib().readFirst(['res.bin'], UI_STRINGS_FILE);
+    const bytes = await this.lib().readFirst(RES_PACKS, UI_STRINGS_FILE);
     if (!bytes) throw new ResourceNotFoundError('uiStrings');
     return readUiStrings(bytes)[0] ?? [];
   }
@@ -802,7 +803,7 @@ export class PackAssetProvider implements AssetProvider {
   /** One interface movie (`ui/<Movie>.swf`) in interface terms; bitmaps resolve through `uiIcon`. */
   async loadUiSkin(movie: string): Promise<UiSkinData> {
     const lib = this.lib();
-    const bytes = await lib.readFirst(['res.bin'], `ui/${movie}.swf`);
+    const bytes = await lib.readFirst(RES_PACKS, `ui/${movie}.swf`);
     if (!bytes) throw new ResourceNotFoundError(`uiSkin:${movie}`);
     let parsed: SwfMovie;
     try {
@@ -878,7 +879,7 @@ export class PackAssetProvider implements AssetProvider {
 
   /** One GPU program stage's text, decoded as the build stores it. */
   async loadShaderText(name: string): Promise<string> {
-    const bytes = await this.lib().readFirst(['res.bin'], name);
+    const bytes = await this.lib().readFirst(RES_PACKS, name);
     if (!bytes) throw new ResourceNotFoundError(`shader ${name}`);
     return new TextDecoder('utf-8').decode(bytes);
   }
@@ -888,7 +889,7 @@ export class PackAssetProvider implements AssetProvider {
     const lib = this.lib();
     const movies: SwfMovie[] = [];
     for (const movie of UI_MOVIES) {
-      const bytes = await lib.readFirst(['res.bin'], `ui/${movie}.swf`);
+      const bytes = await lib.readFirst(RES_PACKS, `ui/${movie}.swf`);
       if (!bytes) continue;
       try {
         movies.push(await parseSwf(bytes));
@@ -1385,7 +1386,7 @@ export class PackAssetProvider implements AssetProvider {
     if (cached) return cached;
     let out: string[] = [];
     try {
-      const bytes = await this.lib().readFirst(EFFECT_PACKS, path);
+      const bytes = await this.lib().readFirst(RES_PACKS, path);
       if (bytes) {
         out = readBeff(bytes, path).nodes.flatMap(n =>
           n.kind === 'mesh' && n.meshPath.toLowerCase().endsWith('.bdae') ? [n.meshPath] : [],
@@ -1610,7 +1611,7 @@ export class PackAssetProvider implements AssetProvider {
 
   /** One `.beff`, decoded and renamed into the neutral vocabulary. */
   private async loadEffect(path: string): Promise<EffectData> {
-    const bytes = await this.lib().readFirst(EFFECT_PACKS, path);
+    const bytes = await this.lib().readFirst(RES_PACKS, path);
     if (!bytes) throw new ResourceNotFoundError(`effect:${path}`);
     try {
       return await buildEffect(this.lib(), path, readBeff(bytes, path));

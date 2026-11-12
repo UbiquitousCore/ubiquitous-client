@@ -283,7 +283,6 @@ export const spellLayout = defineLayout(
     castMs: may(16, 'iu'),
     cooldownMs: may(17, 'iu'),
     range: may(21, 'f'),
-    mountKind: may(25, 'u'),
     visual: may(26, 'u'),
     /** The ids of its effect rows. */
     effects: run([33, 34, 35], 'u'),
@@ -291,7 +290,7 @@ export const spellLayout = defineLayout(
     flags: may(43, 'u'),
   },
   [
-    // 1.0.0 to 1.1.1: no mount column
+    // 1.0.0 to 1.1.1: no category column
     { format: 'uuusuuuuuusuiuuuuuffffuuuuuuuuuuuuuuuufuuuuuuuuuuuuu', edits: [{ lacks: 25 }] },
     // 2.2.0
     {

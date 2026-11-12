@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { WorldTables } from '../src/assets/formats/tables';
-import { spellLayout } from '../src/assets/formats/tableLayouts';
+import { spellEffectLayout, spellLayout } from '../src/assets/formats/tableLayouts';
 import { buildTable, buildTableFiles } from './helpers/fixtures';
 
 function loader(extra: Array<{ name: string; data: Uint8Array }>) {
@@ -62,8 +62,9 @@ const spellRow = (set: Record<number, number | string>): (number | string)[] =>
 const spells = buildTable(
   spellLayout.reference,
   // The columns the reader takes: skill set, name, rank, description, icon,
-  // cast time, cooldown, reach, mount kind, visual, power cost and flags
-  // (0x4 marks a spell that is never cast).
+  // cast time, cooldown, reach, visual, the effect slots, power cost and
+  // flags (0x4 marks a spell that is never cast). Column 25 is the spell's
+  // category: mounts carry one, and so do spells that are no mount.
   [
     spellRow({
       1: 3,
@@ -78,9 +79,20 @@ const spells = buildTable(
       41: 40,
     }),
     spellRow({ 1: 3, 10: '0', 43: 0x4 }),
-    spellRow({ 1: 3, 25: 1 }),
+    spellRow({ 1: 3, 25: 6, 33: 9001 }),
+    spellRow({ 1: 3, 25: 12 }),
   ],
-  [100, 101, 102],
+  [100, 101, 102, 103],
+);
+// 6 kind (1 an aura), 7 detail (50 seats the caster), 11 the mount.
+const effects = buildTable(
+  spellEffectLayout.reference,
+  [
+    [...spellEffectLayout.reference].map((type, at) =>
+      type === 's' ? '' : ({ 0: 9001, 6: 1, 7: 50, 11: 12 }[at] ?? 0),
+    ),
+  ],
+  [9001],
 );
 // 0 id, 1 name string, 2 the mark under `class/`.
 const skillSets = buildTable('uus', [[3, 21, 'ui_class_mage_01.png']], [3]);
@@ -97,6 +109,7 @@ const EXTRA = [
   { name: 'tables/c_spellvisualeffect.tbl', data: effect },
   { name: 'tables/c_animationdata.tbl', data: animation },
   { name: 'tables/spell_new.tbl', data: spells },
+  { name: 'tables/spell_effect.tbl', data: effects },
   { name: 'tables/spell_skillset.tbl', data: skillSets },
   { name: 'tables/mountprototype.tbl', data: mounts },
 ];
@@ -181,6 +194,13 @@ describe('spell_new', () => {
       skillSetIcon: null,
     });
     expect(tables.spellStats(102).mount).toBe(true);
+    expect(tables.spellMountId(102)).toBe(12);
+  });
+
+  it('takes a mount from the effect that seats its caster, not from the category column', async () => {
+    const tables = await WorldTables.load(loader(EXTRA));
+    expect(tables.spellStats(103).mount).toBe(false);
+    expect(tables.spellCastable(103)).toBe(true);
   });
 
   it('leaves out never-cast spells and mounts', async () => {

@@ -146,12 +146,13 @@ function parseMarkup(source: string): Node[] {
     if (clean) add({ kind: 'text', text: clean });
   };
 
-  const markup = /\x12([^\x12\x13]*)\x13/g;
+  // Four 4.2.21 pages write a choice's first comma as a second 0x12.
+  const markup = /\x12((?:[^\x12\x13]|\x12(?=,))*)\x13/g;
   let at = 0;
   for (let match = markup.exec(source); match !== null; match = markup.exec(source)) {
     text(source.slice(at, match.index));
     at = markup.lastIndex;
-    const tag = TAG.exec(match[1]!.trim());
+    const tag = TAG.exec(match[1]!.replace(/\x12/g, '').trim());
     if (!tag) {
       text(match[1]!);
       continue;

@@ -126,27 +126,29 @@ function tileFromName(name: string): [number, number] | null {
   return Number.isInteger(x) && Number.isInteger(z) ? [x, z] : null;
 }
 
-function findPack(name: string): string | null {
-  // $UBIQUITOUS_PACK names one pack; its siblings live beside it, so a single
-  // variable is enough to point the whole suite at an extracted build.
+/**
+ * The one build the suite reads: `$UBIQUITOUS_PACK`'s directory, else the
+ * directory with the largest res.bin. Every pack comes from it, because one
+ * build's tables do not describe another build's models.
+ */
+const HOME = ((): string | null => {
   const explicit = (process.env.UBIQUITOUS_PACK ?? '').trim();
-  if (explicit && existsSync(explicit)) {
-    const sibling = join(dirname(resolve(explicit)), name);
-    if (existsSync(sibling)) return sibling;
-  }
-
+  if (explicit && existsSync(explicit)) return dirname(resolve(explicit));
   const found: string[] = [];
   for (const base of [join(ROOT, '.cache'), join(ROOT, 'work', 'cache')]) {
     if (!existsSync(base)) continue;
     for (const dir of readdirSync(base)) {
-      const p = join(base, dir, name);
+      const p = join(base, dir, 'res.bin');
       if (existsSync(p)) found.push(p);
     }
   }
-  if (!found.length) return null;
-  // Biggest = newest build = most to check against.
   found.sort((a, b) => statSync(b).size - statSync(a).size || a.localeCompare(b));
-  return found[0];
+  return found.length ? dirname(found[0]!) : null;
+})();
+
+function findPack(name: string): string | null {
+  const path = HOME ? join(HOME, name) : null;
+  return path && existsSync(path) ? path : null;
 }
 
 /** Every copy of a pack on disk, one per extracted build. */
@@ -3123,6 +3125,11 @@ describe.skipIf(!RES || !TABLES)('capes, on every body in every build', () => {
         return found ? tablesPack.read(found) : null;
       });
       const res = await PackReader.open(await fileSource(build.res), 'res.bin');
+      // 4.2.21 keeps `texture/` in `res_t.bin` alone.
+      const moreAt = join(dirname(build.res), 'res_t.bin');
+      const more = existsSync(moreAt)
+        ? await PackReader.open(await fileSource(moreAt), 'res_t.bin')
+        : null;
       const display = tables.keyedRows('itemdisplayinfo');
       const items = (id: number) => tables.shownItem(id);
       const backItems = [...tables.keyedRows('items').keys()].filter(
@@ -3162,7 +3169,8 @@ describe.skipIf(!RES || !TABLES)('capes, on every body in every build', () => {
           const worn = visible.filter(n => capes.includes(n));
           expect(worn, `${path} item ${id}`).toHaveLength(1);
           expect(visible, `${path} item ${id}`).not.toContain('cape_01-mesh');
-          expect(res.has(meshTextures[worn[0]]), `${path} item ${id} art`).toBe(true);
+          const art = meshTextures[worn[0]];
+          expect(res.has(art) || more?.has(art), `${path} item ${id} art`).toBe(true);
         }
         for (const id of kinds.values()) {
           const look = lookFrom();
@@ -3214,7 +3222,13 @@ describe.skipIf(RES || TABLES || IPA)('game data', () => {
 
 describe.skipIf(!RES)('the interface sprites, found in the user movie', () => {
   it('finds every sprite, on a sheet large enough to cut it from', async () => {
-    const pack = await PackReader.open(await fileSource(RES!), 'res.bin');
+    const res = await PackReader.open(await fileSource(RES!), 'res.bin');
+    // 4.2.21 keeps its interface in `res_t.bin`.
+    const moreAt = findPack('res_t.bin');
+    const pack =
+      res.has('ui/IGM.swf') || !moreAt
+        ? res
+        : await PackReader.open(await fileSource(moreAt), 'res_t.bin');
     const parsed = await parseSwf(await pack.read('ui/IGM.swf'));
     const artOf = new Map(parsed.exports.map(e => [e.id, e.name] as const));
     const film = {

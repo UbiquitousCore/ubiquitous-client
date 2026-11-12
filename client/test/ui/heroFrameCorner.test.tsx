@@ -54,9 +54,14 @@ beforeAll(async () => {
   for (const build of BUILDS) {
     const provider = new PackAssetProvider();
     // The pack reader wants the platform's own file, not the page's.
-    const bytes = await openAsBlob(join(CACHE, build, 'res.bin'));
-    const file = new NodeFile([bytes as unknown as ArrayBuffer], 'res.bin') as unknown as File;
-    await provider.useSource(provider.offer([file]).id);
+    // 4.2.21 keeps its interface in `res_t.bin`.
+    const files: File[] = [];
+    for (const name of ['res.bin', 'res_t.bin']) {
+      if (!existsSync(join(CACHE, build, name))) continue;
+      const bytes = await openAsBlob(join(CACHE, build, name));
+      files.push(new NodeFile([bytes as unknown as ArrayBuffer], name) as unknown as File);
+    }
+    await provider.useSource(provider.offer(files).id);
     const skin = await provider.load(uiSkinId('IGM')).catch(() => null);
     if (!skin) continue;
     read.set(build, { skin, words: await provider.load(uiStringsId()).catch(() => []) });

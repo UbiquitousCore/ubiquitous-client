@@ -82,11 +82,13 @@ beforeAll(async () => {
   for (const [build, pack] of BUILDS) {
     const provider = new PackAssetProvider();
     const file = new File([await openAsBlob(pack)], 'res.bin');
-    const tablesAt = join(dirname(pack), 'tables.bin');
-    const tables = existsSync(tablesAt)
-      ? [new File([await openAsBlob(tablesAt)], 'tables.bin')]
-      : [];
-    await provider.useSource(provider.offer([file, ...tables]).id);
+    // 4.2.21 keeps its interface in `res_t.bin`, so every pack beside it rides along.
+    const beside: File[] = [];
+    for (const name of ['tables.bin', 'res_t.bin']) {
+      const at = join(dirname(pack), name);
+      if (existsSync(at)) beside.push(new File([await openAsBlob(at)], name));
+    }
+    await provider.useSource(provider.offer([file, ...beside]).id);
     const talents = await provider.load(talentsId()).catch(() => null);
     const movies = new Map<UiMovie, UiSkinData>();
     for (const movie of ['IGM', 'LGM'] as const) {
@@ -94,9 +96,13 @@ beforeAll(async () => {
       if (skin) movies.set(movie, skin);
     }
     const words = await provider.load(uiStringsId()).catch(() => []);
-    const listed = await (await Library.mountPack(file)).pack('res.bin');
+    const files = new Set<string>();
+    for (const one of [file, ...beside.filter(f => f.name !== 'tables.bin')]) {
+      const listed = await (await Library.mountPack(one)).pack(one.name);
+      for (const entry of listed.entries) files.add(entry.name.toLowerCase());
+    }
     read.set(build, {
-      files: new Set(listed.entries.map(entry => entry.name.toLowerCase())),
+      files,
       movies,
       words,
       built: buildUiSpec(movies, words, SCREEN_MEANINGS, KNOWN_SCREENS),
@@ -493,6 +499,8 @@ describe.skipIf(!BUILDS.size)('the screen table, against the player’s builds',
   it('names every talent tree the build’s tables list, in every build', () => {
     for (const [build, one] of read) {
       if (!one.trees.length) continue;
+      // 4.2.21's movie has no `dlgTalent`: its talents are a `dlgnewtalent` the client does not draw.
+      if (!partsOf(one, SCREEN_MEANINGS.talents!)) continue;
       const from = one.built.spec.screens.talents?.rows?.treeWords;
       expect(from, build).toBeDefined();
       if (from === undefined) continue;

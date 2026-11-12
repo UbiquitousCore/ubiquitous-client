@@ -1057,7 +1057,7 @@ export class WorldTables {
       castMs: num(row[this.columns.spells.castMs]),
       cooldownMs: num(row[this.columns.spells.cooldownMs]),
       range: num(row[this.columns.spells.range]),
-      mount: num(row[this.columns.spells.mountKind]) > 0,
+      mount: this.mountOf(row) > 0,
       pet: this.callsPet(row),
       skillSet,
       skillSetIcon: icon && icon !== '0' ? icon : null,
@@ -1096,7 +1096,10 @@ export class WorldTables {
   /** The `mountList` row a spell seats its caster on, from its effect slots; 0 when it summons no mount. */
   spellMountId(spellId: number): number {
     const row = this.keyedRows('spell_new').get(spellId);
-    if (!row) return 0;
+    return row ? this.mountOf(row) : 0;
+  }
+
+  private mountOf(row: Row): number {
     const effects = this.keyedRows('spell_effect');
     for (const slot of this.columns.spells.effects) {
       const effect = effects.get(num(row[slot]));
@@ -1271,7 +1274,7 @@ export class WorldTables {
   spellCastable(spellId: number): boolean {
     const row = this.keyedRows('spell_new').get(spellId);
     if (!row) return false;
-    if (num(row[this.columns.spells.mountKind]) > 0) return false;
+    if (this.mountOf(row) > 0) return false;
     if (num(row[this.columns.spells.flags]) & SPELL_NEVER_CAST_FLAG) return false;
     const skillGroup = num(row[this.columns.spells.skillSet]);
     if (skillGroup === 0 && this.callsPet(row)) return true;

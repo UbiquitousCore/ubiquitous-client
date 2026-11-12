@@ -168,16 +168,24 @@ describe.skipIf(BUILDS.length === 0)('a build, read from its own packs', () => {
   it.each(BUILDS)(
     '%s: parses every interface movie it carries',
     async dir => {
-      const res = (await open(dir, 'res.bin'))!;
-      const movies = res.entries.filter(e => !e.isDir && /\.swf$/i.test(e.name));
+      // 4.2.21 keeps its interface in `res_t.bin`.
+      const packs = [await open(dir, 'res.bin'), await open(dir, 'res_t.bin')].filter(
+        (pack): pack is PackReader => pack !== null,
+      );
       const broken: string[] = [];
-      for (const entry of movies) {
-        try {
-          await parseSwf(await res.read(entry));
-        } catch (error) {
-          broken.push(`${entry.name}: ${String(error)}`);
+      let movies = 0;
+      for (const pack of packs) {
+        for (const entry of pack.entries) {
+          if (entry.isDir || !/\.swf$/i.test(entry.name)) continue;
+          movies++;
+          try {
+            await parseSwf(await pack.read(entry));
+          } catch (error) {
+            broken.push(`${entry.name}: ${String(error)}`);
+          }
         }
       }
+      expect(movies).toBeGreaterThan(0);
       expect(broken).toEqual([]);
     },
     300_000,
