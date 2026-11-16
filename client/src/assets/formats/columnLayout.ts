@@ -38,6 +38,8 @@ export type LayoutEdit =
   | { readonly addsBefore: number; readonly count?: number };
 
 export interface LayoutRevision<C> {
+  /** The builds that ship this format, as a reader would say them: `'1.0.0 to 1.0.3'`. */
+  readonly builds: string;
   readonly format: string;
   readonly edits?: readonly LayoutEdit[];
   /** Columns this format holds differently, placed in its own column numbers. */
@@ -106,7 +108,10 @@ export function resolveLayout<C extends Record<string, ColumnSpec>>(
   layout: ColumnLayout<C>,
   format: string,
 ): ResolvedLayout<C> {
-  const known: LayoutRevision<C>[] = [{ format: layout.reference }, ...layout.revisions];
+  const known: Pick<LayoutRevision<C>, 'format' | 'edits' | 'own'>[] = [
+    { format: layout.reference },
+    ...layout.revisions,
+  ];
   const exact = known.find(revision => revision.format === format);
   const extended = known
     .filter(revision => format.startsWith(revision.format))

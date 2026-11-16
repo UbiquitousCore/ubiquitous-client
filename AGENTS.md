@@ -374,6 +374,7 @@ the [issue tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues),
 |---|---|
 | Support a new resource kind | `assets/ids.ts` + `assets/types.ts` + `PackAssetProvider` |
 | Add or fix a format reader | `assets/formats/` — a real-pack test, a spec in `client/docs/formats/`, and a line in `docs/PROVENANCE.md` |
+| Say what a table column holds | `client/dev/tableColumnNotes.ts`, with the count that decides it; then `UPDATE_DOCS=1 npx vitest run test/tableColumnsDoc.test.ts` rewrites `client/docs/formats/table-columns.md` |
 | Change how a resource is assembled | `assets/providers/local{Model,Zone}.ts` |
 | Change how the .ipa is read or cached | `assets/vfs/` |
 | Add persistent caching | implement `ResourceCache`, pass it to `ResourceSystem` |

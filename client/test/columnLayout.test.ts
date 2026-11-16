@@ -16,9 +16,9 @@ const layout = defineLayout(
   'uufuuus',
   { id: must(0, 'uk'), weight: may(2, 'f'), slots: run([3, 4, 5], 'u'), label: may(6, 's') },
   [
-    { format: 'ufuuus', edits: [{ lacks: 1 }] },
-    { format: 'uuifuuus', edits: [{ addsBefore: 2 }] },
-    { format: 'uufuuuu', own: { label: may(6, 'u') } },
+    { builds: 'older', format: 'ufuuus', edits: [{ lacks: 1 }] },
+    { builds: 'newer', format: 'uuifuuus', edits: [{ addsBefore: 2 }] },
+    { builds: 'other', format: 'uufuuuu', own: { label: may(6, 'u') } },
   ],
 );
 

@@ -11,10 +11,9 @@ export const mapInfoLayout = defineLayout(
   'uuuuufffussuuufuuu',
   { name: must(9, 's'), world: must(10, 's') },
   [
-    // 1.0.0
-    { format: 'uuuuufffussuuuf', edits: [{ lacks: 15, count: 3 }] },
-    // 2.2.0 on: three floats of its own ahead of the recall point
-    { format: 'uuuuuffffffussuuufuuu', edits: [{ addsBefore: 5, count: 3 }] },
+    { builds: '1.0.0', format: 'uuuuufffussuuuf', edits: [{ lacks: 15, count: 3 }] },
+    // Three floats of its own ahead of the recall point
+    { builds: '2.2.0 on', format: 'uuuuuffffffussuuufuuu', edits: [{ addsBefore: 5, count: 3 }] },
   ],
 );
 
@@ -44,12 +43,19 @@ export const zoneLayout = defineLayout(
     friendly: may(35, 'i'),
   },
   [
-    // 1.0.0 to 1.0.3: a dome and a hill, no sun or halo
-    { format: 'iiiuffffffffuuffuuuusssiii', edits: [{ lacks: 22, count: 10 }] },
-    // 1.1.5
-    { format: 'iiiuffffffffuuffuuuussssssfffffusiiiu', edits: [{ addsBefore: 36 }] },
-    // 2.2.0 on
+    // A dome and a hill, no sun or halo
     {
+      builds: '1.0.0 to 1.0.3',
+      format: 'iiiuffffffffuuffuuuusssiii',
+      edits: [{ lacks: 22, count: 10 }],
+    },
+    {
+      builds: '1.1.5',
+      format: 'iiiuffffffffuuffuuuussssssfffffusiiiu',
+      edits: [{ addsBefore: 36 }],
+    },
+    {
+      builds: '2.2.0 on',
       format: 'iiiuffffffffuuffffuuuussssssfffffusiiiu',
       edits: [{ addsBefore: 16, count: 2 }, { addsBefore: 36 }],
     },
@@ -70,8 +76,8 @@ export const staticSpawnLayout = defineLayout(
     scaleY: may(12, 'f'),
   },
   [
-    // 1.0.0 to 1.0.3: one scale, where later builds carry one per axis
-    { format: 'uuuffffffuufuf', edits: [{ lacks: 12, count: 2 }] },
+    // One scale, where later builds carry one per axis
+    { builds: '1.0.0 to 1.0.3', format: 'uuuffffffuufuf', edits: [{ lacks: 12, count: 2 }] },
   ],
 );
 
@@ -86,10 +92,9 @@ export const staticProtoLayout = defineLayout(
     festival: may(19, 'u'),
   },
   [
-    // 1.0.0 to 1.0.3
-    { format: 'uuuuuuufuuuuuuuuuu', edits: [{ lacks: 18, count: 2 }] },
-    // 1.1.0 and 1.1.1: the festival is there, the column ahead of it is not
-    { format: 'uuuuuuufuuuuuuuuuuu', edits: [{ lacks: 18 }] },
+    { builds: '1.0.0 to 1.0.3', format: 'uuuuuuufuuuuuuuuuu', edits: [{ lacks: 18, count: 2 }] },
+    // The festival is there, the column ahead of it is not
+    { builds: '1.1.0 and 1.1.1', format: 'uuuuuuufuuuuuuuuuuu', edits: [{ lacks: 18 }] },
   ],
 );
 
@@ -112,8 +117,11 @@ export const creatureSpawnLayout = defineLayout(
     yaw: must(6, 'f'),
   },
   [
-    // 1.0.0 and 1.0.1
-    { format: 'uuuffffcuuuuuuuuhuuhuuuuuuufuuuuuuu', edits: [{ lacks: 35, count: 7 }] },
+    {
+      builds: '1.0.0 and 1.0.1',
+      format: 'uuuffffcuuuuuuuuhuuhuuuuuuufuuuuuuu',
+      edits: [{ lacks: 35, count: 7 }],
+    },
   ],
 );
 
@@ -149,23 +157,23 @@ export const creatureProtoLayout = defineLayout(
     greetingMenu: may(56, 'u'),
   },
   [
-    // 1.0.0 to 1.0.3
     {
+      builds: '1.0.0 to 1.0.3',
       format: 'uuuuuuuuuufuuuuuuuuuuuuuuuuuuuuuuuffsuuuuuuuuuuuuuuuuuuuuuuuufuu',
       edits: [...OLD_CREATURE_PROTO, { lacks: 64, count: 10 }],
     },
-    // 1.1.0 and 1.1.1
     {
+      builds: '1.1.0 and 1.1.1',
       format: 'uuuuuuuuuufuuuuuuuuuuuuuuuuuuuuuuuffsuuuuuuuuuuuuuuuuuuuuuuuufuuuuuf',
       edits: [...OLD_CREATURE_PROTO, { lacks: 68, count: 6 }],
     },
-    // 2.5.0
     {
+      builds: '2.5.0',
       format: 'uuuuuuuuuufuuuuuuuuuuuuuuuuuuuuuuuffsuuuuuuuuuuuuuuuuuusuuuuufuuuuufuuuuuuu',
       edits: [{ addsBefore: 74 }],
     },
-    // 4.2.21
     {
+      builds: '4.2.21',
       format: 'uuuuuuuuuufuuuuuuuuuuuuuuuuuuuuuuuffsuuuuuuuuuuuuuuuuuusuuuuufuuuuufuuuuuuuuuuf',
       edits: [{ addsBefore: 74, count: 5 }],
     },
@@ -211,10 +219,7 @@ export const soundSetLayout = defineLayout(
   'sound_solution',
   'uuuuuuuuuuuuuuuus',
   { states: run([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], 'u') },
-  [
-    // 1.0.0 to 1.1.1
-    { format: 'uuuuuuuuuuuuuuus', edits: [{ lacks: 15 }] },
-  ],
+  [{ builds: '1.0.0 to 1.1.1', format: 'uuuuuuuuuuuuuuus', edits: [{ lacks: 15 }] }],
 );
 
 export const spellVisualLayout = defineLayout(
@@ -233,8 +238,8 @@ export const spellVisualLayout = defineLayout(
     impactDelay: may(10, 'u'),
   },
   [
-    // 1.0.0 to 1.1.1: no ending phase
-    { format: 'uuuuuuuuuuss', edits: [{ lacks: 7 }] },
+    // No ending phase
+    { builds: '1.0.0 to 1.1.1', format: 'uuuuuuuuuuss', edits: [{ lacks: 7 }] },
   ],
 );
 
@@ -258,10 +263,7 @@ export const spellVisualEffectLayout = defineLayout(
     flight: may(8, 'ui'),
     projectiles: may(9, 'ui'),
   },
-  [
-    // 1.0.0
-    { format: 'ussiiiuu', edits: [{ lacks: 8, count: 2 }] },
-  ],
+  [{ builds: '1.0.0', format: 'ussiiiuu', edits: [{ lacks: 8, count: 2 }] }],
 );
 
 export const animationLayout = defineLayout('c_animationdata', 'usuuu', {
@@ -290,20 +292,24 @@ export const spellLayout = defineLayout(
     flags: may(43, 'u'),
   },
   [
-    // 1.0.0 to 1.1.1: no category column
-    { format: 'uuusuuuuuusuiuuuuuffffuuuuuuuuuuuuuuuufuuuuuuuuuuuuu', edits: [{ lacks: 25 }] },
-    // 2.2.0
+    // No category column
     {
+      builds: '1.0.0 to 1.1.1',
+      format: 'uuusuuuuuusuiuuuuuffffuuuuuuuuuuuuuuuufuuuuuuuuuuuuu',
+      edits: [{ lacks: 25 }],
+    },
+    {
+      builds: '2.2.0',
       format: 'uuusuuuuuusuiuuuuuffffuuuuuuuuuuuuuuuuufuuuuuuuuuuuuuuu',
       edits: [{ addsBefore: 47, count: 2 }],
     },
-    // 2.5.0
     {
+      builds: '2.5.0',
       format: 'uuusuuuuuusuiuuuuuffffuuuuuuuuuuuuuuuuufuuuuuuuuuuuuuuuu',
       edits: [{ addsBefore: 47, count: 2 }, { addsBefore: 53 }],
     },
-    // 4.2.21
     {
+      builds: '4.2.21',
       format: 'uuusuuuuuusuiuuuuuffffuuuuuuuuuuuuuuuuufuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu',
       edits: [
         { addsBefore: 47, count: 17 },
@@ -325,8 +331,11 @@ export const spellEffectLayout = defineLayout(
     label: may(22, 's'),
   },
   [
-    // 4.2.21
-    { format: 'uuuuufuuiiiuuuuuuuuuusssuuuu', edits: [{ addsBefore: 24, count: 4 }] },
+    {
+      builds: '4.2.21',
+      format: 'uuuuufuuiiiuuuuuuuuuusssuuuu',
+      edits: [{ addsBefore: 24, count: 4 }],
+    },
   ],
 );
 
@@ -367,38 +376,38 @@ export const itemLayout = defineLayout(
   [
     // Before 1.1.4 one of the always-empty columns 20 to 22 is not there;
     // the rows cannot say which, and nothing reads any of the three.
-    // 1.0.0 and 1.0.1
     {
+      builds: '1.0.0 and 1.0.1',
       format:
         'uuukuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuffuffuuuufuuuuuuuuuuuuukuuuuuuuufuuuuuuuuuuuuuuuusuuuusuu',
       edits: [OLD_ITEMS, { lacks: 105, count: 8 }],
     },
-    // 1.0.3
     {
+      builds: '1.0.3',
       format:
         'uuukuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuffuffuuuufuuuuuuuuuuuuukuuuuuuuufuuuuuuuuuuuuuuuusuuuusuuu',
       edits: [OLD_ITEMS, { lacks: 105, count: 8 }, { addsBefore: 113 }],
     },
-    // 1.1.0 and 1.1.1
     {
+      builds: '1.1.0 and 1.1.1',
       format:
         'uuukuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuffuffuuuufuuuuuuuuuuuuukuuuuuuuufuuuuuuuuuuuuuuuusuuuusuuuuuuu',
       edits: [OLD_ITEMS, { lacks: 109, count: 4 }, { addsBefore: 113 }],
     },
-    // 2.2.0
     {
+      builds: '2.2.0',
       format:
         'uuukuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuffuffuuuufuuuuuuuuuuuuukuuuuuuuufuuuuuuuuuuuuuuuusuuuusuuuuuuuuuus',
       edits: [{ addsBefore: 113 }],
     },
-    // 2.5.0
     {
+      builds: '2.5.0',
       format:
         'uuukuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuffuffuuuufuuuuuuuuuuuuukuuuuuuuufuuuuuuuuuuuuuuuusuuuusuuuuuuuuuusuuuu',
       edits: [{ addsBefore: 113, count: 5 }],
     },
-    // 4.2.21
     {
+      builds: '4.2.21',
       format:
         'uuukuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuffuffuuuufuuuuuuuuuuuuukuuuuuuuufuuuuuuuuuuuuuuuusuuuusuuuuuuuuuusuuuuuufsusssuuuuuuuuuu',
       edits: [{ addsBefore: 113, count: 23 }],
@@ -469,13 +478,15 @@ export const talentLayout = defineLayout(
     says: may(15, 'u'),
   },
   [
-    // 1.1.5: ranks spread as in 2.2.0, with a shorter tail
+    // Ranks spread as in 2.2.0, with a shorter tail
     {
+      builds: '1.1.5',
       format: 'uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuusuuu',
       edits: [...SPREAD_RANKS, { addsBefore: 16, count: 2 }],
     },
-    // 2.2.0 on: each rank's spell is followed by four columns of its own
+    // Each rank's spell is followed by four columns of its own
     {
+      builds: '2.2.0 on',
       format: 'uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuusuuuuuuu',
       edits: [...SPREAD_RANKS, { addsBefore: 16, count: 6 }],
     },
@@ -495,10 +506,7 @@ export const storageUpgradeLayout = defineLayout(
     /** Capacity required. */
     requires: may(6, 'u'),
   },
-  [
-    // 2.5.0 on
-    { format: 'uuuuuuuu', edits: [{ addsBefore: 2 }] },
-  ],
+  [{ builds: '2.5.0 on', format: 'uuuuuuuu', edits: [{ addsBefore: 2 }] }],
 );
 
 export const teleportLayout = defineLayout('teleport_spot', 'usuffffu', {
@@ -517,10 +525,8 @@ export const busRouteLayout = defineLayout(
   'uuuuu',
   { from: may(1, 'u'), to: may(2, 'u'), price: may(3, 'u') },
   [
-    // 1.0.3 to 1.1.1
-    { format: 'uuuu', edits: [{ lacks: 4 }] },
-    // 4.2.21
-    { format: 'uuuuuu', edits: [{ addsBefore: 5 }] },
+    { builds: '1.0.3 to 1.1.1', format: 'uuuu', edits: [{ lacks: 4 }] },
+    { builds: '4.2.21', format: 'uuuuuu', edits: [{ addsBefore: 5 }] },
   ],
 );
 

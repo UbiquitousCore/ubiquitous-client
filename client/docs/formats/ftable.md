@@ -56,6 +56,10 @@ columns it lacks and where it adds its own. `WorldTables` resolves every
 layout against the formats it loaded, and all reading goes through the
 names (`tables.columns.items.quality`).
 
+[table-columns.md](table-columns.md) lists every column of every such table:
+its number in each build, the name the client reads it under, and what its
+rows show. It is generated from the layouts.
+
 - A column a build does not have resolves to -1 and reads as 0 or `''`.
 - A required column of the wrong type stops the load.
 - A format no layout names is read where the reference has each column, as
@@ -98,7 +102,7 @@ Numbers are the build's own column numbers.
 | --- | --- | --- | --- |
 | `spell_new` | 2.5.0 on | 25 | more categories than mounts; see below |
 | `spell_new` | 2.5.0 on | 55 (70 in 4.2.21) | 0 or 1000 |
-| `spell_new` | 4.2.21 | 49 to 63 | fifteen columns of bit flags, set on a few hundred spells each |
+| `spell_new` | 4.2.21 | 49 to 61 | thirteen columns of bit flags, set on a few hundred spells each; 62 and 63 are empty |
 | `spell_new` | 4.2.21 | 71 to 73 | small numbers on a few dozen spells; 73 runs 50 to 72 on about 1,000. Not settled |
 | `items` | 2.2.0 on | 113 (string) | a price in other items, written `<item id> * <count>` and joined with `+`; every id is an item (393 of 393 in 2.2.0, 2,429 of 2,429 in 4.2.21) |
 | `items` | 4.2.21 | 116 | on gems, an item id |
