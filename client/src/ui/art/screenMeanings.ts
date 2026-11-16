@@ -156,6 +156,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // in are the build's and not this client's.
     hidden: [
       'btnGLLive',
+      // 2.2.0 on: signing in through other services, and the news.
+      'LoginGroupInter',
+      'LoginGroupChina',
+      'textGLLoginHint',
+      'btnGameCenter_CN',
+      'btnnewsbg',
       'btnMoreGame',
       'btnMoreGameGreen',
       'textMoreGame',
@@ -1149,6 +1155,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The first-run hint, and the parts of a quest's own page the screen
     // lays out itself rather than where the movie stacks them.
     hidden: [
+      // 4.2.21: an information button this client opens nothing from.
+      'btninformation',
       'animQuestLogTip',
       'logbar',
       'scroll/info/scrollbar',
@@ -1310,6 +1318,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The arena page and the rules for sharing out loot are the build's and
     // not yet this client's.
     hidden: [
+      // 2.2.0 on: the random-dungeon queue and the buttons that switch to it.
+      'panelRanDungeon',
+      'btnPVP00',
+      'btnPVP01',
+      'btnResetExhau',
       // The buttons' words sit across the paper's edge; the icons say it.
       'textInvite',
       'textQuit',
@@ -1374,7 +1387,7 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       // Shown, and not yet wired to anything.
       'buttonHelp/text': '@1004?~3871a3fa749178a6~4',
       'buttonSetting/text': '@777?~68067b08783127a4~8',
-      'buttonReport/text': '@1498?~feab1448e614f6bc~12',
+      'panelMain/buttonReport/text': '@1498?~feab1448e614f6bc~12',
     },
     values: {
       quality: 'panelSetting/optiongroup/textcameraparam',
@@ -1391,7 +1404,18 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       fog: 'panelSetting/optiongroup/text3g',
     },
     // The page's other pages: the sound, the interface and asking for help.
-    hidden: ['panelAudio', 'panelInterface', 'panelSOS', 'btnScroll'],
+    hidden: [
+      'panelAudio',
+      'panelInterface',
+      'panelSOS',
+      'btnScroll',
+      // 4.2.21: the community menu, its button and its news count.
+      'dlgocm',
+      'buttonOCM',
+      'textnewsnumberbg',
+    ],
+    // 4.2.21 moves Report into the community menu, which is hidden.
+    optional: ['panelMain/buttonReport/text'],
   },
   // Asked before leaving the world, in the build's own words.
   dungeonResetAsk: askBox('@1487?~619545e64e89320a~51'),
@@ -1761,8 +1785,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     },
     // The room offer, half labels and second currency are not ours yet.
     hidden: [
+      // 4.2.21: tabs over the bag half that pick what it shows.
+      'bagTab',
       'btnupgradebag',
       'btnupgradebox',
+      // 2.2.0 on: each page of slots carries its own room offer.
+      'btnupgrade',
       'animflash',
       'bagindicator',
       'boxindicator',
