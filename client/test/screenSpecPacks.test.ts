@@ -771,6 +771,17 @@ describe.skipIf(!BUILDS.size)('the screen table, against the player’s builds',
     expect(Object.fromEntries(refused.map(one => [one, target.built.fallbacks[one]]))).toEqual({});
   });
 
+  it('draws every mapped screen from every build on disk, but the talents of 4.2.21', () => {
+    // 4.2.21's talent window is a new dialog, `dlgnewtalent`, laid out anew.
+    const redesigned: Record<string, string[]> = { '4.2.21': ['talents'] };
+    for (const [build, one] of read) {
+      const refused = Object.keys(SCREEN_MEANINGS).filter(
+        screen => !(screen in one.built.spec.screens),
+      );
+      expect(refused, build).toEqual(redesigned[basename(build)] ?? []);
+    }
+  });
+
   it('gives a named reason for every screen a consumer knows and a build does not draw', () => {
     for (const one of read.values()) {
       for (const screen of KNOWN_SCREENS) {

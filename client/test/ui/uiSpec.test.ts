@@ -62,6 +62,20 @@ describe('screenSpec', () => {
     expect(screenSpec('signIn')?.captions).toEqual({ account: 'Anmeldename' });
   });
 
+  it('shows nothing for a word a build in the same language lacks', () => {
+    // Its number holds some other line: two friend-list questions in 2.2.0.
+    uiSpec.value = {
+      screens: {
+        social: {
+          dialog: 'd',
+          captions: { add: '@0?Add', remove: '@1?Remove', ask: '@2?Delete this friend?' },
+        },
+      },
+    };
+    setUiWords(['', 'Add', 'Remove', 'Ignore']);
+    expect(screenSpec('social')?.captions).toEqual({ add: 'Add', remove: 'Remove', ask: '' });
+  });
+
   it('asks the build no questions where the number is already right', () => {
     uiSpec.value = {
       screens: { signIn: { dialog: 'd', captions: { account: '@2?account' } } },

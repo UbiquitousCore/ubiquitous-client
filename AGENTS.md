@@ -400,7 +400,11 @@ The worn screens target the **1.1.4** build. A caption in
 `client/src/ui/art/screenMeanings.ts` is quoted as `@<number>?<word>`: take
 the number from 1.1.4's interface string file, not 2.2.0's — the same word
 sits at a different number in each. Name only elements 1.1.4's movie carries,
-and leave out what only a later build has. The word after the `?` is still
+and leave out what only a later build has, except as the second of two ways
+to find a part (a grid's alternatives), with a comment naming the builds.
+Write a part by the shortest end of its path that is unique in every build
+on disk: later builds often move a part a group deeper, and a part is found
+by how its path ends. The word after the `?` is still
 what lets another build find its own copy.
 
 `client/test/screenSpecPacks.test.ts` holds the table to this, against the

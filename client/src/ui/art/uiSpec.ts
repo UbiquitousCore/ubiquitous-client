@@ -424,14 +424,43 @@ function opensWith(word: string, want: Asked): boolean {
   return text === wanted || text.startsWith(wanted);
 }
 
-/** One quoted caption's words in this build; a non-quote is returned as is. */
-export function unquote(value: string, words: readonly string[]): string {
+/**
+ * One quoted caption's words in this build; a non-quote is returned as is.
+ * Where the words are nowhere, a build `inQuotedLanguage` lacks them, so the
+ * caption is blank: its number holds some other line. Any other build is in
+ * another language, and its number holds the translation.
+ */
+export function unquote(value: string, words: readonly string[], inQuotedLanguage = false): string {
   const quoted = QUOTE.exec(value);
   if (!quoted) return value;
   const at = placeOf(Number(quoted[1]), quoted[2], words);
-  return at === undefined
-    ? (words[Number(quoted[1])] ?? '')
-    : (words[at + Number(quoted[3] ?? 0)] ?? '');
+  if (at !== undefined) return words[at + Number(quoted[3] ?? 0)] ?? '';
+  return inQuotedLanguage && quoted[2] ? '' : (words[Number(quoted[1])] ?? '');
+}
+
+/** Every string in a spec, keys of maps included. */
+function stringsIn(value: unknown, out: string[] = []): string[] {
+  if (typeof value === 'string') out.push(value);
+  else if (Array.isArray(value)) for (const held of value) stringsIn(held, out);
+  else if (value && typeof value === 'object')
+    for (const [key, held] of Object.entries(value)) {
+      out.push(key);
+      stringsIn(held, out);
+    }
+  return out;
+}
+
+/** Whether more than half the quotes that say what they expect find it in `words`. */
+function speaksQuotes(spec: unknown, words: readonly string[]): boolean {
+  let asking = 0;
+  let found = 0;
+  for (const value of stringsIn(spec)) {
+    const quoted = QUOTE.exec(value);
+    if (!quoted?.[2]) continue;
+    asking++;
+    if (placeOf(Number(quoted[1]), quoted[2], words) !== undefined) found++;
+  }
+  return found * 2 > asking;
 }
 
 /**
@@ -480,14 +509,14 @@ export function quoteAnswers(value: string, words: readonly string[]): boolean {
 
 /**
  * The spec with quoted captions replaced by the build's words. A quote whose
- * number disagrees is searched for by its words; a build in another
- * language matches nothing and keeps the number.
+ * number disagrees is searched for by its words (`unquote`).
  */
 const spoken = computed<UiSpec | null>(() => {
   const spec = uiSpec.value ?? fromMovies.value;
   const words = uiWords.value;
+  const same = speaksQuotes(spec, words);
   const say = (value: unknown): unknown => {
-    if (typeof value === 'string') return unquote(value, words);
+    if (typeof value === 'string') return unquote(value, words, same);
     if (Array.isArray(value)) return value.map(say);
     if (value && typeof value === 'object') {
       // Keys too: what one dropdown offers is keyed by another's showing word.
