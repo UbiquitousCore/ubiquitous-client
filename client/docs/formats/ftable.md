@@ -132,6 +132,38 @@ mounts), and every spell that carries it has an effect that seats its caster
 few dozen others. So a mount is read from its effect, never from this column
 (`WorldTables.spellStats`).
 
+## What each build offers a new character
+
+Read from each build's `character_race`, `character_class`, `quests`, `items`
+and interface movie.
+
+| | 1.0.0 to 1.1.1 | 1.1.4 | 2.2.0, 2.5.0 | 4.2.21 |
+|---|---|---|---|---|
+| Races | Human, Elf, Orc, Undead | and Mendel (race 7) | the same five | the same five |
+| Classes | warrior, mage, ranger, monk | the same four | the same four | and class 5, the Flame Knight |
+| Level cap | 60 | 60 | 70 | 75 |
+| Basic skills | spells 23, 57, 58, 89, 108, 111, 1822 | the same | spells 1 to 7 | spells 1 to 7 |
+
+- **Classes.** Class 5 is a fifth `character_class` row, with skill sets 133
+  and 134. Its button on the class screen is `btnKnight`, beside a picture,
+  `flameknight`, and a `New` badge. Its spells cost a power kind (4) that no
+  earlier build has, and some cost mana. Every other class also gets new skill
+  sets in 4.2.21 (warrior 126 and 127, mage 137 and 138, ranger 130 and 131).
+- **Level cap.** No table states the cap. It is where the content stops: the
+  highest level quests start at, and where worn gear gathers.
+  - 1.1.4: quests reach 60.
+  - 2.2.0: quests start up to 70 and 374 pieces of gear need 70.
+  - 2.5.0: 704 pieces of gear need 70.
+  - 4.2.21: quests run to 75, 1,790 pieces of gear need 70 and 838 need 75.
+- **Basic skills.** The seven are Gather Normal, Gather Mine, Gather Chest,
+  Switch Target, Auto Attack, and the two Auto Shoots. From 2.2.0 they are
+  spells 1 to 7, each found by the working name its row carries.
+- **Start points.** No table carries one. Mendel's first quest giver (quest
+  850) stands somewhere else from 2.2.0 on.
+- **Spells a class learns.** 1.1.4 teaches them from lesson items, read by
+  required level and class. 4.2.21 teaches the Flame Knight from one item
+  only, at level 65.
+
 ## Which pack a file is in
 
 4.2.21 keeps the whole `ui/` tree (interface movies and every picture under

@@ -278,15 +278,19 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
   class: {
     dialog: 'class_group',
     movie: 'LGM',
-    // By the server's class numbers: warrior, mage, ranger, monk.
+    // By the server's class numbers: warrior, mage, ranger, monk, and the
+    // Flame Knight 4.2.21 adds.
     actions: {
       btnWarrior: 'class:1',
       btnMage: 'class:2',
       btnRanger: 'class:3',
       btnMonk: 'class:4',
+      btnKnight: 'class:5',
       btnBack: 'back',
       btnNext: 'next',
     },
+    // 4.2.21 on: the fifth class's button, and the badge beside it.
+    optional: ['btnKnight'],
     unavailable: {
       'class:1': 'coverWA',
       'class:2': 'coverMG',
@@ -306,12 +310,15 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       'class:2': '@390?~e1a8d8c3ee547ecf~4',
       'class:3': '@391?~8867dfe073cffabc~6',
       'class:4': '@392?~ee86e81e400e8a2a~4',
+      // Numbered as in 4.2.21, the first build that has the class.
+      'class:5': '@2455?~1e5896fd98273c49~12',
     },
     words: {
       'class:1': '@734?~23c3423366a78cd7~19',
       'class:2': '@735?~3cf09e8dfaec5509~20',
       'class:3': '@736?~341453ce2c973a9a~21',
       'class:4': '@737?~e96bfb4b6508fbdf~16',
+      'class:5': '@2454?~1a901b942e37a628~20',
     },
     // In the band across the top, as on the race step.
     captions: { textSelect: '@596?~982ff5d4b9661a20~17' },

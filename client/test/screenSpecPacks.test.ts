@@ -239,8 +239,12 @@ const SWITCHES = new Set(['buy', 'sell', 'treeOne', 'treeTwo']);
 const QUOTED = /^@\d+/;
 
 /** Every quoted word a table entry writes down, keys included. */
+/** Words only a later build carries, numbered as in that build: the Flame Knight's, from 4.2.21. */
+const LATER_WORDS = new Set(['@2455?~1e5896fd98273c49~12', '@2454?~1a901b942e37a628~20']);
+
 function quotesIn(value: unknown, all = false): string[] {
-  if (typeof value === 'string') return QUOTED.test(value) ? [value] : [];
+  if (typeof value === 'string')
+    return QUOTED.test(value) && !LATER_WORDS.has(value) ? [value] : [];
   if (Array.isArray(value)) return value.flatMap(one => quotesIn(one, all));
   if (value && typeof value === 'object') {
     return Object.entries(value).flatMap(([key, held]) =>
@@ -779,6 +783,18 @@ describe.skipIf(!BUILDS.size)('the screen table, against the player’s builds',
         screen => !(screen in one.built.spec.screens),
       );
       expect(refused, build).toEqual(redesigned[basename(build)] ?? []);
+    }
+  });
+
+  it('offers a fifth class wherever the class screen carries its button, and names it', () => {
+    for (const [build, one] of read) {
+      const spec = one.built.spec.screens.class;
+      const parts = partsOf(one, SCREEN_MEANINGS.class!)!;
+      if (!carried(parts, 'btnKnight')) continue;
+      expect(spec?.actions?.btnKnight, build).toBe('class:5');
+      for (const quote of [spec!.calls!['class:5']!, spec!.words!['class:5']!]) {
+        expect(quoteAnswers(quote, one.words), `${build} ${quote}`).toBe(true);
+      }
     }
   });
 
