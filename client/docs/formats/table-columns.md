@@ -508,8 +508,8 @@ or one that is empty in every build on hand.
 | 29 | 28 | 29 | 29 | 29 | u |  | A spell id on 921 rows; 893 name a first rank, 820 of the same name. |
 | 30 | 29 | 30 | 30 | 30 | u |  | 1 to 9 on 665 rows. Not settled. |
 | 31-32 | 30-31 | 31-32 | 31-32 | 31-32 | u |  | Times in milliseconds: 3,000 to 30,000 on most rows that set 31, 1,000 to 5,000 on 32. Not settled. |
-| 33-35 | 32-34 | 33-35 | 33-35 | 33-35 | u | `effects` | The ids of its first three effect rows. |
-| 36-37 | 35-36 | 36-37 | 36-37 | 36-37 | u |  | Two more `spell_effect` keys, on 55 and 279 rows (486 and 1,051 in 4.2.21); every one is an effect row. The client does not read them. |
+| 33-36 | 32-35 | 33-36 | 33-36 | 33-36 | u | `effects` | Up to four `spell_effect` keys, filled in order: no row sets a later one without the earlier. |
+| 37 | 36 | 37 | 37 | 37 | u | `effects` | A fifth `spell_effect` key, set with or without the others, on 279 rows (1,051 in 4.2.21). No effect row sits in two of the five columns of one spell, and one row is shared between spells. |
 | 38 | 37 | 38 | 38 | 38 | u |  |  |
 | 39 | 38 | 39 | 39 | 39 | f |  | A float, 10 to 30, on 304 rows. Not settled. |
 | 40 | 39 | 40 | 40 | 40 | u |  | 1, 2 or 3, set on 786 of the 789 rows with a cost: what the cost is paid in. |

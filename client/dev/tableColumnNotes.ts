@@ -128,9 +128,9 @@ export const COLUMN_NOTES: Readonly<Record<string, Readonly<Record<string, strin
     '30': '1 to 9 on 665 rows. Not settled.',
     '31-32':
       'Times in milliseconds: 3,000 to 30,000 on most rows that set 31, 1,000 to 5,000 on 32. Not settled.',
-    '33-35': 'The ids of its first three effect rows.',
-    '36-37':
-      'Two more `spell_effect` keys, on 55 and 279 rows (486 and 1,051 in 4.2.21); every one is an effect row. The client does not read them.',
+    '33-36':
+      'Up to four `spell_effect` keys, filled in order: no row sets a later one without the earlier.',
+    '37': 'A fifth `spell_effect` key, set with or without the others, on 279 rows (1,051 in 4.2.21). No effect row sits in two of the five columns of one spell, and one row is shared between spells.',
     '39': 'A float, 10 to 30, on 304 rows. Not settled.',
     '40': '1, 2 or 3, set on 786 of the 789 rows with a cost: what the cost is paid in.',
     '41': 'The cost.',

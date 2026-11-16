@@ -81,8 +81,9 @@ const spells = buildTable(
     spellRow({ 1: 3, 10: '0', 43: 0x4 }),
     spellRow({ 1: 3, 25: 6, 33: 9001 }),
     spellRow({ 1: 3, 25: 12 }),
+    spellRow({ 1: 3, 37: 9001 }),
   ],
-  [100, 101, 102, 103],
+  [100, 101, 102, 103, 104],
 );
 // 6 kind (1 an aura), 7 detail (50 seats the caster), 11 the mount.
 const effects = buildTable(
@@ -195,6 +196,12 @@ describe('spell_new', () => {
     });
     expect(tables.spellStats(102).mount).toBe(true);
     expect(tables.spellMountId(102)).toBe(12);
+  });
+
+  it('reads an effect from the fifth slot, which a spell sets on its own', async () => {
+    const tables = await WorldTables.load(loader(EXTRA));
+    expect(tables.spellMountId(104)).toBe(12);
+    expect(tables.spellCastable(104)).toBe(false);
   });
 
   it('takes a mount from the effect that seats its caster, not from the category column', async () => {

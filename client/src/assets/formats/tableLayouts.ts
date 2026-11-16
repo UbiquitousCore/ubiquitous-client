@@ -286,8 +286,8 @@ export const spellLayout = defineLayout(
     cooldownMs: may(17, 'iu'),
     range: may(21, 'f'),
     visual: may(26, 'u'),
-    /** The ids of its effect rows. */
-    effects: run([33, 34, 35], 'u'),
+    /** The ids of its effect rows: four filled in order, and a fifth set on its own. */
+    effects: run([33, 34, 35, 36, 37], 'u'),
     powerCost: may(41, 'u'),
     flags: may(43, 'u'),
   },
