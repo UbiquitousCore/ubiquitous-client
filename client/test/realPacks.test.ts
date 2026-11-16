@@ -3271,8 +3271,33 @@ describe.skipIf(!RES)('the GPU programs in res.bin', () => {
   // Bench-only: the game never loads these programs (see docs/PROVENANCE.md).
   // What this pins is the bench adaptor — that our materials bind everything
   // the shipped text uses, so the comparison draws what the build describes.
+  /** A stage with every `#ifdef` block it never `#define`s taken out, as the compiler sees it. */
+  function compiled(stage: string): string {
+    const defined = new Set([...stage.matchAll(/^\s*#define\s+(\w+)/gm)].map(m => m[1]));
+    const kept: string[] = [];
+    const live: boolean[] = [];
+    for (const line of stage.split('\n')) {
+      const open = /^\s*#if(n?)def\s+(\w+)/.exec(line);
+      if (open) {
+        live.push(defined.has(open[2]!) !== (open[1] === 'n'));
+        continue;
+      }
+      if (/^\s*#else\b/.test(line) && live.length) {
+        live.push(!live.pop()!);
+        continue;
+      }
+      if (/^\s*#endif\b/.test(line) && live.length) {
+        live.pop();
+        continue;
+      }
+      if (live.every(Boolean)) kept.push(line);
+    }
+    return kept.join('\n');
+  }
+
   /** Uniform names a stage declares and also uses, which the material has to bind. */
-  function usedUniforms(adapted: string): string[] {
+  function usedUniforms(stage: string): string[] {
+    const adapted = compiled(stage);
     const declared = [
       ...adapted.matchAll(/\buniform\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+(\w+)\s*;/g),
     ].map(m => m[1]);
@@ -3543,8 +3568,9 @@ describe.skipIf(
       const pack = await lib.pack(packName);
       const layers = await lib.pack(`${stem}_layer.bin`);
       const trns = pack.entries.filter(e => /\/terrain\/-?\d+_-?\d+\.trn$/i.test(e.name));
-      const step = Math.max(1, Math.floor(trns.length / 200));
-      for (const entry of trns.filter((_, i) => i % step === 0)) {
+      // Rare in later builds: 4.2.21 has 15 across these three maps, which a sample misses.
+      for (const entry of trns) {
+        if (affected > 0) break;
         const [, tx, tz] = /(-?\d+)_(-?\d+)\.trn$/i.exec(entry.name)!.map(Number);
         const doc = parseTrn(await pack.read(entry), false);
         const masks = await Promise.all(
