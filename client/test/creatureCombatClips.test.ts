@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { combatClipName, weaponsFromHands } from '../src/gameplay/weaponClips';
+import { combatClipName, weaponsFromHands } from '../src/assets/weaponClips';
 
 const NOTHING = { entry: 0, itemClass: 0, subClass: 0 };
 const WEAPON = 2;

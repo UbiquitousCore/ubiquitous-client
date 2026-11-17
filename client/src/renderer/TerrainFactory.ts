@@ -112,9 +112,7 @@ export function buildTerrainTile(
       indices.push(...group.indices);
       const material = createTerrainMaterial(options);
       geometryGroups.push({ start, count: group.indices.length, material });
-      requested.push(
-        ...hydrateTerrainMaterial(material, group.refs, tile.maskTexture, materials),
-      );
+      requested.push(...hydrateTerrainMaterial(material, group.refs, tile.maskTexture, materials));
       built.push(material);
     }
   }

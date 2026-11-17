@@ -9,7 +9,6 @@
 
 import type { EquipmentAttachment, WornSlot } from '../types';
 import { allocPixels, type DecodedImage, type Pixels } from './image';
-import type { Row } from './ftable';
 import {
   type Footprints,
   type Rect,
@@ -55,29 +54,33 @@ function nothingWorn(): Record<WornSlot, number> {
 
 // -- the appearance table ------------------------------------------------
 
-/** Columns of `creaturedisplayinfoextra` ahead of the items. A table layout. */
-const LOOK_FEATURES = 1;
-const LOOK_HAIR_STYLE = 2;
-const LOOK_HAIR_COLOR = 3;
-
 /**
- * The column of `creaturedisplayinfoextra` that holds each slot's item. A
- * table layout: the twelve item columns run from `head` to `offHand`.
+ * The slots in the order the appearance table lists their items, which a
+ * body's item list from the server keeps.
  */
-export const LOOK_ROW_ITEMS: Readonly<Record<WornSlot, number>> = {
-  head: 4,
-  shoulders: 5,
-  shirt: 6,
-  chest: 7,
-  feet: 8,
-  hands: 9,
-  back: 10,
-  legs: 11,
-  ranged: 12,
-  twoHand: 13,
-  mainHand: 14,
-  offHand: 15,
-};
+export const LOOK_ITEM_ORDER: readonly WornSlot[] = [
+  'head',
+  'shoulders',
+  'shirt',
+  'chest',
+  'feet',
+  'hands',
+  'back',
+  'legs',
+  'ranged',
+  'twoHand',
+  'mainHand',
+  'offHand',
+];
+
+/** One appearance row as the table holds it, before its packed numbers are taken apart. */
+export interface LookCells {
+  features: number;
+  hairStyle: number;
+  hairColor: number;
+  /** The item in each slot, in `LOOK_ITEM_ORDER`; a slot past the end wears nothing. */
+  items: readonly number[];
+}
 
 /** The slots armour goes in; weapons are held, not worn, and leave the body as it is. */
 const ARMOUR_SLOTS: readonly WornSlot[] = [
@@ -96,9 +99,6 @@ export function wearsNoArmour(look: Look): boolean {
   return ARMOUR_SLOTS.every(slot => look.worn[slot] === 0);
 }
 
-/** The first item column; the item columns follow it without gaps. */
-export const LOOK_ROW_FIRST_ITEM = 4;
-
 /** Digit `place` of `n` written in hexadecimal. */
 const hexDigit = (n: number, place: number): number => Math.floor(n / 16 ** place) % 16;
 
@@ -116,17 +116,15 @@ function unpackFeatures(n: number): { skin: number; ear: number; face: number } 
  */
 const lowByte = (n: number): number => n % 256;
 
-export function lookFromRow(row: Row): Look {
-  const cell = (i: number): number => {
-    const v = row[i];
-    return typeof v === 'number' ? v : 0;
-  };
+export function lookFromCells(cells: LookCells): Look {
   const worn = nothingWorn();
-  for (const slot of SLOTS) worn[slot] = cell(LOOK_ROW_ITEMS[slot]);
+  LOOK_ITEM_ORDER.forEach((slot, at) => {
+    worn[slot] = cells.items[at] ?? 0;
+  });
   return {
-    ...unpackFeatures(cell(LOOK_FEATURES)),
-    hairStyle: lowByte(cell(LOOK_HAIR_STYLE)),
-    hairColor: lowByte(cell(LOOK_HAIR_COLOR)),
+    ...unpackFeatures(cells.features),
+    hairStyle: lowByte(cells.hairStyle),
+    hairColor: lowByte(cells.hairColor),
     worn,
   };
 }
@@ -172,26 +170,28 @@ export function heldItemsOf(look: Look, classOf: ItemClassLookup): HeldItems | n
 
 // -- item display rows ---------------------------------------------------
 
-/** Rows of `itemdisplayinfo`, keyed by item id. */
-export type ItemDisplayLookup = (itemId: number) => Row | undefined;
+/** How an item is shown: a model or limb variant for each side, and the art each wears. */
+export interface ShownItem {
+  model: number;
+  secondModel: number;
+  texture: string;
+  secondTexture: string;
+}
 
-/** Rows of `itemmodeldata`, keyed by the model numbers display rows name. */
-export type ItemModelLookup = (itemModelId: number) => Row | undefined;
+/** An item's own mesh: its file, and the effects hung off its nodes. */
+export interface ItemModelFacts {
+  path: string;
+  effects: ReadonlyArray<{ node: string; effect: string }>;
+}
+
+/** How each item is shown, by item id. */
+export type ItemDisplayLookup = (itemId: number) => ShownItem | undefined;
+
+/** Item meshes, by the model numbers a shown item names. */
+export type ItemModelLookup = (itemModelId: number) => ItemModelFacts | undefined;
 
 /** An item's class and sub-class, from the item table. */
 export type ItemClassLookup = (itemId: number) => { itemClass: number; subClass: number };
-
-/** Columns of an `itemdisplayinfo` row. A table layout. */
-const SHOWN_MODEL = 1;
-const SHOWN_SECOND_MODEL = 2;
-const SHOWN_TEXTURE = 3;
-const SHOWN_SECOND_TEXTURE = 4;
-
-/** Columns of an `itemmodeldata` row. A table layout. */
-const MODEL_PATH = 2;
-const MODEL_EFFECT_NODES = 3;
-const MODEL_EFFECT_FILES = 9;
-const EFFECTS_PER_ITEM_MODEL = 6;
 
 /**
  * Model numbers up to this name a limb-mesh variant, painted on the sheet;
@@ -208,31 +208,24 @@ const LAST_LIMB_VARIANT = 22;
  */
 const FIRST_OUTER_VARIANT = 20;
 
-const cellNumber = (row: Row | undefined, column: number): number => Number(row?.[column] ?? 0);
-
-const cellText = (row: Row | undefined, column: number): string => {
-  const v = row?.[column];
-  return typeof v === 'string' ? v.replace(/\0+$/, '') : '';
-};
-
 /** The display row of whatever is in `slot`, if anything is. */
-function shown(look: Look, items: ItemDisplayLookup, slot: WornSlot): Row | undefined {
+function shown(look: Look, items: ItemDisplayLookup, slot: WornSlot): ShownItem | undefined {
   const id = look.worn[slot];
   return id ? items(id) : undefined;
 }
 
 /** Whether an item is its own mesh rather than art on the sheet. */
-const hasOwnMesh = (row: Row | undefined): boolean =>
-  cellNumber(row, SHOWN_MODEL) > LAST_LIMB_VARIANT;
+const hasOwnMesh = (row: ShownItem | undefined): boolean => (row?.model ?? 0) > LAST_LIMB_VARIANT;
 
 /** The variant of the character's own limb mesh an item wears, or null. */
-function meshVariant(row: Row | undefined): number | null {
-  const n = cellNumber(row, SHOWN_MODEL);
+function meshVariant(row: ShownItem | undefined): number | null {
+  const n = row?.model ?? 0;
   return n > 0 && n <= LAST_LIMB_VARIANT ? n : null;
 }
 
 /** Whether gloves or boots are an outer piece with a thicker limb mesh. */
-const isOuter = (row: Row | undefined): boolean => (meshVariant(row) ?? 0) >= FIRST_OUTER_VARIANT;
+const isOuter = (row: ShownItem | undefined): boolean =>
+  (meshVariant(row) ?? 0) >= FIRST_OUTER_VARIANT;
 
 // -- long garments ---------------------------------------------------------
 
@@ -250,8 +243,8 @@ const LONG_MESH_MARK: ReadonlyMap<number, LongMesh> = new Map([
   [98, 'special'],
 ]);
 
-const longMeshOf = (row: Row | undefined): LongMesh | null =>
-  LONG_MESH_MARK.get(cellNumber(row, SHOWN_SECOND_MODEL)) ?? null;
+const longMeshOf = (row: ShownItem | undefined): LongMesh | null =>
+  LONG_MESH_MARK.get(row?.secondModel ?? 0) ?? null;
 
 /**
  * The long mesh the outfit wears, or null for legs. Either the chest piece or
@@ -296,10 +289,10 @@ function capeOf(look: Look, items: ItemDisplayLookup): { variant: number; art: s
   const id = look.worn.back;
   if (!id) return null;
   const row = items(id);
-  const variant = cellNumber(row, SHOWN_MODEL);
+  const variant = row?.model ?? 0;
   return {
     variant: variant > BARE_BACK ? variant : PLAIN_CAPE,
-    art: TEXTURE_DIR + (cellText(row, SHOWN_TEXTURE) || PLAIN_CAPE_ART),
+    art: TEXTURE_DIR + ((row?.texture ?? '') || PLAIN_CAPE_ART),
   };
 }
 
@@ -404,7 +397,7 @@ const twoDigits = (n: number): string => String(n).padStart(2, '0');
 /** The sheet art for whatever is in `slot`, unless it is worn as its own mesh. */
 function paintedArt(d: Dressing, slot: WornSlot): string | null {
   const row = shown(d.look, d.items, slot);
-  const texture = cellText(row, SHOWN_TEXTURE);
+  const texture = row?.texture ?? '';
   return texture && !hasOwnMesh(row) ? TEXTURE_DIR + texture : null;
 }
 
@@ -820,20 +813,20 @@ interface Piece {
 
 function piecesOf(
   slot: WornSlot,
-  row: Row,
+  row: ShownItem,
   item: () => { itemClass: number; subClass: number },
   drawn: boolean,
 ): Piece[] {
-  const model = cellNumber(row, SHOWN_MODEL);
-  const texture = cellText(row, SHOWN_TEXTURE);
+  const model = row?.model ?? 0;
+  const texture = row?.texture ?? '';
   if (slot === 'head') return [{ model, texture, node: 'Dummy_Head-node', held: false }];
   if (slot === 'shoulders') {
     const left: Piece = { model, texture, node: 'Dummy_L_Shoulder-node', held: false };
-    const rightModel = cellNumber(row, SHOWN_SECOND_MODEL);
+    const rightModel = row?.secondModel ?? 0;
     const right: Piece = rightModel
       ? {
           model: rightModel,
-          texture: cellText(row, SHOWN_SECOND_TEXTURE),
+          texture: row?.secondTexture ?? '',
           node: 'Dummy_R_Shoulder-node',
           held: false,
         }
@@ -856,17 +849,6 @@ function piecesOf(
 /** A texture named by an item row, under `texture/`. */
 const itemTexture = (name: string): string | null =>
   name ? (name.toLowerCase().startsWith('texture/') ? name : `texture/${name}`) : null;
-
-/** The attached effects an item model row names, as node and effect file. */
-function effectsOf(row: Row): Array<{ node: string; effect: string }> | undefined {
-  const out: Array<{ node: string; effect: string }> = [];
-  for (let i = 0; i < EFFECTS_PER_ITEM_MODEL; i++) {
-    const node = cellText(row, MODEL_EFFECT_NODES + i);
-    const effect = cellText(row, MODEL_EFFECT_FILES + i);
-    if (node && effect) out.push({ node, effect });
-  }
-  return out.length > 0 ? out : undefined;
-}
 
 /**
  * The item meshes a look hangs off the figure: helmet, shoulders and anything
@@ -891,7 +873,7 @@ export function attachmentsFor(
     for (const piece of piecesOf(slot, row, () => classOf(id), drawn)) {
       if (!piece.model) continue;
       const modelRow = models(piece.model);
-      const model = cellText(modelRow, MODEL_PATH).replace(/^(?:\.\.\/)+mid_data\//, '');
+      const model = (modelRow?.path ?? '').replace(/^(?:\.\.\/)+mid_data\//, '');
       if (!modelRow || !model) continue;
       const texture = itemTexture(piece.texture);
       const key = `${model}|${texture ?? ''}|${piece.node}`;
@@ -905,7 +887,7 @@ export function attachmentsFor(
         heldNode: piece.heldNode,
         mirrorX: piece.mirrorX,
         alignNode: piece.held && !drawn ? 'Dummy_folded-node' : undefined,
-        effects: effectsOf(modelRow),
+        effects: modelRow.effects.length > 0 ? [...modelRow.effects] : undefined,
       });
     }
   }

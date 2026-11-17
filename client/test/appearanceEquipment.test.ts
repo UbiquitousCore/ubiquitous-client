@@ -11,7 +11,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { appearanceEquipment } from '../src/assets/providers/PackAssetProvider';
 import { attachmentsFor, lookFrom } from '../src/assets/formats/avatar';
-import type { Row } from '../src/assets/formats/ftable';
 
 /** The server's inventory positions, as it numbers them. */
 const POSITION = {
@@ -110,10 +109,14 @@ describe('a bow sent in the ranged position', () => {
     const look = lookFrom();
     Object.assign(look.worn, appearanceEquipment(inventory({ ranged: 4149 })));
 
-    const items = (id: number): Row | undefined =>
-      id === 4149 ? [4149, 500, 0, 'bow.tga'] : undefined;
-    const models = (id: number): Row | undefined =>
-      id === 500 ? [500, 0, 'model/item/weapon/ranged/bow/training_bow.bdae'] : undefined;
+    const items = (id: number) =>
+      id === 4149
+        ? { model: 500, secondModel: 0, texture: 'bow.tga', secondTexture: '' }
+        : undefined;
+    const models = (id: number) =>
+      id === 500
+        ? { path: 'model/item/weapon/ranged/bow/training_bow.bdae', effects: [] }
+        : undefined;
     const bow = () => ({ itemClass: 2, subClass: 16 });
 
     expect(attachmentsFor(look, items, models, false, bow)).toEqual([

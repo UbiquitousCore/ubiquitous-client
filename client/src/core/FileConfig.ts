@@ -46,7 +46,8 @@ export interface PageLocation {
  * serves them: one address, one certificate, on every device.
  */
 export function serverUrlFor(url: string, page: PageLocation, proxied: boolean): string {
-  if (url.startsWith('/')) return `${page.protocol === 'https:' ? 'wss:' : 'ws:'}//${page.host}${url}`;
+  if (url.startsWith('/'))
+    return `${page.protocol === 'https:' ? 'wss:' : 'ws:'}//${page.host}${url}`;
   try {
     const here = page.hostname;
     if (!here || isLoopback(here)) return url;
@@ -121,7 +122,11 @@ export function adminPanelWanted(
  * account gets it, whatever the build or file says; played alone there is no
  * account, so the build and file decide.
  */
-export function adminPanelAllowed(wanted: boolean, online: boolean, isGameMaster: boolean): boolean {
+export function adminPanelAllowed(
+  wanted: boolean,
+  online: boolean,
+  isGameMaster: boolean,
+): boolean {
   return wanted && (!online || isGameMaster);
 }
 

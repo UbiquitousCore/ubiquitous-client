@@ -22,7 +22,7 @@ import { NetworkBodies } from '../src/gameplay/NetworkBodies';
 import type { BodyLookups, BodyViews } from '../src/gameplay/NetworkBodies';
 import { World } from '../src/world/World';
 import type { EntitySnapshot } from '../src/net/GameConnection';
-import { UNARMED } from '../src/gameplay/weaponClips';
+import { UNARMED } from '../src/assets/weaponClips';
 
 describe('how much of the body an action takes, and what a new base clip does to it', () => {
   const STILL = ['idle', 'combat_ready', 'combat_aim', 'combat_load'];

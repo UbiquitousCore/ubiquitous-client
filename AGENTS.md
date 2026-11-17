@@ -374,6 +374,7 @@ the [issue tracker](https://github.com/UbiquitousCore/ubiquitous-client/issues),
 |---|---|
 | Support a new resource kind | `assets/ids.ts` + `assets/types.ts` + `PackAssetProvider` |
 | Add or fix a format reader | `assets/formats/` — a real-pack test, a spec in `client/docs/formats/`, and a line in `docs/PROVENANCE.md` |
+| Say what a table column holds | `client/dev/tableColumnNotes.ts`, with the count that decides it; then `UPDATE_DOCS=1 npx vitest run test/tableColumnsDoc.test.ts` rewrites `client/docs/formats/table-columns.md` |
 | Change how a resource is assembled | `assets/providers/local{Model,Zone}.ts` |
 | Change how the .ipa is read or cached | `assets/vfs/` |
 | Add persistent caching | implement `ResourceCache`, pass it to `ResourceSystem` |
@@ -399,7 +400,15 @@ The worn screens target the **1.1.4** build. A caption in
 `client/src/ui/art/screenMeanings.ts` is quoted as `@<number>?<word>`: take
 the number from 1.1.4's interface string file, not 2.2.0's — the same word
 sits at a different number in each. Name only elements 1.1.4's movie carries,
-and leave out what only a later build has. The word after the `?` is still
+and leave out what only a later build has, except where a later build needs
+it, with a comment naming the builds: as the second of two ways to find a
+part (a grid's alternatives); in `hidden` or `optional`, to keep a later
+build's own extras off a screen; or as a control only a later build has (4.2.21's
+fifth class), whose words are quoted by that build's number and listed in
+`LATER_WORDS` in `screenSpecPacks.test.ts`.
+Write a part by the shortest end of its path that is unique in every build
+on disk: later builds often move a part a group deeper, and a part is found
+by how its path ends. The word after the `?` is still
 what lets another build find its own copy.
 
 `client/test/screenSpecPacks.test.ts` holds the table to this, against the

@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AccountSession } from '../src/app/features/frontEnd/AccountSession';
-import type { CharacterSummary, NewCharacter } from '../src/net/GameConnection';
+import type { CharacterSummary, NewCharacter, SentTable } from '../src/net/GameConnection';
 
 const hero = (name: string): CharacterSummary => ({ name, guid: `g-${name}` }) as CharacterSummary;
 
-function setup(patienceMs = 1000) {
+function setup(patienceMs = 1000, tables: readonly SentTable[] = []) {
   const sent: string[] = [];
   const noFresh = vi.fn();
   const session = new AccountSession(
     {
-      login: (user: string) => void sent.push(`login ${user}`),
+      login: (user: string, _pass: string, tables: readonly SentTable[] = []) =>
+        void sent.push(`login ${user}${tables.map(table => ` ${table.name}`).join('')}`),
       logout: () => void sent.push('logout'),
       listCharacters: () => void sent.push('list'),
       createCharacter: (c: NewCharacter) => void sent.push(`create ${c.name}`),
@@ -19,6 +20,7 @@ function setup(patienceMs = 1000) {
     },
     patienceMs,
     noFresh,
+    tables,
   );
   return { session, sent, noFresh };
 }
@@ -30,6 +32,15 @@ describe('AccountSession', () => {
     session.loginAnswered(false, 7, undefined);
     expect(sent).toEqual(['login ann']);
     await expect(answer).resolves.toEqual({ ok: false, code: 7, reason: null });
+  });
+
+  it('sends the tables of the game file with every login', () => {
+    const { session, sent } = setup(1000, [
+      { name: 'items', rows: 3, format: 'uuuk' },
+      { name: 'zones', rows: 2, format: 'iiiu' },
+    ]);
+    void session.signIn('ann', 'hash');
+    expect(sent).toEqual(['login ann items zones']);
   });
 
   it('fetches the list and keeps the races the server opened with', async () => {

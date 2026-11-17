@@ -36,11 +36,10 @@ import {
   bodyLayers,
   compositeSkin,
   shippedHairColours,
-  LOOK_ROW_FIRST_ITEM,
-  LOOK_ROW_ITEMS,
+  LOOK_ITEM_ORDER,
   lookFrom,
   heldItemsOf,
-  lookFromRow,
+  lookFromCells,
   skinBelongsToModel,
   wearsNoArmour,
   modelStem,
@@ -137,7 +136,7 @@ const INVENTORY_POSITION: Readonly<Partial<Record<WornSlot, number>>> = {
 const INVENTORY_LENGTH = 15;
 
 /** How many item columns the appearance table carries. */
-const LOOK_ROW_ITEM_COUNT = Object.keys(LOOK_ROW_ITEMS).length;
+const LOOK_ROW_ITEM_COUNT = LOOK_ITEM_ORDER.length;
 
 /**
  * The server's inventory or the appearance table's item columns, told apart
@@ -154,8 +153,9 @@ export function appearanceEquipment(values: readonly number[]): Partial<Record<W
   if (values.length >= INVENTORY_LENGTH) {
     byInventory();
   } else if (values.length >= LOOK_ROW_ITEM_COUNT) {
-    for (const [slot, column] of Object.entries(LOOK_ROW_ITEMS) as Array<[WornSlot, number]>)
-      out[slot] = values[column - LOOK_ROW_FIRST_ITEM] ?? 0;
+    LOOK_ITEM_ORDER.forEach((slot, at) => {
+      out[slot] = values[at] ?? 0;
+    });
   } else {
     // Still dressed, but flagged: this shape is a caller bug.
     log.once(
@@ -183,7 +183,8 @@ const SKELETON_CACHE_ENTRIES = 256;
 
 /** Extracted together; map packs are added once the zone names its map. */
 const CORE_PACKS = ['tables.bin', 'res.bin', 'res_t.bin', 'model_phy.bin'];
-const EFFECT_PACKS = ['res.bin', 'res_t.bin'];
+/** 4.2.21 keeps its whole `ui/` tree in `res_t.bin`; earlier builds keep it in `res.bin`. */
+const RES_PACKS = ['res.bin', 'res_t.bin'];
 
 const AREA_CONFIG = '2d_texture/area.cnfg';
 
@@ -461,6 +462,8 @@ export class PackAssetProvider implements AssetProvider {
         return (await this.worldTables()).mounts() as ResourceTypes[K];
       case 'playableKinds':
         return (await this.loadPlayableKinds()) as ResourceTypes[K];
+      case 'tableShapes':
+        return (await this.worldTables()).shapes() as ResourceTypes[K];
       case 'lookOptions':
         return (await this.loadLookOptions(target.model)) as ResourceTypes[K];
       case 'teleportStops':
@@ -792,7 +795,7 @@ export class PackAssetProvider implements AssetProvider {
 
   /** The interface's words in the build's order; only the first group is the interface's. */
   async loadUiStrings(): Promise<readonly string[]> {
-    const bytes = await this.lib().readFirst(['res.bin'], UI_STRINGS_FILE);
+    const bytes = await this.lib().readFirst(RES_PACKS, UI_STRINGS_FILE);
     if (!bytes) throw new ResourceNotFoundError('uiStrings');
     return readUiStrings(bytes)[0] ?? [];
   }
@@ -800,7 +803,7 @@ export class PackAssetProvider implements AssetProvider {
   /** One interface movie (`ui/<Movie>.swf`) in interface terms; bitmaps resolve through `uiIcon`. */
   async loadUiSkin(movie: string): Promise<UiSkinData> {
     const lib = this.lib();
-    const bytes = await lib.readFirst(['res.bin'], `ui/${movie}.swf`);
+    const bytes = await lib.readFirst(RES_PACKS, `ui/${movie}.swf`);
     if (!bytes) throw new ResourceNotFoundError(`uiSkin:${movie}`);
     let parsed: SwfMovie;
     try {
@@ -876,7 +879,7 @@ export class PackAssetProvider implements AssetProvider {
 
   /** One GPU program stage's text, decoded as the build stores it. */
   async loadShaderText(name: string): Promise<string> {
-    const bytes = await this.lib().readFirst(['res.bin'], name);
+    const bytes = await this.lib().readFirst(RES_PACKS, name);
     if (!bytes) throw new ResourceNotFoundError(`shader ${name}`);
     return new TextDecoder('utf-8').decode(bytes);
   }
@@ -886,7 +889,7 @@ export class PackAssetProvider implements AssetProvider {
     const lib = this.lib();
     const movies: SwfMovie[] = [];
     for (const movie of UI_MOVIES) {
-      const bytes = await lib.readFirst(['res.bin'], `ui/${movie}.swf`);
+      const bytes = await lib.readFirst(RES_PACKS, `ui/${movie}.swf`);
       if (!bytes) continue;
       try {
         movies.push(await parseSwf(bytes));
@@ -983,8 +986,8 @@ export class PackAssetProvider implements AssetProvider {
     look.worn.mainHand = entry;
     return attachmentsFor(
       look,
-      itemId => tables.keyedRows('itemdisplayinfo').get(itemId),
-      modelId => tables.keyedRows('itemmodeldata').get(modelId),
+      itemId => tables.shownItem(itemId),
+      modelId => tables.itemModel(modelId),
       true,
       itemId => tables.itemWeaponClass(itemId),
     );
@@ -1383,7 +1386,7 @@ export class PackAssetProvider implements AssetProvider {
     if (cached) return cached;
     let out: string[] = [];
     try {
-      const bytes = await this.lib().readFirst(EFFECT_PACKS, path);
+      const bytes = await this.lib().readFirst(RES_PACKS, path);
       if (bytes) {
         out = readBeff(bytes, path).nodes.flatMap(n =>
           n.kind === 'mesh' && n.meshPath.toLowerCase().endsWith('.bdae') ? [n.meshPath] : [],
@@ -1438,8 +1441,8 @@ export class PackAssetProvider implements AssetProvider {
       hairStyle: id.hairStyle,
       hairColor: id.hairColor,
     });
-    const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
-    const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
+    const items = (itemId: number) => tables.shownItem(itemId);
+    const itemModels = (modelId: number) => tables.itemModel(modelId);
     const { visible, meshTextures } = visibleMeshes(await this.meshNames(id.model), look, items);
     const key = `avatar:${id.model}|${id.skin}|${id.face}|${id.hairStyle}|${id.hairColor}`;
     return {
@@ -1494,18 +1497,12 @@ export class PackAssetProvider implements AssetProvider {
 
     if (id.entry || shape) {
       const stem = shape ? `display:${shape}` : `creature:${id.entry}`;
-      const appearanceRow = shape
-        ? undefined
-        : tables.keyedRows('creature_appearance').get(id.entry);
-      const displayId = shape || (appearanceRow ? Number(appearanceRow[5]) : id.displayInfoId);
-      const display = tables.keyedRows('creaturedisplayinfo').get(displayId);
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
-        : undefined;
+      const displayId = shape || tables.creatureDisplayId(id.entry) || id.displayInfoId;
+      const extra = tables.creatureLook(tables.creatureLookId(displayId));
       if (extra) {
-        const look = lookFromRow(extra);
-        const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
-        const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
+        const look = lookFromCells(extra);
+        const items = (itemId: number) => tables.shownItem(itemId);
+        const itemModels = (modelId: number) => tables.itemModel(modelId);
         const heldItems = heldItemsOf(look, itemId => tables.itemWeaponClass(itemId));
         const attachments = attachmentsFor(look, items, itemModels, true, itemId =>
           tables.itemWeaponClass(itemId),
@@ -1573,8 +1570,8 @@ export class PackAssetProvider implements AssetProvider {
       hairColor: id.hairColor,
     });
     Object.assign(look.worn, appearanceEquipment(id.equipment));
-    const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
-    const itemModels = (modelId: number) => tables.keyedRows('itemmodeldata').get(modelId);
+    const items = (itemId: number) => tables.shownItem(itemId);
+    const itemModels = (modelId: number) => tables.itemModel(modelId);
     const { visible, meshTextures } = visibleMeshes(
       await this.meshNames(resolved.path),
       look,
@@ -1614,7 +1611,7 @@ export class PackAssetProvider implements AssetProvider {
 
   /** One `.beff`, decoded and renamed into the neutral vocabulary. */
   private async loadEffect(path: string): Promise<EffectData> {
-    const bytes = await this.lib().readFirst(EFFECT_PACKS, path);
+    const bytes = await this.lib().readFirst(RES_PACKS, path);
     if (!bytes) throw new ResourceNotFoundError(`effect:${path}`);
     try {
       return await buildEffect(this.lib(), path, readBeff(bytes, path));
@@ -1780,33 +1777,24 @@ export class PackAssetProvider implements AssetProvider {
   private async loadAvatarSkin(ref: string): Promise<TextureData> {
     const tables = await this.worldTables();
     const parts = ref.split(':');
-    const items = (itemId: number) => tables.keyedRows('itemdisplayinfo').get(itemId);
+    const items = (itemId: number) => tables.shownItem(itemId);
 
     let modelPath: string;
     let look: Look;
     if (parts[1] === 'display') {
-      const display = tables.keyedRows('creaturedisplayinfo').get(Number(parts[2]));
       const { path } = tables.creatureDisplayModel(Number(parts[2]));
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
-        : undefined;
+      const extra = tables.creatureLook(tables.creatureLookId(Number(parts[2])));
       if (!path || !extra) throw new ResourceNotFoundError(`texture:${ref}`);
       modelPath = path;
-      look = lookFromRow(extra);
+      look = lookFromCells(extra);
     } else if (parts[1] === 'creature') {
       const entry = Number(parts[2]);
       const { path } = tables.creatureModel(entry);
       if (!path) throw new ResourceNotFoundError(`texture:${ref}`);
       modelPath = path;
-      const appearance = tables.keyedRows('creature_appearance').get(entry);
-      const display = appearance
-        ? tables.keyedRows('creaturedisplayinfo').get(Number(appearance[5]))
-        : undefined;
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
-        : undefined;
+      const extra = tables.creatureLook(tables.creatureLookId(tables.creatureDisplayId(entry)));
       if (!extra) throw new ResourceNotFoundError(`texture:${ref}`);
-      look = lookFromRow(extra);
+      look = lookFromCells(extra);
     } else {
       modelPath = decodeURIComponent(parts[2]);
       look = lookFrom({

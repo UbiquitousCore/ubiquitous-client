@@ -48,6 +48,7 @@ import type {
   SocialListMember,
   StorageArea,
   StorageSlot,
+  SentTable,
 } from './GameConnection';
 import {
   INBOUND,
@@ -627,8 +628,11 @@ export class WebSocketConnection implements GameConnection {
     socket.close();
   }
 
-  login(userId: string, passHash: string): void {
-    this.send(OUTBOUND.login, { userId, passHash });
+  login(userId: string, passHash: string, tables: readonly SentTable[] = []): void {
+    this.send(
+      OUTBOUND.login,
+      tables.length > 0 ? { userId, passHash, tables } : { userId, passHash },
+    );
   }
 
   logout(): void {
@@ -1268,6 +1272,12 @@ export class WebSocketConnection implements GameConnection {
           readNumber(payload, 'code', type),
           typeof payload.reason === 'string' ? payload.reason : undefined,
           payload.isAdmin === true,
+          {
+            gameVersion: typeof payload.gameVersion === 'string' ? payload.gameVersion : null,
+            differingTables: Array.isArray(payload.differingTables)
+              ? payload.differingTables.filter((name): name is string => typeof name === 'string')
+              : [],
+          },
         );
         return;
 

@@ -1,7 +1,7 @@
 /** What a blow's outcome means for attacker and defender; decisions only, no drawing. */
 
 import type { Hand, Outcome } from '../net/wireCodes';
-import { OFF_HAND_SWING, swingsOffHand, type EquippedWeapons } from './weaponClips';
+import { OFF_HAND_SWING, swingsOffHand, type EquippedWeapons } from '../assets/weaponClips';
 
 /** The outcomes a blow can be turned aside by, which float a word of their own. */
 export type TurnedAside = 'miss' | 'dodge' | 'parry' | 'block';

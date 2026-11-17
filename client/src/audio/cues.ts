@@ -6,7 +6,7 @@
  * `AudioEngine` is left holding only the Web Audio plumbing.
  */
 
-import type { SoundBankRow, SoundCatalogue, SoundCue } from '../assets/formats/tables';
+import type { SoundBankRow, SoundCatalogue, SoundCue } from '../assets/types';
 
 /** A file name with no extension is a `.wav`: a few rows leave it off. */
 export function withExtension(path: string): string {

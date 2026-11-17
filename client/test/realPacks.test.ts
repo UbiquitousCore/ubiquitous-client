@@ -7,7 +7,7 @@
 
 import { existsSync, openAsBlob, readdirSync, statSync } from 'node:fs';
 import { open } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -29,7 +29,7 @@ import { busFaresFrom } from '../src/gameplay/busRoutes';
 import { dedupeRanks } from '../src/gameplay/SpellBook';
 import { cueClips, cueFor } from '../src/gameplay/ClipMachine';
 import type { Movement, Posture } from '../src/gameplay/ClipMachine';
-import { combatClipName, familyOf, UNARMED } from '../src/gameplay/weaponClips';
+import { combatClipName, familyOf, UNARMED } from '../src/assets/weaponClips';
 import { heldKind } from '../src/assets/heldKinds';
 import { useOf } from '../src/ui/items';
 import { ACTION_CLIPS, GATHER_HELD_ITEMS } from '../src/gameplay/actionClips';
@@ -73,7 +73,7 @@ import {
   bodyLayers,
   heldItemsOf,
   lookFrom,
-  lookFromRow,
+  lookFromCells,
   shippedHairColours,
   visibleMeshes,
 } from '../src/assets/formats/avatar';
@@ -126,27 +126,32 @@ function tileFromName(name: string): [number, number] | null {
   return Number.isInteger(x) && Number.isInteger(z) ? [x, z] : null;
 }
 
-function findPack(name: string): string | null {
-  // $UBIQUITOUS_PACK names one pack; its siblings live beside it, so a single
-  // variable is enough to point the whole suite at an extracted build.
+/**
+ * The one build the suite reads: `$UBIQUITOUS_PACK`'s directory, else a
+ * directory named 1.1.4, the build the client targets, else the one with the
+ * largest res.bin. Every pack comes from it, because one build's tables do not
+ * describe another build's models.
+ */
+const HOME = ((): string | null => {
   const explicit = (process.env.UBIQUITOUS_PACK ?? '').trim();
-  if (explicit && existsSync(explicit)) {
-    const sibling = join(dirname(resolve(explicit)), name);
-    if (existsSync(sibling)) return sibling;
-  }
-
+  if (explicit && existsSync(explicit)) return dirname(resolve(explicit));
   const found: string[] = [];
   for (const base of [join(ROOT, '.cache'), join(ROOT, 'work', 'cache')]) {
     if (!existsSync(base)) continue;
     for (const dir of readdirSync(base)) {
-      const p = join(base, dir, name);
+      const p = join(base, dir, 'res.bin');
       if (existsSync(p)) found.push(p);
     }
   }
-  if (!found.length) return null;
-  // Biggest = newest build = most to check against.
+  const target = found.find(p => basename(dirname(p)) === '1.1.4');
+  if (target) return dirname(target);
   found.sort((a, b) => statSync(b).size - statSync(a).size || a.localeCompare(b));
-  return found[0];
+  return found.length ? dirname(found[0]!) : null;
+})();
+
+function findPack(name: string): string | null {
+  const path = HOME ? join(HOME, name) : null;
+  return path && existsSync(path) ? path : null;
 }
 
 /** Every copy of a pack on disk, one per extracted build. */
@@ -761,7 +766,6 @@ describe.skipIf(!TABLES)('tables.bin, from the user packs', () => {
     });
 
     expect(tables.rowsOf('zones').length).toBeGreaterThan(0);
-    expect([1, 3]).toContain(tables.spawnScaleAxes);
 
     const maps = tables.maps();
     expect(maps.length).toBeGreaterThan(0);
@@ -1177,8 +1181,8 @@ describe.skipIf(!TABLES)('tables.bin, from the user packs', () => {
     look.worn.mainHand = GATHER_HELD_ITEMS.get(23)!;
     const [pick, ...rest] = attachmentsFor(
       look,
-      id => tables.keyedRows('itemdisplayinfo').get(id),
-      id => tables.keyedRows('itemmodeldata').get(id),
+      id => tables.shownItem(id),
+      id => tables.itemModel(id),
       true,
       id => tables.itemWeaponClass(id),
     );
@@ -1197,13 +1201,10 @@ describe.skipIf(!TABLES)('tables.bin, from the user packs', () => {
     });
     let held = 0;
     let kinded = 0;
-    for (const row of tables.keyedRows('creature_appearance').values()) {
-      const display = tables.keyedRows('creaturedisplayinfo').get(Number(row[5]));
-      const extra = display
-        ? tables.keyedRows('creaturedisplayinfoextra').get(Number(display[7]))
-        : undefined;
+    for (const entry of tables.keyedRows('creature_appearance').keys()) {
+      const extra = tables.creatureLook(tables.creatureLookId(tables.creatureDisplayId(entry)));
       if (!extra) continue;
-      const hands = heldItemsOf(lookFromRow(extra), id => tables.itemWeaponClass(id));
+      const hands = heldItemsOf(lookFromCells(extra), id => tables.itemWeaponClass(id));
       for (const hand of hands ? [hands.mainhand, hands.offhand, hands.ranged] : []) {
         if (!hand.entry) continue;
         held++;
@@ -3005,7 +3006,6 @@ describe.skipIf(!RES || !TABLES)('character looks, against the user item tables'
     const doc = new Bdae((await unwrapBdae(await res.read(MODEL))).payload);
     const meshes = doc.meshes(true).map(m => m.name);
     const display = tables.keyedRows('itemdisplayinfo');
-    const models = tables.keyedRows('itemmodeldata');
     /** Every armour item of an inventory type that has a display row. */
     const ofType = (inventoryType: number): number[] =>
       [...tables.keyedRows('items').keys()].filter(
@@ -3015,8 +3015,8 @@ describe.skipIf(!RES || !TABLES)('character looks, against the user item tables'
       tables,
       meshes,
       ofType,
-      items: (id: number) => display.get(id),
-      models: (id: number) => models.get(id),
+      items: (id: number) => tables.shownItem(id),
+      models: (id: number) => tables.itemModel(id),
     };
   };
   const wearing = (slot: 'head' | 'chest' | 'legs' | 'hands' | 'feet', id: number) => {
@@ -3047,7 +3047,7 @@ describe.skipIf(!RES || !TABLES)('character looks, against the user item tables'
         /^lower(arm|leg)_/.test(n),
       );
       // Gauntlets: hands art on a forearm variant from the outer range up.
-      const outerVariant = Number(items(id)?.[1] ?? 0) >= 20;
+      const outerVariant = (items(id)?.model ?? 0) >= 20;
       const gauntlets =
         outerVariant && bodyLayers(MODEL, look, items).some(l => l.piece === 'hands');
       // A bare forearm and shin, plus the item's own over one of them.
@@ -3127,8 +3127,13 @@ describe.skipIf(!RES || !TABLES)('capes, on every body in every build', () => {
         return found ? tablesPack.read(found) : null;
       });
       const res = await PackReader.open(await fileSource(build.res), 'res.bin');
+      // 4.2.21 keeps `texture/` in `res_t.bin` alone.
+      const moreAt = join(dirname(build.res), 'res_t.bin');
+      const more = existsSync(moreAt)
+        ? await PackReader.open(await fileSource(moreAt), 'res_t.bin')
+        : null;
       const display = tables.keyedRows('itemdisplayinfo');
-      const items = (id: number) => display.get(id);
+      const items = (id: number) => tables.shownItem(id);
       const backItems = [...tables.keyedRows('items').keys()].filter(
         id => tables.itemFacts(id)?.inventoryType === 14,
       );
@@ -3166,7 +3171,8 @@ describe.skipIf(!RES || !TABLES)('capes, on every body in every build', () => {
           const worn = visible.filter(n => capes.includes(n));
           expect(worn, `${path} item ${id}`).toHaveLength(1);
           expect(visible, `${path} item ${id}`).not.toContain('cape_01-mesh');
-          expect(res.has(meshTextures[worn[0]]), `${path} item ${id} art`).toBe(true);
+          const art = meshTextures[worn[0]];
+          expect(res.has(art) || more?.has(art), `${path} item ${id} art`).toBe(true);
         }
         for (const id of kinds.values()) {
           const look = lookFrom();
@@ -3218,7 +3224,13 @@ describe.skipIf(RES || TABLES || IPA)('game data', () => {
 
 describe.skipIf(!RES)('the interface sprites, found in the user movie', () => {
   it('finds every sprite, on a sheet large enough to cut it from', async () => {
-    const pack = await PackReader.open(await fileSource(RES!), 'res.bin');
+    const res = await PackReader.open(await fileSource(RES!), 'res.bin');
+    // 4.2.21 keeps its interface in `res_t.bin`.
+    const moreAt = findPack('res_t.bin');
+    const pack =
+      res.has('ui/IGM.swf') || !moreAt
+        ? res
+        : await PackReader.open(await fileSource(moreAt), 'res_t.bin');
     const parsed = await parseSwf(await pack.read('ui/IGM.swf'));
     const artOf = new Map(parsed.exports.map(e => [e.id, e.name] as const));
     const film = {
@@ -3261,8 +3273,33 @@ describe.skipIf(!RES)('the GPU programs in res.bin', () => {
   // Bench-only: the game never loads these programs (see docs/PROVENANCE.md).
   // What this pins is the bench adaptor — that our materials bind everything
   // the shipped text uses, so the comparison draws what the build describes.
+  /** A stage with every `#ifdef` block it never `#define`s taken out, as the compiler sees it. */
+  function compiled(stage: string): string {
+    const defined = new Set([...stage.matchAll(/^\s*#define\s+(\w+)/gm)].map(m => m[1]));
+    const kept: string[] = [];
+    const live: boolean[] = [];
+    for (const line of stage.split('\n')) {
+      const open = /^\s*#if(n?)def\s+(\w+)/.exec(line);
+      if (open) {
+        live.push(defined.has(open[2]!) !== (open[1] === 'n'));
+        continue;
+      }
+      if (/^\s*#else\b/.test(line) && live.length) {
+        live.push(!live.pop()!);
+        continue;
+      }
+      if (/^\s*#endif\b/.test(line) && live.length) {
+        live.pop();
+        continue;
+      }
+      if (live.every(Boolean)) kept.push(line);
+    }
+    return kept.join('\n');
+  }
+
   /** Uniform names a stage declares and also uses, which the material has to bind. */
-  function usedUniforms(adapted: string): string[] {
+  function usedUniforms(stage: string): string[] {
+    const adapted = compiled(stage);
     const declared = [
       ...adapted.matchAll(/\buniform\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+(\w+)\s*;/g),
     ].map(m => m[1]);
@@ -3533,8 +3570,9 @@ describe.skipIf(
       const pack = await lib.pack(packName);
       const layers = await lib.pack(`${stem}_layer.bin`);
       const trns = pack.entries.filter(e => /\/terrain\/-?\d+_-?\d+\.trn$/i.test(e.name));
-      const step = Math.max(1, Math.floor(trns.length / 200));
-      for (const entry of trns.filter((_, i) => i % step === 0)) {
+      // Rare in later builds: 4.2.21 has 15 across these three maps, which a sample misses.
+      for (const entry of trns) {
+        if (affected > 0) break;
         const [, tx, tz] = /(-?\d+)_(-?\d+)\.trn$/i.exec(entry.name)!.map(Number);
         const doc = parseTrn(await pack.read(entry), false);
         const masks = await Promise.all(

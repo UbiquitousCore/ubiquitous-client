@@ -16,8 +16,8 @@ import {
   combatClipName,
   familyOf,
   weaponsFromHands,
-} from '../src/gameplay/weaponClips';
-import type { EquippedWeapons } from '../src/gameplay/weaponClips';
+} from '../src/assets/weaponClips';
+import type { EquippedWeapons } from '../src/assets/weaponClips';
 
 const WEAPON = 2;
 const ARMOUR = 4;

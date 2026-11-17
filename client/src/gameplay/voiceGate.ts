@@ -1,6 +1,6 @@
 /** Own choice: each kind of line has a chance and a per-body quiet spell; dying, jumping and greeting are unlimited. */
 
-import type { UnitSoundState } from '../assets/formats/tables';
+import type { UnitSoundState } from '../assets/types';
 
 export interface VoiceRule {
   /** The share of chances taken, 0 to 1. */

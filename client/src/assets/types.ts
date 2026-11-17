@@ -7,6 +7,21 @@
 import type { HeldItems } from './formats/avatar';
 import type { SoundCatalogue, SpellVisualData, UnitSounds } from './formats/tables';
 
+/** Rows the table reader produces, handed on here so nothing above the boundary names a reader. */
+export type {
+  EffectAnchor,
+  MissileFlight,
+  SoundBankRow,
+  SoundCatalogue,
+  SoundCue,
+  SpellPhase,
+  SpellPhaseData,
+  SpellVisualData,
+  SpellVisualEffect,
+  UnitSoundState,
+  UnitSounds,
+} from './formats/tables';
+
 /** How a surface composites, from the shader name in the shipped data. */
 export type BlendMode = 'opaque' | 'cutout' | 'blend' | 'additive';
 
@@ -196,6 +211,9 @@ export interface UiSkinShape {
   paths: Array<{ fill: number; d: string }>;
 }
 
+/** The `characterId` of a placement that removes a depth: later frames record only changes. */
+export const REMOVED = -1;
+
 export interface UiSkinPlaced {
   depth: number;
   characterId: number | null;
@@ -330,6 +348,14 @@ export interface LookOptions {
   /** The offered hair styles whose mesh is bare scalp: no hair at all. */
   bareHairStyles: number[];
   hairColours: number[];
+}
+
+/** One table as the build ships it: enough to tell one build's copy from another's. */
+export interface TableShape {
+  name: string;
+  rows: number;
+  /** One letter per column. */
+  format: string;
 }
 
 export interface PlayableKinds {
@@ -811,6 +837,7 @@ export interface ResourceTypes {
   model: ModelData;
   texture: TextureData;
   playableKinds: PlayableKinds;
+  tableShapes: TableShape[];
   lookOptions: LookOptions;
   avatar: Appearance;
   networkAppearance: NetworkAppearance;

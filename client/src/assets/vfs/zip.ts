@@ -1,8 +1,10 @@
 /** Pack reader (GBMP-stamped ZIP + plain-ZIP .ipas) over ByteSource;
- * central directory up front only; methods 0 (store) and 8 (deflate). */
+ * central directory up front only; methods 0 (store), 8 (deflate) and 14 (LZMA). */
 
+import { crc32 } from './crc32';
 import { type ByteSource, bytesSource, view } from './ByteSource';
 import { inflateRaw } from './inflate';
+import { decodeLzmaEntry } from './lzma';
 
 export const SIG_LFH_PK = 0x04034b50; // "PK\x03\x04"
 export const SIG_LFH_GBMP = 0x504d4247; // "GBMP"
@@ -11,6 +13,11 @@ export const SIG_EOCD = 0x06054b50;
 
 const CD_SIZE = 46;
 const LFH_SIZE = 30;
+const LFH_FLAGS = 6;
+const LFH_METHOD = 8;
+const LFH_SIZE_UNCOMPRESSED = 22;
+const LFH_NAME_LENGTH = 26;
+const LFH_EXTRA_LENGTH = 28;
 const EOCD_SIZE = 22;
 
 /** General-purpose flag bit 3: the sizes follow the data, not the local header. */
@@ -18,6 +25,14 @@ const SIZES_AFTER_DATA = 0x0008;
 
 export const METHOD_STORE = 0;
 export const METHOD_DEFLATE = 8;
+export const METHOD_LZMA = 14;
+
+/**
+ * The most an LZMA entry may decode to, held whole in memory. Own choice: the
+ * largest in any build on hand is a few megabytes; past this a worker would
+ * run out of memory without saying why.
+ */
+const LZMA_LARGEST = 256 << 20;
 
 export interface PackEntry {
   name: string;
@@ -25,6 +40,8 @@ export interface PackEntry {
   method: number;
   compSize: number;
   size: number;
+  /** The CRC-32 the central directory records for the entry's bytes. */
+  crc: number;
   isDir: boolean;
 }
 
@@ -93,6 +110,21 @@ export class PackReader {
     const blob = await this.source.read(at, comp);
     if (entry.method === METHOD_STORE) return size ? blob.subarray(0, size) : blob;
     if (entry.method === METHOD_DEFLATE) return inflateRaw(blob, size);
+    if (entry.method === METHOD_LZMA) {
+      if (size > LZMA_LARGEST) {
+        throw new PackError(
+          `${this.name}: ${entry.name} would decode to ${size} bytes, past the ${LZMA_LARGEST} this reader holds whole`,
+        );
+      }
+      // The decoder is this project's own: a fault in it fails here, not in a format reader.
+      const out = decodeLzmaEntry(blob, size);
+      if (crc32(out) !== entry.crc) {
+        throw new PackError(
+          `${this.name}: ${entry.name} decoded to bytes whose CRC-32 is not the one recorded`,
+        );
+      }
+      return out;
+    }
     throw new PackError(
       `${this.name}: unsupported compression method ${entry.method} for ${entry.name}`,
     );
@@ -132,6 +164,11 @@ export class PackReader {
       },
     });
 
+    if (entry.method === METHOD_LZMA) {
+      // Decoded whole, as every LZMA entry seen sits inside a pack; `read` refuses one too large.
+      const whole = await this.read(entry);
+      return new Blob([whole as BlobPart]).stream() as ReadableStream<Uint8Array>;
+    }
     if (entry.method === METHOD_STORE) return raw;
     if (entry.method === METHOD_DEFLATE) {
       // `DecompressionStream` declares its writable side as `BufferSource`,
@@ -181,6 +218,7 @@ export class PackReader {
       if (pos + CD_SIZE > cd.length) break;
       if (dv.getUint32(pos, true) !== SIG_CD) break;
       const method = dv.getUint16(pos + 10, true);
+      const crc = dv.getUint32(pos + 16, true);
       const compSize = dv.getUint32(pos + 20, true);
       const size = dv.getUint32(pos + 24, true);
       const fnLen = dv.getUint16(pos + 28, true);
@@ -198,6 +236,7 @@ export class PackReader {
         method,
         compSize,
         size,
+        crc,
         isDir: name.endsWith('/'),
       };
       this.entries.push(entry);
@@ -252,4 +291,31 @@ function lastIndexOfSig(buf: Uint8Array, sig: number): number {
     }
   }
   return -1;
+}
+
+/**
+ * The entries of a small archive held whole in memory, each stored without
+ * compression, read front to back from their own headers. Null if `data`
+ * is not such an archive.
+ */
+export function storedEntries(data: Uint8Array): Map<string, Uint8Array> | null {
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const decoder = new TextDecoder('utf-8');
+  const out = new Map<string, Uint8Array>();
+  let at = 0;
+  while (at + LFH_SIZE <= data.length && dv.getUint32(at, true) === SIG_LFH_PK) {
+    // With the sizes written after the data, the header's own size is 0.
+    if (dv.getUint16(at + LFH_FLAGS, true) & SIZES_AFTER_DATA) return null;
+    if (dv.getUint16(at + LFH_METHOD, true) !== METHOD_STORE) return null;
+    const size = dv.getUint32(at + LFH_SIZE_UNCOMPRESSED, true);
+    const nameLength = dv.getUint16(at + LFH_NAME_LENGTH, true);
+    const start = at + LFH_SIZE + nameLength + dv.getUint16(at + LFH_EXTRA_LENGTH, true);
+    if (start + size > data.length) return null;
+    out.set(
+      decoder.decode(data.subarray(at + LFH_SIZE, at + LFH_SIZE + nameLength)),
+      data.subarray(start, start + size),
+    );
+    at = start + size;
+  }
+  return out.size > 0 ? out : null;
 }

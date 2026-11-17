@@ -69,3 +69,16 @@ largest square it holds, of side `min(cols, rows)`, is stored in Z-order:
 bit k of the block's y lands on bit 2k of its index and bit k of x on bit
 2k + 1. A non-square grid is a row or column of such squares, each stored
 whole before the next.
+
+## ETC1, in the Android builds
+
+The Android builds keep the container and change what is in it: the format
+byte is `0x36`, ETC1, at 4 bits a pixel with no mip chain. Reader:
+`client/src/assets/formats/etc1.ts`, written from the public ETC1
+specification. Tests: `client/test/etc1.test.ts`,
+`client/test/buildPacks.test.ts`.
+
+ETC1 has no transparency. A picture that needs it is not a PVR file at all
+but a small ZIP, its entries stored uncompressed: `SPLIT` (four zero bytes),
+`rgb.pvr` and `alpha.pvr`. Both are ETC1 pictures of the same size; the
+second holds the transparency as grey.

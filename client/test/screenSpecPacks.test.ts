@@ -82,11 +82,13 @@ beforeAll(async () => {
   for (const [build, pack] of BUILDS) {
     const provider = new PackAssetProvider();
     const file = new File([await openAsBlob(pack)], 'res.bin');
-    const tablesAt = join(dirname(pack), 'tables.bin');
-    const tables = existsSync(tablesAt)
-      ? [new File([await openAsBlob(tablesAt)], 'tables.bin')]
-      : [];
-    await provider.useSource(provider.offer([file, ...tables]).id);
+    // 4.2.21 keeps its interface in `res_t.bin`, so every pack beside it rides along.
+    const beside: File[] = [];
+    for (const name of ['tables.bin', 'res_t.bin']) {
+      const at = join(dirname(pack), name);
+      if (existsSync(at)) beside.push(new File([await openAsBlob(at)], name));
+    }
+    await provider.useSource(provider.offer([file, ...beside]).id);
     const talents = await provider.load(talentsId()).catch(() => null);
     const movies = new Map<UiMovie, UiSkinData>();
     for (const movie of ['IGM', 'LGM'] as const) {
@@ -94,9 +96,13 @@ beforeAll(async () => {
       if (skin) movies.set(movie, skin);
     }
     const words = await provider.load(uiStringsId()).catch(() => []);
-    const listed = await (await Library.mountPack(file)).pack('res.bin');
+    const files = new Set<string>();
+    for (const one of [file, ...beside.filter(f => f.name !== 'tables.bin')]) {
+      const listed = await (await Library.mountPack(one)).pack(one.name);
+      for (const entry of listed.entries) files.add(entry.name.toLowerCase());
+    }
     read.set(build, {
-      files: new Set(listed.entries.map(entry => entry.name.toLowerCase())),
+      files,
       movies,
       words,
       built: buildUiSpec(movies, words, SCREEN_MEANINGS, KNOWN_SCREENS),
@@ -232,9 +238,13 @@ const SWITCHES = new Set(['buy', 'sell', 'treeOne', 'treeTwo']);
 /** A caption quoted by its number in the build's string file. */
 const QUOTED = /^@\d+/;
 
+/** Words only a later build carries, numbered as in that build: class 5's, from 4.2.21. */
+const LATER_WORDS = new Set(['@2455?~1e5896fd98273c49~12', '@2454?~1a901b942e37a628~20']);
+
 /** Every quoted word a table entry writes down, keys included. */
 function quotesIn(value: unknown, all = false): string[] {
-  if (typeof value === 'string') return QUOTED.test(value) ? [value] : [];
+  if (typeof value === 'string')
+    return QUOTED.test(value) && !LATER_WORDS.has(value) ? [value] : [];
   if (Array.isArray(value)) return value.flatMap(one => quotesIn(one, all));
   if (value && typeof value === 'object') {
     return Object.entries(value).flatMap(([key, held]) =>
@@ -493,6 +503,8 @@ describe.skipIf(!BUILDS.size)('the screen table, against the player’s builds',
   it('names every talent tree the build’s tables list, in every build', () => {
     for (const [build, one] of read) {
       if (!one.trees.length) continue;
+      // 4.2.21's movie has no `dlgTalent`: its talents are a `dlgnewtalent` the client does not draw.
+      if (!partsOf(one, SCREEN_MEANINGS.talents!)) continue;
       const from = one.built.spec.screens.talents?.rows?.treeWords;
       expect(from, build).toBeDefined();
       if (from === undefined) continue;
@@ -761,6 +773,29 @@ describe.skipIf(!BUILDS.size)('the screen table, against the player’s builds',
       screen => !(screen in target.built.spec.screens),
     );
     expect(Object.fromEntries(refused.map(one => [one, target.built.fallbacks[one]]))).toEqual({});
+  });
+
+  it('draws every mapped screen from every build on disk, but the talents of 4.2.21', () => {
+    // 4.2.21's talent window is a new dialog, `dlgnewtalent`, laid out anew.
+    const redesigned: Record<string, string[]> = { '4.2.21': ['talents'] };
+    for (const [build, one] of read) {
+      const refused = Object.keys(SCREEN_MEANINGS).filter(
+        screen => !(screen in one.built.spec.screens),
+      );
+      expect(refused, build).toEqual(redesigned[basename(build)] ?? []);
+    }
+  });
+
+  it('offers a fifth class wherever the class screen carries its button, and names it', () => {
+    for (const [build, one] of read) {
+      const spec = one.built.spec.screens.class;
+      const parts = partsOf(one, SCREEN_MEANINGS.class!)!;
+      if (!carried(parts, 'btnKnight')) continue;
+      expect(spec?.actions?.btnKnight, build).toBe('class:5');
+      for (const quote of [spec!.calls!['class:5']!, spec!.words!['class:5']!]) {
+        expect(quoteAnswers(quote, one.words), `${build} ${quote}`).toBe(true);
+      }
+    }
   });
 
   it('gives a named reason for every screen a consumer knows and a build does not draw', () => {

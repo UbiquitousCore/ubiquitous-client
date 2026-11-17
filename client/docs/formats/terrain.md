@@ -77,22 +77,22 @@ file
 
 ### Header
 
-| Offset | Type    | Field          | Notes                                                    |
-| ------ | ------- | -------------- | -------------------------------------------------------- |
-| 0      | 4 bytes | signature      | ASCII `AITM`                                             |
-| 4      | `u32`   | stamp          | 3 or 4 in the files seen; picks the record width, see below                 |
-| 8      | `i32`   | tileX          |                                                          |
-| 12     | `i32`   | tileZ          |                                                          |
-| 16     | `i32`   | placementCount | 1 to 1,275                                               |
-| 20     | `i32`   | pathCount      | 1 to 49; the number of distinct paths, not of placements |
+| Offset | Type    | Field          | Notes                                                       |
+| ------ | ------- | -------------- | ----------------------------------------------------------- |
+| 0      | 4 bytes | signature      | ASCII `AITM`                                                |
+| 4      | `u32`   | stamp          | 3 or 4 in the files seen; picks the record width, see below |
+| 8      | `i32`   | tileX          |                                                             |
+| 12     | `i32`   | tileZ          |                                                             |
+| 16     | `i32`   | placementCount | 1 to 1,275                                                  |
+| 20     | `i32`   | pathCount      | 1 to 49; the number of distinct paths, not of placements    |
 
 The path table's own `pathCount` (right after the last placement) equals the
 header's in every file.
 
 | Build | Stamp 3            | Other stamp |
-| ----- | -------------------- | ----------- |
-| 1.1.4 | 0                    | 17          |
-| 2.2.0 | 4 (all in `land1`)   | 1,929       |
+| ----- | ------------------ | ----------- |
+| 1.1.4 | 0                  | 17          |
+| 2.2.0 | 4 (all in `land1`) | 1,929       |
 
 The stamp is per file, not per build. File sizes run from 132 to 82,300 bytes.
 
@@ -100,15 +100,15 @@ The stamp is per file, not per build. File sizes run from 132 to 82,300 bytes.
 
 Offsets from the start of the record.
 
-| Offset | Type      | Field          | Notes                                                                                                  |
-| ------ | --------- | -------------- | ------------------------------------------------------------------------------------------------------ |
-| 0      | `u32`     | placementKind  | 2 = a model (174,620 records), 8 = an effect (2,020), 15 = a model (13, 2.2.0 only)                    |
-| 4      | `u32`     | placementId    | a small serial number. Not unique within a tile in 89 tiles. The client does not act on it             |
-| 8      | `u32`     | unknown        | −1 in 1,280 records, other values elsewhere. Meaning not settled                                       |
-| 12     | `u32`     | pathIndex      | index into the tile's path table; always below pathCount                                               |
-| 16     | `vec3`    | position       | tile-local: x and z in [0, 64), y (height) from −400 to 149                                            |
-| 28     | `quat`    | storedRotation | the conjugate of the rotation to apply (see below)                                                     |
-| 44     | `vec3`    | scale          | per axis                                                                                               |
+| Offset | Type      | Field          | Notes                                                                                                                     |
+| ------ | --------- | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 0      | `u32`     | placementKind  | 2 = a model (174,620 records), 8 = an effect (2,020), 15 = a model (13, 2.2.0 only)                                       |
+| 4      | `u32`     | placementId    | a small serial number. Not unique within a tile in 89 tiles. The client does not act on it                                |
+| 8      | `u32`     | unknown        | −1 in 1,280 records, other values elsewhere. Meaning not settled                                                          |
+| 12     | `u32`     | pathIndex      | index into the tile's path table; always below pathCount                                                                  |
+| 16     | `vec3`    | position       | tile-local: x and z in [0, 64), y (height) from −400 to 149                                                               |
+| 28     | `quat`    | storedRotation | the conjugate of the rotation to apply (see below)                                                                        |
+| 44     | `vec3`    | scale          | per axis                                                                                                                  |
 | 56     | `u32` × 2 | trailing words | only when the record is 64 bytes wide. Pairs seen: (255, 255), (177, 255), (−1, −1) and a few others. Meaning not settled |
 
 - The path of a kind-2 or kind-15 placement is a `.bdae`; of a kind-8

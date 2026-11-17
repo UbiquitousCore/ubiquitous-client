@@ -172,6 +172,106 @@ export class ModelWriter {
   }
 }
 
+/**
+ * A `.bdae` file with 8-byte pointer slots: an 80-byte header, a 208-byte
+ * model info, and links between records counted from the link itself. Field
+ * offsets are the caller's, so a test states the layout it pins.
+ */
+export class WideModelWriter {
+  readonly bytes: Uint8Array;
+  readonly dv: DataView;
+  readonly info: number;
+  private strings = 80;
+  private end: number;
+  private readonly placed = new Map<string, number>();
+
+  constructor(size = 8192, stringSpace = 1024) {
+    this.bytes = new Uint8Array(size);
+    this.dv = new DataView(this.bytes.buffer);
+    this.info = 80 + stringSpace;
+    this.end = this.info + 208 + 8;
+  }
+
+  str(s: string): number {
+    const known = this.placed.get(s);
+    if (known !== undefined) return known;
+    this.dv.setUint32(this.strings, s.length, true);
+    const text = this.strings + 4;
+    for (let i = 0; i < s.length; i++) this.bytes[text + i] = s.charCodeAt(i);
+    this.strings = text + Math.ceil((s.length + 1) / 4) * 4;
+    if (this.strings > this.info) throw new Error('string table full');
+    this.placed.set(s, text);
+    return text;
+  }
+
+  /** Room for `size` bytes, 8-aligned. */
+  alloc(size: number): number {
+    const at = this.end;
+    this.end += Math.ceil(size / 8) * 8;
+    if (this.end > this.bytes.length) throw new Error('model buffer full');
+    return at;
+  }
+
+  u8(at: number, ...vs: number[]): void {
+    vs.forEach((v, i) => this.dv.setUint8(at + i, v));
+  }
+
+  u16(at: number, ...vs: number[]): void {
+    vs.forEach((v, i) => this.dv.setUint16(at + i * 2, v, true));
+  }
+
+  u32(at: number, ...vs: number[]): void {
+    vs.forEach((v, i) => this.dv.setUint32(at + i * 4, v >>> 0, true));
+  }
+
+  i32(at: number, ...vs: number[]): void {
+    vs.forEach((v, i) => this.dv.setInt32(at + i * 4, v, true));
+  }
+
+  f32(at: number, ...vs: number[]): void {
+    vs.forEach((v, i) => this.dv.setFloat32(at + i * 4, v, true));
+  }
+
+  /** 8-byte slots: string and data-block pointers. */
+  word(at: number, ...vs: number[]): void {
+    vs.forEach((v, i) => this.dv.setBigUint64(at + i * 8, BigInt(v), true));
+  }
+
+  /** A link to `target`, counted from `at`; 0 for none. */
+  link(at: number, target: number): void {
+    this.i32(at, target === 0 ? 0 : target - at);
+  }
+
+  /** A count-then-link pair at `at`, for `count` records of `size` bytes; returns the records' offset. */
+  list(at: number, count: number, size: number): number {
+    const ptr = count ? this.alloc(count * size) : 0;
+    this.u32(at, count);
+    this.link(at + 4, ptr);
+    return ptr;
+  }
+
+  infoList(slot: number, count: number, size: number): number {
+    return this.list(this.info + slot, count, size);
+  }
+
+  block(tag: number, payload: number): number {
+    const at = this.alloc(4 + payload);
+    this.u32(at, tag);
+    return at;
+  }
+
+  done(): Uint8Array {
+    const size = this.end;
+    this.bytes.set([0x42, 0x52, 0x45, 0x53], 0);
+    this.u16(4, 0xfffe, 0);
+    this.u32(8, 80, size, 0, 0);
+    this.word(24, 80, 80, this.info, this.info + 208, size);
+    this.word(this.info, this.str('synthetic'));
+    this.u32(this.info + 208, 1, 0);
+    return this.bytes.slice(0, size);
+  }
+}
+
 // — .phy ---------------------------------------------------------------------------
 
 /** A `.phy` file: the declared count, then blocks in file axes. */

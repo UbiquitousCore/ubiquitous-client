@@ -4,7 +4,7 @@
  * without a canvas.
  */
 
-import { REMOVED } from '../../assets/formats/swf';
+import { REMOVED } from '../../assets/types';
 import type { UiMatrix, UiSkinData, UiSkinPlaced } from '../../assets/types';
 
 /** A rectangle in the movie's own units. */

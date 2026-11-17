@@ -279,7 +279,9 @@ class EmitterRun {
 
   private get emitting(): boolean {
     if (this.woundDown) return false;
-    return this.def.activeFrames < 0 || this.frame < this.def.firstBurstFrame + this.def.activeFrames;
+    return (
+      this.def.activeFrames < 0 || this.frame < this.def.firstBurstFrame + this.def.activeFrames
+    );
   }
 
   /** Advance by `dt` seconds. `camera` orients camera-facing particles. */

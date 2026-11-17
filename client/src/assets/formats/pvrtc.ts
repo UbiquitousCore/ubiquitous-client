@@ -1,5 +1,6 @@
 /** PVR v2 container and PVRTC 2bpp/4bpp decompression to RGBA8. */
 
+import { FMT_ETC1 } from './etc1';
 import { type DecodedImage, type Pixels, allocPixels } from './image';
 
 export type { DecodedImage };
@@ -61,7 +62,9 @@ export function parseHeader(data: Uint8Array): PvrHeader {
         ? 'PVRTC 2bpp'
         : fmt === FMT_PVRTC_4BPP
           ? 'PVRTC 4bpp'
-          : '0x' + fmt.toString(16).padStart(2, '0'),
+          : fmt === FMT_ETC1
+            ? 'ETC1'
+            : '0x' + fmt.toString(16).padStart(2, '0'),
     dataLength: u(5),
     pixelBits: u(6),
     hasAlpha: (flags & FLAG_ALPHA) !== 0,

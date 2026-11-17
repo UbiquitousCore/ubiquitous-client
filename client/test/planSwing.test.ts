@@ -6,7 +6,7 @@ import {
   SwingQueue,
   planSwing,
 } from '../src/gameplay/combatResults';
-import { OFF_HAND_SWING, UNARMED, type EquippedWeapons } from '../src/gameplay/weaponClips';
+import { OFF_HAND_SWING, UNARMED, type EquippedWeapons } from '../src/assets/weaponClips';
 
 const daggers: EquippedWeapons = { ...UNARMED, offhand: 'dagger' };
 const pole: EquippedWeapons = { ...UNARMED, offhand: 'polearm' };

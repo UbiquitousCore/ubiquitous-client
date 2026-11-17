@@ -8,7 +8,7 @@
  * check.
  */
 
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/preact';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FrontEnd } from '../../src/ui/frontend/FrontEnd';
@@ -129,5 +129,22 @@ describe('the draft', () => {
     expect(typeof shape.race).toBe('number');
     expect(typeof shape.gender).toBe('number');
     expect(typeof shape.playerClass).toBe('number');
+  });
+});
+
+describe('the plain fallback', () => {
+  it('waits for a movie still on its way rather than flashing a form it will swap out', () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<FrontEnd />);
+      expect(container.querySelector('[data-fallback]')).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+      expect(container.querySelector('[data-fallback]')).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

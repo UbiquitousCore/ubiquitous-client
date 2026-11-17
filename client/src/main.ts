@@ -6,7 +6,12 @@
 import './ui/styles/global.css';
 import { mountUiTextures } from './ui/styles/uiTextures';
 import { loadConfig } from './core/config';
-import { adminPanelWanted, loadFileConfig, overrideFileConfig, serverFromQuery } from './core/FileConfig';
+import {
+  adminPanelWanted,
+  loadFileConfig,
+  overrideFileConfig,
+  serverFromQuery,
+} from './core/FileConfig';
 import { Game } from './app/Game';
 import { logger } from './core/log';
 import { installTouchMenuGuard } from './ui/touchMenu';

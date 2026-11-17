@@ -63,22 +63,14 @@ export function guideTarget(
 /**
  * How the arrow is placed on the player, observed in play by the owner: a
  * model, not a ground decal, floating a little above the player and a little
- * ahead of them towards the target, drawn larger than the model's own size.
+ * ahead of them towards the target.
  */
 const GUIDE_LOOK = {
   /** Units along the ground from the player towards the target. */
   ahead: 0.8,
   /** Units above the player's own height. */
   lift: 0.2,
-  /** Times the model's own size. */
-  scale: 2.5,
 } as const;
-
-/** The arrowhead's scale once loaded. */
-export const GUIDE_SCALE = GUIDE_LOOK.scale;
-
-/** `model/scene/sky/arrowhead/arrowhead.bdae` — the arrow itself. */
-export const GUIDE_MODEL = 'model/scene/sky/arrowhead/arrowhead.bdae';
 
 /**
  * Where the arrow sits and which way it faces: ahead of the player, so it

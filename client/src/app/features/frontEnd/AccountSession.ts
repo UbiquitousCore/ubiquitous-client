@@ -1,6 +1,11 @@
 /** The account's pre-world exchange with the server, each request made awaitable; sends only, the caller presents. */
 
-import type { CharacterSummary, GameConnection, NewCharacter } from '../../../net/GameConnection';
+import type {
+  CharacterSummary,
+  GameConnection,
+  NewCharacter,
+  SentTable,
+} from '../../../net/GameConnection';
 import { waitOrFail, waitOrGiveUp, type Assign } from './waitFor';
 
 type Sends = Pick<
@@ -46,11 +51,14 @@ export class AccountSession {
    * @param patienceMs how long to wait for a list the server sends of its
    *   own accord before carrying on with the last one.
    * @param onNoFreshList called when that wait runs out.
+   * @param tables the tables read from the player's game file, sent with
+   *   the login so the server can say when its own differ.
    */
   constructor(
     private readonly connection: Sends,
     private readonly patienceMs: number,
     private readonly onNoFreshList: () => void = () => {},
+    private readonly tables: readonly SentTable[] = [],
   ) {}
 
   // — what the server says --------------------------------------------------
@@ -141,7 +149,7 @@ export class AccountSession {
   signIn(userId: string, passHash: string): Promise<LoginAnswer> {
     return new Promise(resolve => {
       this.pendingLogin = resolve;
-      this.connection.login(userId, passHash);
+      this.connection.login(userId, passHash, this.tables);
     });
   }
 

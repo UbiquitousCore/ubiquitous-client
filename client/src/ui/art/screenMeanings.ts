@@ -142,6 +142,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The "i" is the build's information button, which is what opens the
     // about page. Remembering keeps the account name, never the password.
     actions: { btnLogin: 'signIn', btnInformation: 'about', btnRemember: 'remember' },
+    // 2.2.0 on carry no information button; their sign-in has no way to the about page.
+    optional: ['btnInformation'],
     captions: {
       textAccount: '@302?~294fc75c3a18b018~7',
       textPassword: '@303?~364b5f184af689fc~8',
@@ -154,6 +156,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // in are the build's and not this client's.
     hidden: [
       'btnGLLive',
+      // 2.2.0 on: signing in through other services, and the news.
+      'LoginGroupInter',
+      'LoginGroupChina',
+      'textGLLoginHint',
+      'btnGameCenter_CN',
+      'btnnewsbg',
       'btnMoreGame',
       'btnMoreGameGreen',
       'textMoreGame',
@@ -270,15 +278,19 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
   class: {
     dialog: 'class_group',
     movie: 'LGM',
-    // By the server's class numbers: warrior, mage, ranger, monk.
+    // By the server's class numbers: warrior, mage, ranger, monk, and the
+    // Flame Knight 4.2.21 adds.
     actions: {
       btnWarrior: 'class:1',
       btnMage: 'class:2',
       btnRanger: 'class:3',
       btnMonk: 'class:4',
+      btnKnight: 'class:5',
       btnBack: 'back',
       btnNext: 'next',
     },
+    // 4.2.21 on: the fifth class's button, and the badge beside it.
+    optional: ['btnKnight'],
     unavailable: {
       'class:1': 'coverWA',
       'class:2': 'coverMG',
@@ -298,12 +310,15 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       'class:2': '@390?~e1a8d8c3ee547ecf~4',
       'class:3': '@391?~8867dfe073cffabc~6',
       'class:4': '@392?~ee86e81e400e8a2a~4',
+      // Numbered as in 4.2.21, the first build that has the class.
+      'class:5': '@2455?~1e5896fd98273c49~12',
     },
     words: {
       'class:1': '@734?~23c3423366a78cd7~19',
       'class:2': '@735?~3cf09e8dfaec5509~20',
       'class:3': '@736?~341453ce2c973a9a~21',
       'class:4': '@737?~e96bfb4b6508fbdf~16',
+      'class:5': '@2454?~1a901b942e37a628~20',
     },
     // In the band across the top, as on the race step.
     captions: { textSelect: '@596?~982ff5d4b9661a20~17' },
@@ -1120,6 +1135,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       moneyTitle: 'scroll/info/scroll/rewardmoney',
     },
     panels: { detail: 'scroll/info', window: 'newmask', area: 'btnscroll' },
+    // 4.2.21 has one question mark in their place, which nothing here reads yet.
+    optional: ['yellowquestion', 'grayquestion'],
     values: {
       count: 'count',
       objective: 'scroll/info/scroll/objinfo',
@@ -1145,6 +1162,8 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The first-run hint, and the parts of a quest's own page the screen
     // lays out itself rather than where the movie stacks them.
     hidden: [
+      // 4.2.21: an information button this client opens nothing from.
+      'btninformation',
       'animQuestLogTip',
       'logbar',
       'scroll/info/scrollbar',
@@ -1256,11 +1275,13 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
         of: 'member',
       },
     ],
+    // The dungeon page's parts are named without the page: 2.2.0 and 4.2.21
+    // set them a group or two deeper in it.
     values: {
       leader: 'teamsetting/txtLeaderName',
-      dungeonMode: 'dungeonsetting/txtdungeonmode',
-      exhaustion: 'dungeonsetting/exhausting/txt',
-      exhaustionBar: 'dungeonsetting/exhausting/bar',
+      dungeonMode: 'txtdungeonmode',
+      exhaustion: 'exhausting/txt',
+      exhaustionBar: 'exhausting/bar',
     },
     formats: { exhaustion: '@1500?~00c7ce14a76a8b98~19' },
     // The two modes the Dungeon page steps between.
@@ -1277,10 +1298,10 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       btnQuit: 'quit',
       btnteamsetting: 'teamPage',
       btndungeonsetting: 'dungeonPage',
-      'dungeonsetting/btndungeonreset': 'resetDungeons',
-      'dungeonsetting/btndungeonmodeleft': 'otherMode',
-      'dungeonsetting/btndungeonmoderight': 'otherMode',
-      'dungeonsetting/btndungeonsave': 'saveMode',
+      btndungeonreset: 'resetDungeons',
+      btndungeonmodeleft: 'otherMode',
+      btndungeonmoderight: 'otherMode',
+      btndungeonsave: 'saveMode',
     },
     // The two pages, and the controls that belong to the team page alone.
     panels: { team: 'teamsetting', dungeon: 'dungeonsetting' },
@@ -1291,12 +1312,12 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The friends list's own name field, floated over Invite: the team
     // page has none of its own.
     pieces: { nameField: { dialog: 'dlgFriendList', part: 'btnName' } },
-    unavailable: { resetDungeons: 'dungeonsetting/btndungeonreset/disable' },
+    unavailable: { resetDungeons: 'btndungeonreset/disable' },
     captions: {
       textteamsetting: '@419?~a2fd7d0ca7c0aab8~4',
       textdungeonsetting: '@1482?~c9fe34cd7b2c0931~7',
-      'dungeonsetting/txtdungeonreset': '@1486?~40787936038e9c4a~18',
-      'dungeonsetting/txtdungeonsave': '@492?~7011a3c571fe2689~13',
+      txtdungeonreset: '@1486?~40787936038e9c4a~18',
+      txtdungeonsave: '@492?~7011a3c571fe2689~13',
       'teamsetting/txtLeader': '@488?~3e26757abeff021e~7',
       'teamsetting/txtKick': '@1402?~54eac627fd9afd6b~9',
       'teamsetting/txtNotinteam': 'You are not in a team.',
@@ -1304,6 +1325,11 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     // The arena page and the rules for sharing out loot are the build's and
     // not yet this client's.
     hidden: [
+      // 2.2.0 on: the random-dungeon queue and the buttons that switch to it.
+      'panelRanDungeon',
+      'btnPVP00',
+      'btnPVP01',
+      'btnResetExhau',
       // The buttons' words sit across the paper's edge; the icons say it.
       'textInvite',
       'textQuit',
@@ -1355,18 +1381,19 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       // The build's spare switch carries our fog: its
       // words field is filled at runtime, so the row reads fog throughout.
       'panelSetting/optiongroup/btn3g': 'fog',
-      // The page the window opens on, and the ways off it this client has.
-      'panelMain/buttonGameSetting': 'gameSettings',
-      'panelMain/buttonCharacterList': 'characterList',
-      'panelMain/buttonMainMenu': 'mainMenu',
+      // The page the window opens on, and the ways off it this client has;
+      // named without their panel, since 4.2.21 sets them in a group within it.
+      buttonGameSetting: 'gameSettings',
+      buttonCharacterList: 'characterList',
+      buttonMainMenu: 'mainMenu',
     },
     captions: {
-      'panelMain/buttonGameSetting/text': '@1441?~da64aba88570d5dc~13',
-      'panelMain/buttonCharacterList/text': '@775?~a12a9518b29f9304~14',
-      'panelMain/buttonMainMenu/text': '@776?~2ea13b7f6154c053~9',
+      'buttonGameSetting/text': '@1441?~da64aba88570d5dc~13',
+      'buttonCharacterList/text': '@775?~a12a9518b29f9304~14',
+      'buttonMainMenu/text': '@776?~2ea13b7f6154c053~9',
       // Shown, and not yet wired to anything.
-      'panelMain/buttonHelp/text': '@1004?~3871a3fa749178a6~4',
-      'panelMain/buttonSetting/text': '@777?~68067b08783127a4~8',
+      'buttonHelp/text': '@1004?~3871a3fa749178a6~4',
+      'buttonSetting/text': '@777?~68067b08783127a4~8',
       'panelMain/buttonReport/text': '@1498?~feab1448e614f6bc~12',
     },
     values: {
@@ -1384,7 +1411,18 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
       fog: 'panelSetting/optiongroup/text3g',
     },
     // The page's other pages: the sound, the interface and asking for help.
-    hidden: ['panelAudio', 'panelInterface', 'panelSOS', 'btnScroll'],
+    hidden: [
+      'panelAudio',
+      'panelInterface',
+      'panelSOS',
+      'btnScroll',
+      // 4.2.21: the community menu, its button and its news count.
+      'dlgocm',
+      'buttonOCM',
+      'textnewsnumberbg',
+    ],
+    // 4.2.21 moves Report into the community menu, which is hidden.
+    optional: ['panelMain/buttonReport/text'],
   },
   // Asked before leaving the world, in the build's own words.
   dungeonResetAsk: askBox('@1487?~619545e64e89320a~51'),
@@ -1737,13 +1775,29 @@ export const SCREEN_MEANINGS: Readonly<Record<string, ScreenMeaning>> = {
     dialog: 'dlgstoragebox',
     grids: {
       // The one sort button stands under the chest's half.
-      bank: { slot: 'boxitem', pager: /^pageleftrightbox$/i, sort: 'btnsort' },
-      bag: { slot: 'bagitem', pager: /^pageleftrightbag$/i },
+      // From 2.2.0 each half is a scroll of pages of slots; the first is read.
+      bank: [
+        { slot: 'boxitem', pager: /^pageleftrightbox$/i, sort: 'btnsort' },
+        {
+          region: 'groupSubBox/scroll/sub01',
+          slot: 'item',
+          pager: /^pageleftrightbox$/i,
+          sort: 'btnsort',
+        },
+      ],
+      bag: [
+        { slot: 'bagitem', pager: /^pageleftrightbag$/i },
+        { region: 'groupSubBag/scroll/sub01', slot: 'item', pager: /^pageleftrightbag$/i },
+      ],
     },
     // The room offer, half labels and second currency are not ours yet.
     hidden: [
+      // 4.2.21: tabs over the bag half that pick what it shows.
+      'bagTab',
       'btnupgradebag',
       'btnupgradebox',
+      // 2.2.0 on: each page of slots carries its own room offer.
+      'btnupgrade',
       'animflash',
       'bagindicator',
       'boxindicator',

@@ -83,7 +83,9 @@ export function shouldPose(
 /** An animated entry's own cull radius, measured once: tall models keep posing while any part shows. */
 export function animatedRadius(entry: { object: THREE.Object3D; boundRadius?: number }): number {
   if (entry.boundRadius === undefined) {
-    const sphere = new THREE.Box3().setFromObject(entry.object).getBoundingSphere(new THREE.Sphere());
+    const sphere = new THREE.Box3()
+      .setFromObject(entry.object)
+      .getBoundingSphere(new THREE.Sphere());
     entry.boundRadius = Number.isFinite(sphere.radius)
       ? Math.max(ANIMATION_BOUND_RADIUS, sphere.radius)
       : ANIMATION_BOUND_RADIUS;

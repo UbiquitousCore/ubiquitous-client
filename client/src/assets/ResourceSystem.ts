@@ -21,6 +21,7 @@ import {
   zoneIndexId,
   mountListId,
   playableKindsId,
+  tableShapesId,
   uiIconId,
   lookOptionsId,
   networkAppearanceId,
@@ -58,6 +59,7 @@ import type {
   SkeletonData,
   MountRow,
   PlayableKinds,
+  TableShape,
   LookOptions,
   NetworkAppearance,
   SpellStats,
@@ -69,8 +71,8 @@ import type {
   ZoneIndex,
 } from './types';
 import type { SpellVisualData } from './formats/tables';
-import { WEAPON_SLOT, familyOf } from '../gameplay/weaponClips';
-import type { EquippedWeapons, WeaponType } from '../gameplay/weaponClips';
+import { WEAPON_SLOT, familyOf } from './weaponClips';
+import type { EquippedWeapons, WeaponType } from './weaponClips';
 import { CACHE_SCHEMA_VERSION, MemoryResourceCache } from './cache/ResourceCache';
 import type { ResourceCache } from './cache/ResourceCache';
 
@@ -90,6 +92,7 @@ const CACHEABLE: ReadonlySet<ResourceKind> = new Set<ResourceKind>([
   'avatar',
   'mountList',
   'playableKinds',
+  'tableShapes',
   'lookOptions',
   'networkAppearance',
   'staticObjectModel',
@@ -330,6 +333,11 @@ export class ResourceSystem {
    */
   playableKinds(): Promise<PlayableKinds> {
     return this.get(playableKindsId());
+  }
+
+  /** The shape of every table read from the mounted build. */
+  tableShapes(): Promise<TableShape[]> {
+    return this.get(tableShapesId());
   }
 
   /** What one body can be made to look like. Empty lists where it ships none. */

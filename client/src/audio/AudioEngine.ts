@@ -4,7 +4,7 @@
  * before a click or key press; music and ambience start once allowed.
  */
 import { logger } from '../core/log';
-import type { SoundCatalogue, SoundCue } from '../assets/formats/tables';
+import type { SoundCatalogue, SoundCue } from '../assets/types';
 import type { SoundClipData } from '../assets/types';
 import {
   bankIsFull,

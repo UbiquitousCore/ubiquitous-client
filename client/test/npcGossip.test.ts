@@ -63,6 +63,23 @@ describe('reading a conversation page', () => {
     expect(words(page)).not.toMatch(/[\x12\x13]/);
   });
 
+  it('reads a choice whose first comma was written as a second opening byte', () => {
+    const page = readGossip(
+      menu(
+        'Well?\n\x12link_menu=1\x12,icon=a.png\x13Tell me.\x12/link_menu\x13',
+        [40, 0, 0, 0, 0, 0],
+      ),
+      player(),
+    );
+
+    expect(words(page)).toBe('Well?');
+    expect(page.choices).toHaveLength(1);
+    expect(page.choices[0]).toMatchObject({
+      label: 'Tell me.',
+      action: { kind: 'open', menuId: 40 },
+    });
+  });
+
   it('says the player’s name, class and race where the page asks', () => {
     const page = readGossip(
       menu(`Hi, ${open('name')}, a ${open('race')} ${open('class')}.${open('br /')}Next line.`),
