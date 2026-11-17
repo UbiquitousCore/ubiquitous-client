@@ -70,23 +70,22 @@ export function FrontEnd(): JSX.Element | null {
   const wornList = useWornScreen(CHARACTERS_SCREEN) !== null;
   const wornStep = useWornScreen(STEP_SCREEN[at] ?? '') !== null;
   const worn = at === 'signIn' ? wornSignIn : at === 'characters' ? wornList : wornStep;
-  const fallenBack =
+  const screenShown =
     at === 'signIn'
       ? SIGN_IN_SCREEN
       : at === 'characters'
         ? CHARACTERS_SCREEN
         : (STEP_SCREEN[at] ?? null);
 
-  const fallsBack = useFallsBack(worn, fallenBack);
+  const fallsBack = useFallsBack(worn, screenShown);
 
   // Which steps fell back, and why: the compatibility report for builds
   // whose movies carry no panels of their own.
   useEffect(() => {
-    if (!fallsBack || !fallenBack) return;
-    const reason = screenFallback(fallenBack)?.reason ?? 'unknown';
-    logger('front-end').info(`fallback screen for ${at}: ${fallenBack} ${reason}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [at, fallsBack]);
+    if (!fallsBack || !screenShown) return;
+    const reason = screenFallback(screenShown)?.reason ?? 'unknown';
+    logger('front-end').info(`fallback screen for ${at}: ${screenShown} ${reason}`);
+  }, [at, fallsBack, screenShown]);
 
   useEffect(() => {
     const element = canvas.current;

@@ -13,7 +13,8 @@ import { deflateRawSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 import { bytesSource, sliceSource } from '../src/assets/vfs/ByteSource';
-import { PackReader, SIG_LFH_GBMP, unwrapBdae } from '../src/assets/vfs/zip';
+import { crc32 } from '../src/assets/vfs/crc32';
+import { PackReader, SIG_LFH_GBMP, storedEntries, unwrapBdae } from '../src/assets/vfs/zip';
 
 interface Member {
   name: string;
@@ -22,6 +23,10 @@ interface Member {
   deflate?: boolean;
   /** Zero the sizes in the local header, as a data-descriptor entry does. */
   dataDescriptor?: boolean;
+  /** An LZMA payload already packed, which `data` is what it decodes to. */
+  lzma?: Uint8Array;
+  /** The CRC-32 the directory records, where it should not be `data`'s own. */
+  crc?: number;
 }
 
 /**
@@ -35,8 +40,8 @@ function buildPack(members: Member[], signature = SIG_LFH_GBMP): Uint8Array {
 
   for (const m of members) {
     const nameBytes = new TextEncoder().encode(m.name);
-    const stored = m.deflate ? new Uint8Array(deflateRawSync(m.data)) : m.data;
-    const method = m.deflate ? 8 : 0;
+    const stored = m.lzma ?? (m.deflate ? new Uint8Array(deflateRawSync(m.data)) : m.data);
+    const method = m.lzma ? 14 : m.deflate ? 8 : 0;
 
     const lfh = new Uint8Array(30 + nameBytes.length);
     const ldv = new DataView(lfh.buffer);
@@ -52,6 +57,7 @@ function buildPack(members: Member[], signature = SIG_LFH_GBMP): Uint8Array {
     const cdv = new DataView(cd.buffer);
     cdv.setUint32(0, 0x02014b50, true);
     cdv.setUint16(10, method, true);
+    cdv.setUint32(16, m.crc ?? crc32(m.data), true);
     cdv.setUint32(20, stored.length, true);
     cdv.setUint32(24, m.data.length, true);
     cdv.setUint16(28, nameBytes.length, true);
@@ -88,6 +94,46 @@ function concat(parts: Uint8Array[]): Uint8Array {
 
 const text = (s: string): Uint8Array => new TextEncoder().encode(s);
 const str = (b: Uint8Array): string => new TextDecoder().decode(b);
+
+/** A method-14 payload and the words it decodes to (as in `lzma.test.ts`). */
+const LZMA_ENTRY = Uint8Array.from(
+  (
+    '091405005d000001000020880a06133fb56de851e955d1df870092a616778bdb596528a7167b2bb5e2b1fc9d4553bc' +
+    '73ca43570fe9e3bde9ad6f1ca021fe4e0c810b607a2688c7f8b5d3c751606ad39643396eb4e691893256f31f46920e' +
+    '24590f09604067177f38ffffc5217000'
+  )
+    .match(/../g)!
+    .map(pair => parseInt(pair, 16)),
+);
+const LZMA_TEXT =
+  'A pack entry is a small thing: a table, a model, a picture. '.repeat(6) +
+  'It repeats itself, itself, itself, and then it stops.';
+
+describe('PackReader, LZMA entries', () => {
+  it('decodes one whose bytes match the CRC-32 it records', async () => {
+    const pack = buildPack([{ name: 'a.tbl', data: text(LZMA_TEXT), lzma: LZMA_ENTRY }]);
+    const reader = await PackReader.open(bytesSource(pack), 'tables.bin');
+    expect(str(await reader.read('a.tbl'))).toBe(LZMA_TEXT);
+  });
+
+  it('refuses one whose bytes do not match, rather than hand on corrupt bytes', async () => {
+    const pack = buildPack([{ name: 'a.tbl', data: text(LZMA_TEXT), lzma: LZMA_ENTRY, crc: 1 }]);
+    const reader = await PackReader.open(bytesSource(pack), 'tables.bin');
+    await expect(reader.read('a.tbl')).rejects.toThrow(/CRC-32/);
+  });
+});
+
+describe('storedEntries', () => {
+  it('reads names as UTF-8', () => {
+    const found = storedEntries(buildPack([{ name: 'é.txt', data: text('x') }], 0x04034b50));
+    expect([...found!.keys()]).toEqual(['é.txt']);
+  });
+
+  it('gives up on entries whose sizes come after their data', () => {
+    const pack = buildPack([{ name: 'a.txt', data: text('x'), dataDescriptor: true }], 0x04034b50);
+    expect(storedEntries(pack)).toBeNull();
+  });
+});
 
 describe('PackReader', () => {
   it('reads a GBMP pack, which a stock ZIP library would reject', async () => {

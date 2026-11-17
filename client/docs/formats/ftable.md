@@ -99,6 +99,25 @@ in 4.2.21). Where a new column sits among neighbours that are mostly zero,
 it was placed by the rows where either build holds a value, not by all rows:
 by all rows an empty column agrees with any other.
 
+### The server reads the same tables
+
+The server's importer (`tools/asset-extractor/*Columns.cs` in
+ubiquitous-server) keeps its own copy of these layouts, in C#. The formats and
+edits are the same measurements, but nothing yet checks the two copies against
+each other, and they differ in four ways a reader should know:
+
+- **Column names.** `name`/`world` here are `InternalName`/`File` there,
+  `x1`/`z1` are `MinX`/`MinZ`.
+- **Required columns.** `zones.parent` is optional here, required there.
+- **A format no layout names.** The client finds map names, the zone sky and
+  spawn scales by their shape (`byShape`). The server reads every column at
+  its 1.1.4 place, and plays any such build as 1.1.4. On a build neither side
+  has measured, the two can disagree on which map a zone is on.
+- **Runs.** The server can require a run of columns (`MustRun`); here a run is
+  always optional.
+
+A new build's layout is entered on both sides.
+
 ## What later builds add
 
 Columns the client does not read, as far as the rows say what they hold.
