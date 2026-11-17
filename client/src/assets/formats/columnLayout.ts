@@ -37,20 +37,24 @@ export type LayoutEdit =
   | { readonly lacks: number; readonly count?: number }
   | { readonly addsBefore: number; readonly count?: number };
 
-export interface LayoutRevision<C> {
+export interface LayoutRevision {
   /** The builds that ship this format, as a reader would say them: `'1.0.0 to 1.0.3'`. */
   readonly builds: string;
   readonly format: string;
   readonly edits?: readonly LayoutEdit[];
-  /** Columns this format holds differently, placed in its own column numbers. */
-  readonly own?: { readonly [K in keyof C]?: ColumnSpec };
 }
 
 export interface ColumnLayout<C extends Record<string, ColumnSpec>> {
   readonly table: string;
   readonly reference: string;
   readonly columns: C;
-  readonly revisions: readonly LayoutRevision<C>[];
+  readonly revisions: readonly LayoutRevision[];
+  /**
+   * Where a format no revision names holds some columns, found by their shape
+   * (a run of strings, a pair side by side): a build not yet measured still
+   * loads where its neighbouring columns give the place away.
+   */
+  readonly byShape?: (format: string) => { readonly [K in keyof C]?: number | readonly number[] };
 }
 
 /** Where each named column sits in the format read: -1 when absent, a run empty. */
@@ -72,9 +76,10 @@ export function defineLayout<C extends Record<string, ColumnSpec>>(
   table: string,
   reference: string,
   columns: C,
-  revisions: readonly LayoutRevision<C>[] = [],
+  revisions: readonly LayoutRevision[] = [],
+  byShape?: ColumnLayout<C>['byShape'],
 ): ColumnLayout<C> {
-  return { table, reference, columns, revisions };
+  return { table, reference, columns, revisions, ...(byShape ? { byShape } : {}) };
 }
 
 /** Where a reference column sits under a revision's edits, or -1. */
@@ -108,7 +113,7 @@ export function resolveLayout<C extends Record<string, ColumnSpec>>(
   layout: ColumnLayout<C>,
   format: string,
 ): ResolvedLayout<C> {
-  const known: Pick<LayoutRevision<C>, 'format' | 'edits' | 'own'>[] = [
+  const known: Pick<LayoutRevision, 'format' | 'edits'>[] = [
     { format: layout.reference },
     ...layout.revisions,
   ];
@@ -122,17 +127,26 @@ export function resolveLayout<C extends Record<string, ColumnSpec>>(
     notes.push(
       extended
         ? `${layout.table}: ${format.length - extended.format.length} column(s) past the known layout are not read`
-        : `${layout.table}: format ${JSON.stringify(format)} matches no known layout; columns are read where the reference has them`,
+        : `${layout.table}: format ${JSON.stringify(format)} matches no known layout; columns are read by their shape where the layout says how, else where the reference has them`,
     );
   }
 
+  const shaped: { readonly [name: string]: number | readonly number[] | undefined } =
+    !exact && !extended && layout.byShape ? layout.byShape(format) : {};
   const out: Record<string, number | readonly number[]> = {};
   for (const [name, declared] of Object.entries(layout.columns)) {
-    const held = revision.own?.[name];
-    const spec = held ?? declared;
-    const wanted = typeof spec.at === 'number' ? [spec.at] : spec.at;
-    const places = held ? [...wanted] : wanted.map(at => locate(revision.edits ?? [], at));
-    const problem = places.map(place => mismatch(format, place, spec.types)).find(p => p !== null);
+    const found = shaped[name];
+    const places =
+      found !== undefined
+        ? typeof found === 'number'
+          ? [found]
+          : [...found]
+        : (typeof declared.at === 'number' ? [declared.at] : declared.at).map(at =>
+            locate(revision.edits ?? [], at),
+          );
+    const problem = places
+      .map(place => mismatch(format, place, declared.types))
+      .find(p => p !== null);
     const single = typeof declared.at === 'number';
     if (!problem) {
       out[name] = single ? places[0]! : places;

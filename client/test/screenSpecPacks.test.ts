@@ -238,10 +238,10 @@ const SWITCHES = new Set(['buy', 'sell', 'treeOne', 'treeTwo']);
 /** A caption quoted by its number in the build's string file. */
 const QUOTED = /^@\d+/;
 
-/** Every quoted word a table entry writes down, keys included. */
-/** Words only a later build carries, numbered as in that build: the Flame Knight's, from 4.2.21. */
+/** Words only a later build carries, numbered as in that build: class 5's, from 4.2.21. */
 const LATER_WORDS = new Set(['@2455?~1e5896fd98273c49~12', '@2454?~1a901b942e37a628~20']);
 
+/** Every quoted word a table entry writes down, keys included. */
 function quotesIn(value: unknown, all = false): string[] {
   if (typeof value === 'string')
     return QUOTED.test(value) && !LATER_WORDS.has(value) ? [value] : [];

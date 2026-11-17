@@ -18,7 +18,6 @@ const layout = defineLayout(
   [
     { builds: 'older', format: 'ufuuus', edits: [{ lacks: 1 }] },
     { builds: 'newer', format: 'uuifuuus', edits: [{ addsBefore: 2 }] },
-    { builds: 'other', format: 'uufuuuu', own: { label: may(6, 'u') } },
   ],
 );
 
@@ -43,12 +42,6 @@ describe('a column layout', () => {
     expect(resolveLayout(layout, 'uuifuuus').columns.slots).toEqual([4, 5, 6]);
   });
 
-  it('lets a format hold a column as another type', () => {
-    const resolved = resolveLayout(layout, 'uufuuuu');
-    expect(resolved.columns.label).toBe(6);
-    expect(resolved.notes).toEqual([]);
-  });
-
   it('leaves columns past a known format unread, and says so', () => {
     const resolved = resolveLayout(layout, 'uufuuusuu');
     expect(resolved.known).toBe(false);
@@ -64,6 +57,23 @@ describe('a column layout', () => {
 
   it('reads a run whole or not at all', () => {
     expect(resolveLayout(layout, 'uufuufs').columns.slots).toEqual([]);
+  });
+
+  it('finds a column by its shape in a format no revision names', () => {
+    const shaped = defineLayout(
+      'example',
+      'uussu',
+      { name: must(2, 's'), file: must(3, 's') },
+      [],
+      format => {
+        const at = format.indexOf('ss');
+        return at < 0 ? {} : { name: at, file: at + 1 };
+      },
+    );
+    // A column the reference does not have sits ahead of the pair.
+    expect(resolveLayout(shaped, 'uuussu').columns).toEqual({ name: 3, file: 4 });
+    // A format a revision names is read as measured, shape aside.
+    expect(resolveLayout(shaped, 'uussu').columns).toEqual({ name: 2, file: 3 });
   });
 
   it('refuses a table whose required column is another type', () => {
@@ -115,5 +125,27 @@ describe('the table layouts', () => {
       20, 21, -1, -1,
     ]);
     expect(columns.icon).toBe(22);
+  });
+});
+
+describe('a build no layout has measured', () => {
+  it('still finds the map name, sky and glyph by their shape', () => {
+    // 1.1.4's formats with a column of their own put just ahead of what moves.
+    const mapFormat = 'u' + TABLE_LAYOUTS.mapInfo.reference;
+    const map = resolveLayout(TABLE_LAYOUTS.mapInfo, mapFormat);
+    expect(map.known).toBe(false);
+    expect([mapFormat[map.columns.name], mapFormat[map.columns.world]]).toEqual(['s', 's']);
+    expect(map.columns.world).toBe(map.columns.name + 1);
+
+    const zoneReference = TABLE_LAYOUTS.zones.reference;
+    const zoneFormat = zoneReference.slice(0, 20) + 'u' + zoneReference.slice(20);
+    const zone = resolveLayout(TABLE_LAYOUTS.zones, zoneFormat);
+    expect(zone.columns.skyDome).toBe(TABLE_LAYOUTS.zones.columns.skyDome.at + 1);
+    expect(zone.columns.icon).toBe(TABLE_LAYOUTS.zones.columns.icon.at + 1);
+  });
+
+  it('reads one spawn scale or three, as the format holds', () => {
+    const one = resolveLayout(TABLE_LAYOUTS.staticSpawns, 'uuuffffffuufuu');
+    expect([one.columns.scale, one.columns.scaleY]).toEqual([11, -1]);
   });
 });

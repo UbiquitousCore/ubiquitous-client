@@ -11,7 +11,6 @@ import { COLUMN_NOTES, UNREAD_TABLES } from './tableColumnNotes';
 
 type AnyLayout = ColumnLayout<Record<string, ColumnSpec>>;
 
-/** A reference column, or the `n`th column a build adds ahead of reference column `before`. */
 interface ReferenceColumn {
   readonly ref: number;
 }

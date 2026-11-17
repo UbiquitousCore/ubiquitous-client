@@ -6,6 +6,23 @@
 
 import { defineLayout, may, must, run, type Resolved } from './columnLayout';
 
+/** How many `ch` run on from `at`. */
+function runFrom(format: string, at: number, ch: string): number {
+  let n = 0;
+  while (format[at + n] === ch) n++;
+  return n;
+}
+
+/** Start and length of the longest run of `ch`, or `{ at: -1, length: 0 }`. */
+function longestRun(format: string, ch: string): { at: number; length: number } {
+  let best = { at: -1, length: 0 };
+  for (let i = 0; i < format.length; i += Math.max(1, runFrom(format, i, ch))) {
+    const length = runFrom(format, i, ch);
+    if (length > best.length) best = { at: i, length };
+  }
+  return best;
+}
+
 export const mapInfoLayout = defineLayout(
   'map_info',
   'uuuuufffussuuufuuu',
@@ -15,6 +32,11 @@ export const mapInfoLayout = defineLayout(
     // Three floats of its own ahead of the recall point
     { builds: '2.2.0 on', format: 'uuuuuffffffussuuufuuu', edits: [{ addsBefore: 5, count: 3 }] },
   ],
+  // The name and `.wld` path are the table's first two strings side by side.
+  format => {
+    const at = format.indexOf('ss');
+    return at < 0 ? {} : { name: at, world: at + 1 };
+  },
 );
 
 export const zoneLayout = defineLayout(
@@ -60,6 +82,20 @@ export const zoneLayout = defineLayout(
       edits: [{ addsBefore: 16, count: 2 }, { addsBefore: 36 }],
     },
   ],
+  // The sky is the table's one run of six strings (dome, hill, sun, an empty
+  // field, halo, an empty field) and the map glyph the next string after it.
+  format => {
+    const sky = longestRun(format, 's');
+    if (sky.length !== 6) return {};
+    const icon = format.indexOf('s', sky.at + sky.length);
+    return {
+      skyDome: sky.at,
+      skyHill: sky.at + 1,
+      skySun: sky.at + 2,
+      skyHalo: sky.at + 4,
+      ...(icon >= 0 ? { icon } : {}),
+    };
+  },
 );
 
 export const staticSpawnLayout = defineLayout(
@@ -79,6 +115,8 @@ export const staticSpawnLayout = defineLayout(
     // One scale, where later builds carry one per axis
     { builds: '1.0.0 to 1.0.3', format: 'uuuffffffuufuf', edits: [{ lacks: 12, count: 2 }] },
   ],
+  // One scale float at column 11, or one per axis.
+  format => (runFrom(format, 11, 'f') === 3 ? { scale: 11, scaleY: 12 } : { scale: 11 }),
 );
 
 export const staticProtoLayout = defineLayout(

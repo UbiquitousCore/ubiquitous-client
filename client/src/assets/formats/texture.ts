@@ -52,12 +52,14 @@ export function decodeTexture(
   if (split) {
     const colour = decodeTexture(split.colour, maxSize);
     const alpha = decodeTexture(split.alpha, maxSize).image;
-    if (alpha.width === colour.image.width && alpha.height === colour.image.height) {
+    // An alpha picture of another size cannot be laid over the colour one.
+    const fits = alpha.width === colour.image.width && alpha.height === colour.image.height;
+    if (fits) {
       for (let i = 0; i < alpha.pixels.length; i += 4) {
         colour.image.pixels[i + 3] = alpha.pixels[i]!;
       }
     }
-    return { image: colour.image, info: { ...colour.info, hasAlpha: true } };
+    return { image: colour.image, info: { ...colour.info, hasAlpha: fits } };
   }
 
   if (isPvr(data)) {

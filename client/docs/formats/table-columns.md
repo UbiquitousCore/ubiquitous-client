@@ -346,7 +346,7 @@ or one that is empty in every build on hand.
 |  |  |  |  |  | 116 | 116 | u |  | In 4.2.21, an item id on gems. |
 |  |  |  |  |  | 117 | 117 | u |  |  |
 |  |  |  |  |  |  | 118 | u |  |  |
-|  |  |  |  |  |  | 119 | u |  | In 4.2.21, 40, 60, 70 or 75 on weapons and armour: a Lesser, a plain and a Greater sword carry 40, 60 and 70. |
+|  |  |  |  |  |  | 119 | u |  | In 4.2.21, 40, 60, 70 or 75 on weapons and armour, rising with the item's grade. |
 |  |  |  |  |  |  | 120 | f |  |  |
 |  |  |  |  |  |  | 121-133 | s u |  | In 4.2.21, set on 18 items of class 16 only: id lists as strings, a spell id, and small numbers. |
 |  |  |  |  |  |  | 134-135 | u |  | In 4.2.21, on the 60 boxes of class 17: a time in seconds (1,800 to 43,200) and a count. |

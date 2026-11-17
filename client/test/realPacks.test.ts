@@ -7,7 +7,7 @@
 
 import { existsSync, openAsBlob, readdirSync, statSync } from 'node:fs';
 import { open } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -127,9 +127,10 @@ function tileFromName(name: string): [number, number] | null {
 }
 
 /**
- * The one build the suite reads: `$UBIQUITOUS_PACK`'s directory, else the
- * directory with the largest res.bin. Every pack comes from it, because one
- * build's tables do not describe another build's models.
+ * The one build the suite reads: `$UBIQUITOUS_PACK`'s directory, else a
+ * directory named 1.1.4, the build the client targets, else the one with the
+ * largest res.bin. Every pack comes from it, because one build's tables do not
+ * describe another build's models.
  */
 const HOME = ((): string | null => {
   const explicit = (process.env.UBIQUITOUS_PACK ?? '').trim();
@@ -142,6 +143,8 @@ const HOME = ((): string | null => {
       if (existsSync(p)) found.push(p);
     }
   }
+  const target = found.find(p => basename(dirname(p)) === '1.1.4');
+  if (target) return dirname(target);
   found.sort((a, b) => statSync(b).size - statSync(a).size || a.localeCompare(b));
   return found.length ? dirname(found[0]!) : null;
 })();
@@ -763,7 +766,6 @@ describe.skipIf(!TABLES)('tables.bin, from the user packs', () => {
     });
 
     expect(tables.rowsOf('zones').length).toBeGreaterThan(0);
-    expect([1, 3]).toContain(tables.spawnScaleAxes);
 
     const maps = tables.maps();
     expect(maps.length).toBeGreaterThan(0);

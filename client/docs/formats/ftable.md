@@ -84,6 +84,12 @@ column numbers:
 | `c_spellvisual` | before 1.1.4 | no ending phase (column 7) |
 | `c_spellvisualeffect` | 1.0.0 | no flight or projectile count |
 | `sound_solution` | before 1.1.4 | no column 15 |
+| `items` | 1.0.x to 1.1.1 | the last 8 or 4 columns are absent; 2.2.0 on add columns past 112 |
+| `creature_proto` | before 1.1.4 | column 55 is one vendor list as a number where 1.1.4 writes several as text; the row ends at 64 (through 1.0.3) or 68 |
+| `creature_proto` | 2.5.0 on | columns past 73 |
+| `creature_spawns` | 1.0.0, 1.0.1 | the last 7 columns are absent |
+| `t_bus_route` | 1.0.3 to 1.1.1, 4.2.21 | no fifth column through 1.1.1; 4.2.21 adds a sixth |
+| `spell_effect` | 4.2.21 | four columns past 23 |
 
 Only 20 of the 496 tables change format anywhere from 1.0.0 to 4.2.21, and
 none swaps two columns of the same type: lining every same-format table up
@@ -106,7 +112,7 @@ Numbers are the build's own column numbers.
 | `spell_new` | 4.2.21 | 71 to 73 | small numbers on a few dozen spells; 73 runs 50 to 72 on about 1,000. Not settled |
 | `items` | 2.2.0 on | 113 (string) | a price in other items, written `<item id> * <count>` and joined with `+`; every id is an item (393 of 393 in 2.2.0, 2,429 of 2,429 in 4.2.21) |
 | `items` | 4.2.21 | 116 | on gems, an item id |
-| `items` | 4.2.21 | 119 | 40, 60, 70 or 75 on weapons and armour; a Lesser, a plain and a Greater sword carry 40, 60 and 70 |
+| `items` | 4.2.21 | 119 | 40, 60, 70 or 75 on weapons and armour, rising with the item's grade |
 | `items` | 4.2.21 | 121 to 133 | set on 18 items of class 16 only: id lists as strings, a spell id, and small numbers |
 | `items` | 4.2.21 | 134, 135 | on the 60 class-17 boxes: a time in seconds (1,800 to 43,200) and a count |
 | `creature_proto` | 2.5.0 on | 74 | 0 or 1 |

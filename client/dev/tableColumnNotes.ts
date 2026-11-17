@@ -84,7 +84,7 @@ export const COLUMN_NOTES: Readonly<Record<string, Readonly<Record<string, strin
       'From 2.2.0 a string: a price in other items, written `<item id> * <count>` and joined with `+`; every id is an item. The number 1.0.3 to 1.1.1 end on is a different column.',
     '113+3': 'In 4.2.21, an item id on gems.',
     '113+6':
-      'In 4.2.21, 40, 60, 70 or 75 on weapons and armour: a Lesser, a plain and a Greater sword carry 40, 60 and 70.',
+      "In 4.2.21, 40, 60, 70 or 75 on weapons and armour, rising with the item's grade.",
     '113+8-20':
       'In 4.2.21, set on 18 items of class 16 only: id lists as strings, a spell id, and small numbers.',
     '113+21-22':

@@ -175,6 +175,7 @@ export function decodeLzma(
       if (at === 0) throw new LzmaError('a repeat with nothing written yet');
       if (rc.bit(isRepG0, state) === 0) {
         if (rc.bit(isRep0Long, (state << 4) + posState) === 0) {
+          if (rep0 >= at) throw new LzmaError('a match reaches back past the start');
           state = state < 7 ? 9 : 11;
           out[at] = out[at - rep0 - 1]!;
           at++;

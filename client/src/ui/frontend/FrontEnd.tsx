@@ -2,7 +2,7 @@
 
 import { render } from 'preact';
 import type { JSX } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 import { ArtChooseCharacter, CHARACTERS_SCREEN } from './ArtChooseCharacter';
 import { ArtMakeCharacter, STEP_SCREEN } from './ArtMakeCharacter';
@@ -36,12 +36,36 @@ const STAGE_INSET = 0.12;
  */
 const TURN_PER_WIDTH = Math.PI * 6;
 
+/**
+ * How long a screen waits on a movie that has not arrived before standing a
+ * fallback in. Own choice: longer than the movie takes to read on a slow phone,
+ * short enough that a build with no movie is not left on bare ground.
+ */
+const MOVIE_GRACE_MS = 4000;
+
+/**
+ * Whether the plain fallback should show. A build that answers it has no such
+ * panel shows it at once; one still reading its movie does not, or a 1.1.4
+ * player would see, and type into, a form that is swapped out a moment later.
+ */
+function useFallsBack(worn: boolean, screen: string | null): boolean {
+  const reason = worn || !screen ? null : (screenFallback(screen)?.reason ?? 'no-movie');
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    setWaited(false);
+    if (reason !== 'no-movie') return;
+    const timer = setTimeout(() => setWaited(true), MOVIE_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [reason, screen]);
+  if (reason === null) return false;
+  return reason !== 'no-movie' || waited;
+}
+
 export function FrontEnd(): JSX.Element | null {
   const at = stage.value;
   const canvas = useRef<HTMLCanvasElement>(null);
-  // Whether the build has a panel for the screen showing. Without one —
-  // no screen spec, or a build whose movie has no such panel — that step
-  // shows only the ground.
+  // Whether the build has a panel for the screen showing. Without one, a
+  // plain fallback stands in, once the build has said so: see `fallsBack`.
   const wornSignIn = useWornScreen(SIGN_IN_SCREEN) !== null;
   const wornList = useWornScreen(CHARACTERS_SCREEN) !== null;
   const wornStep = useWornScreen(STEP_SCREEN[at] ?? '') !== null;
@@ -53,14 +77,16 @@ export function FrontEnd(): JSX.Element | null {
         ? CHARACTERS_SCREEN
         : (STEP_SCREEN[at] ?? null);
 
+  const fallsBack = useFallsBack(worn, fallenBack);
+
   // Which steps fell back, and why: the compatibility report for builds
   // whose movies carry no panels of their own.
   useEffect(() => {
-    if (worn || !fallenBack) return;
+    if (!fallsBack || !fallenBack) return;
     const reason = screenFallback(fallenBack)?.reason ?? 'unknown';
     logger('front-end').info(`fallback screen for ${at}: ${fallenBack} ${reason}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [at, worn]);
+  }, [at, fallsBack]);
 
   useEffect(() => {
     const element = canvas.current;
@@ -125,7 +151,7 @@ export function FrontEnd(): JSX.Element | null {
               <ArtMakeCharacter />
             )}
           </WornStage>
-        ) : (
+        ) : !fallsBack ? null : (
           <>
             {at === 'signIn' && <FallbackSignIn />}
             {at === 'characters' && <FallbackCharacters />}

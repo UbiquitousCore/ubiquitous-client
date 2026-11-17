@@ -408,11 +408,6 @@ export class WorldTables {
   /** Where each table's named columns sit in this build's formats. */
   columns!: TableColumns;
 
-  /** One scale per placement in the oldest builds, one per axis since. Callers must use the scalar. */
-  get spawnScaleAxes(): number {
-    return this.columns.staticSpawns.scaleY >= 0 ? 3 : 1;
-  }
-
   private constructor() {}
 
   static async load(read: (entry: string) => Promise<Uint8Array | null>): Promise<WorldTables> {
@@ -815,7 +810,7 @@ export class WorldTables {
     if (own?.hurt) return own;
 
     const bodies = this.rowsOf('character_race').map(row => ({
-      race: num(row[0]),
+      race: num(row[this.columns.races.id]),
       male: num(row[this.columns.races.maleDisplay]),
       female: num(row[this.columns.races.femaleDisplay]),
     }));
